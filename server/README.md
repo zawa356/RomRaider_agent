@@ -23,6 +23,8 @@ Dockerfile / docker-compose.yml / Caddyfile / .env.example
 
 ## 2. エンドポイント
 
+全体の接続規約（RRBridge側を含む）は `docs/10_interfaces.md`（C11〜C13）が正本。
+
 | パス | 方法 | 認証 | 内容 |
 | --- | --- | --- | --- |
 | `/health` | GET | なし | `{"ok":true,"service":"rrbridge-server","version":…,"db":"postgres"}` |

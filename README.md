@@ -3,7 +3,7 @@
 RomRaider Logger を外部から操作し、ロギング中のデータをリアルタイムにサーバーへ転送するための Java エージェントです。
 RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ませて動かします。
 
-> **AIエージェントへ**: 作業前に [`AGENTS.md`](AGENTS.md) と [`docs/00_index.md`](docs/00_index.md) を読んでください。経緯は [`docs/07_history.md`](docs/07_history.md)、決定理由は [`docs/08_decisions.md`](docs/08_decisions.md) にあります。
+> **AIエージェントへ**: 作業前に [`AGENTS.md`](AGENTS.md) と [`docs/00_index.md`](docs/00_index.md) を読んでください。部品間の接続規約（何を受け取り、何を送るか）は [`docs/10_interfaces.md`](docs/10_interfaces.md) が正本です。経緯は [`docs/07_history.md`](docs/07_history.md)、決定理由は [`docs/08_decisions.md`](docs/08_decisions.md) にあります。
 
 ## 1. 位置づけ
 

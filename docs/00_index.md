@@ -11,6 +11,7 @@
 | `07_history.md` | 時系列の作業履歴（ChatGPT時代の検討〜2026-10-12のCowork作業、失敗と対処を含む） | 全員 |
 | `08_decisions.md` | 決定記録（ADR形式：背景・選択肢・決定・結果） | 設計 |
 | `09_open_issues.md` | 未解決事項、技術的負債、次の作業と実車試験計画 | 全員 |
+| `10_interfaces.md` | **接続規約**: すべての接続口（RomRaider内部、操作ファイル／HTTP、状態、プロファイル、設定、転送形式、受信API、MCPツール、DBスキーマ、将来の接続口）の入出力・認証・エラー・互換性規則。接続口を変えたら必ず更新 | 全員 |
 | `handoff/` | 会話間の引継ぎ資料（原典、全文） | 全員 |
 | `../archive/README.md` | X270から回収した実データと検証記録（実車CSV、spool、応答JSON、ログ、受信DB、RomRaider設定） | 解析・検証 |
 | `../server/README.md` | 受信API＋Remote MCPサーバー（Python）の構成・ツール・試験・配置手順・音声モード検証手順 | 実装・運用 |

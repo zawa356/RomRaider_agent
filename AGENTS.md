@@ -13,6 +13,7 @@
 4. `docs/03_rrbridge_design.md`（コードの設計と各クラスの責務）
 5. `docs/04_romraider_internals.md`（依存しているRomRaider内部の箇所。バージョン差異の確認に必須）
 6. `docs/09_open_issues.md`（未解決事項と次の作業候補）
+7. `docs/10_interfaces.md`（**接続規約**。部品間で何を受け取り何を送るか。接続口を変える前に必ず読む）
 
 `docs/handoff/` には、ユーザーがChatGPT／Claudeの会話をまたいで使っている引継ぎ資料の全文があります（設計検討の原典）。
 
@@ -118,4 +119,5 @@ RR_TEST_PG_URL=postgresql://user@host:port/db python -m pytest -q tests   # Post
 - 「実機で確認した」「コード調査のみ」「推測」「ユーザーの発言」を区別して書く。
 - 数値（周期、遅延、件数、バイト数）は測定条件とともに残す。
 - 引継ぎ資料（`docs/handoff/`）はユーザーがChatGPTのLibraryとClaudeのProjectでも共有している。更新したら同じ内容をProject側にも反映するとよい。
+- **接続口（コマンド、status のキー、転送形式、受信API、MCPツール、DBスキーマ、設定キー）を追加・変更したら、`docs/10_interfaces.md` を同じコミットで更新する。** 互換性の規則は同文書 §15。
 - コミットメッセージは日本語可。変更理由を書く。
