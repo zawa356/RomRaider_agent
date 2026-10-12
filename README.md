@@ -1,5 +1,7 @@
 # RomRaider_agent（RRBridge）
 
+> **RomLogger製品全体の要件定義（正本）**: [RomRaiderServer/docs/system_requirements.md](https://github.com/zawa356/RomRaiderServer/blob/main/docs/system_requirements.md)。このリポジトリの既存文書はRRBridgeの当時の設計・PoC制約を含みます。製品版の要求（走行中のプロファイル切替目標、AI連携範囲、保存要件など）は上記正本を確認してください。実装上の接続規約の正本は引き続き [docs/10_interfaces.md](docs/10_interfaces.md) です。
+
 RomRaider Logger を外部から操作し、ロギング中のデータをリアルタイムにサーバーへ転送するための Java エージェントです。
 RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ませて動かします。
 
