@@ -1,0 +1,1 @@
+{"ok":false,"cmd":"reset_ecu","error":"unknown command. allowed: status, logging_start, logging_stop, filelog_start, filelog_stop, load_profile"}

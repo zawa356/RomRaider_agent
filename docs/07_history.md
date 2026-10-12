@@ -109,6 +109,16 @@
 - `list_*` ツールが配列を返すとMCPの応答が要素ごとの複数contentに分かれたため、`{"sessions":[…]}`／`{"events":[…]}` の形に変更。
 - Docker デーモンがないため、イメージのビルドと起動は未確認（`docker compose config -q` で構文のみ確認）。
 
+## フェーズ10: 別経路でのMCP呼び出し成功、ローカルデータの回収（13:40ごろ）
+
+- ユーザー発言 [ユーザー発言]: 「別経路で、MCPをChatGPTのプラグイン等から呼び出すことは成功しました」。どのMCPサーバー（このリポジトリの `server/` か、別に作ったものか）、どのクライアント・プラン・接続方法（公開URL、認証）、音声モードかどうかは未確認。
+- ユーザー依頼「エージェントの方で作ったやつが多分まだローカルにあるデータがあると思うので全部GitHubに上げてください」。
+  - リポジトリ側（コード・ドキュメント）は全コミットpush済み（`f66b3b0`）で、未pushの変更はなかった。
+  - X270上にしか無かったものを `archive/` に回収: 実車CSV（2026-09-21、11本）、試験で作られたCSV、`outbox` の応答JSON 32件、spool（TSV）、`rrbridge.log`、`status.json`、Java版受信サーバーのログとSQLite（WALをチェックポイントして1ファイル化）、`.RomRaider` の `settings.xml`・`profile_backup.xml`・`rr_system.log`。一覧は `archive/README.md`。
+  - 2026-10-10 の ChatGPT 版引継ぎ資料（原本）も `docs/handoff/` に追加。
+  - ルートの `.gitignore`（`status.json`、`rrbridge.log` 等）が `archive/` 内まで除外してしまうため、`!archive/**` を追加。ディレクトリ名は既存の除外（`data/`、`outbox/`、`spool/`）と重ならない名前にした。
+  - `Downloads` の `OpenPort_X270_*.md` と `Documents\Codex` はフォルダのアクセス許可の確認がタイムアウトし、未回収。
+
 ## 2026-10-12 時点のX270の状態
 
 - RomRaider: RRBridge v0.4.0 付きで起動中（13:00時点）、ロギング停止、プロファイル fuel.xml、session `20261012_125843`。

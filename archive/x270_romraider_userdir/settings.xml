@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="ISO-8859-1"?><settings>
+    <window>
+        <maximized value="false"/>
+        <size x="600" y="800"/>
+        <location x="283" y="84"/>
+        <splitpane location="150"/>
+    </window>
+    <files>
+        <image_dir path="C:\Users\zawa\Documents\OpenPortWork\ROM"/>
+        <def_dir path="C:\Program Files (x86)\RomRaider\definitions"/>
+        <repository-dir path="C:\Program Files (x86)\RomRaider\repositories"/>
+        <ecudefinitionfile name="C:\Program Files (x86)\RomRaider\definitions\ecu\metric\ecu_defs.xml"/>
+    </files>
+    <options>
+        <obsoletewarning value="true"/>
+        <calcconflictwarning value="true"/>
+        <debug value="false"/>
+        <userlevel value="1"/>
+        <tableclickcount value="1"/>
+        <tableclickbehavior value="0"/>
+        <tabletreesorted value="false"/>
+        <version value="1.1.0 NOV26 2025"/>
+        <savedebugtables value="true"/>
+        <displayhightables value="true"/>
+        <valuelimitwarning value="true"/>
+        <coloraxis value="false"/>
+        <showtabletoolbarborder value="false"/>
+        <openromexpanded value="true"/>
+        <alwaysopentableatzero value="false"/>
+        <defaultscale value="Metric"/>
+        <scaleHeadersAndData value="true"/>
+    </options>
+    <tabledisplay>
+        <font face="Arial" size="11" decoration="1"/>
+        <cellsize height="18" width="42"/>
+        <colors>
+            <max r="255" g="102" b="102"/>
+            <min r="153" g="153" b="255"/>
+            <highlight r="27" g="161" b="226"/>
+            <select r="204" g="204" b="204"/>
+            <increaseborder r="255" g="0" b="0"/>
+            <decreaseborder r="0" g="0" b="255"/>
+            <axis r="255" g="255" b="255"/>
+            <warning r="255" g="0" b="0"/>
+            <livevalue r="0" g="255" b="0"/>
+            <curlivevalue r="255" g="0" b="255"/>
+        </colors>
+    </tabledisplay>
+    <logger locale="system">
+        <autoConnectOnStartup value="false"/>
+        <serial port="" refresh="false"/>
+        <protocol name="SSM" transport="ISO9141" module="ECU" fastpoll="false" library=""/>
+        <maximized value="false"/>
+        <size x="735" y="697" divider="400"/>
+        <location x="-7" y="0"/>
+        <tabs selected="0" showlist="true"/>
+        <definition path="C:/Program Files (x86)/RomRaider/definitions/logger/v370/logger_METRIC_EN_v370.xml"/>
+        <profile path=""/>
+        <filelogging path="C:\Users\zawa\Documents\OpenPortWork\Logs" switchid="S20" active="true" absolutetimestamp="false"/>
+        <debug level="info"/>
+        <plugins>
+            <plugin id="com.romraider.logger.external.phidget.interfacekit.plugin.IntfKitDataSource" port="HID USB"/>
+        </plugins>
+        <gauge index="0"/>
+        <dyno car="Missing cars_def.xml" gear="" threshold="98.0" units="%"/>
+    </logger>
+    <table-clipboard-format format-string="Default">
+        <table table-header="[Table1D]&#13;&#10;"/>
+        <table1D table-header=""/>
+        <table2D table-header="[Table2D]&#13;&#10;"/>
+        <table3D table-header="[Table3D]&#13;&#10;"/>
+    </table-clipboard-format>
+    <icons>
+        <editor-toolbar scale="50"/>
+        <table-toolbar scale="70"/>
+    </icons>
+</settings>

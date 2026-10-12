@@ -12,6 +12,7 @@
 | `08_decisions.md` | 決定記録（ADR形式：背景・選択肢・決定・結果） | 設計 |
 | `09_open_issues.md` | 未解決事項、技術的負債、次の作業と実車試験計画 | 全員 |
 | `handoff/` | 会話間の引継ぎ資料（原典、全文） | 全員 |
+| `../archive/README.md` | X270から回収した実データと検証記録（実車CSV、spool、応答JSON、ログ、受信DB、RomRaider設定） | 解析・検証 |
 | `../server/README.md` | 受信API＋Remote MCPサーバー（Python）の構成・ツール・試験・配置手順・音声モード検証手順 | 実装・運用 |
 
 記述の確度の表記:

@@ -1,0 +1,1 @@
+{"ok":false,"cmd":"switch_profile","error":"profile must be an existing file name in profiles dir (pattern [A-Za-z0-9_.-]+\\.xml): ../x.xml"}

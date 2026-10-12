@@ -1,0 +1,44 @@
+2026-10-12T12:03:10.731+09:00 agent loaded v0.1.0 dir=C:\Users\zawa\Documents\OpenPortWork\RRBridge
+2026-10-12T12:03:22.131+09:00 EcuLogger instance found
+2026-10-12T12:03:23.626+09:00 http listening on 127.0.0.1:18765
+2026-10-12T12:03:34.086+09:00 cmd {cmd=status}
+2026-10-12T12:03:34.539+09:00 cmd {profile=basic.xml, cmd=load_profile}
+2026-10-12T12:03:35.665+09:00 cmd {profile=../../.RomRaider/settings.xml, cmd=load_profile}
+2026-10-12T12:03:36.107+09:00 cmd {cmd=reset_ecu}
+2026-10-12T12:03:46.104+09:00 cmd {cmd=logging_start}
+2026-10-12T12:03:49.952+09:00 cmd {cmd=filelog_start}
+2026-10-12T12:03:54.453+09:00 cmd {cmd=status}
+2026-10-12T12:03:54.970+09:00 cmd {profile=fuel.xml, cmd=load_profile}
+2026-10-12T12:03:59.009+09:00 cmd {cmd=status}
+2026-10-12T12:03:59.702+09:00 cmd {cmd=filelog_stop}
+2026-10-12T12:04:00.246+09:00 cmd {cmd=logging_stop}
+2026-10-12T12:04:04.183+09:00 cmd {cmd=status}
+2026-10-12T12:05:13.061+09:00 agent loaded v0.2.0 dir=C:\Users\zawa\Documents\OpenPortWork\RRBridge
+2026-10-12T12:05:22.589+09:00 EcuLogger instance found
+2026-10-12T12:05:23.609+09:00 http listening on 127.0.0.1:18765
+2026-10-12T12:05:35.558+09:00 cmd {profile=basic.xml, cmd=switch_profile}
+2026-10-12T12:05:36.621+09:00 cmd {cmd=logging_start}
+2026-10-12T12:05:39.435+09:00 cmd {cmd=filelog_start}
+2026-10-12T12:05:43.743+09:00 cmd {profile=fuel.xml, cmd=switch_profile}
+2026-10-12T12:05:49.110+09:00 cmd {profile=basic.xml, cmd=switch_profile}
+2026-10-12T12:05:54.572+09:00 cmd {cmd=filelog_stop}
+2026-10-12T12:05:55.107+09:00 cmd {cmd=logging_stop}
+2026-10-12T12:14:42.318+09:00 agent loaded v0.3.0 dir=C:\Users\zawa\Documents\OpenPortWork\RRBridge
+2026-10-12T12:14:52.977+09:00 EcuLogger instance found
+2026-10-12T12:14:52.999+09:00 stream installed (handlers=10, session=20261012_121452, sink=http://127.0.0.1:18766/ingest)
+2026-10-12T12:14:54.256+09:00 http listening on 127.0.0.1:18765
+2026-10-12T12:15:02.569+09:00 cmd {hz=8, count=80, cmd=selftest_stream}
+2026-10-12T12:15:15.172+09:00 cmd {cmd=stream_status}
+2026-10-12T12:16:00.979+09:00 cmd {cmd=stream_status}
+2026-10-12T12:19:15.714+09:00 cmd {hz=8, count=240, cmd=selftest_stream}
+2026-10-12T12:58:43.462+09:00 agent loaded v0.4.0 dir=C:\Users\zawa\Documents\OpenPortWork\RRBridge httpAuth=off settleMs=1500
+2026-10-12T12:58:53.499+09:00 EcuLogger instance found
+2026-10-12T12:58:53.520+09:00 stream installed (handlers=10, session=20261012_125843, sink=http://127.0.0.1:18766/ingest)
+2026-10-12T12:58:54.440+09:00 http listening on 127.0.0.1:18765
+2026-10-12T12:59:09.725+09:00 cmd {profile=../x.xml, cmd=switch_profile}
+2026-10-12T12:59:10.394+09:00 cmd {wait_ms=3000, cmd=logging_start}
+2026-10-12T12:59:11.251+09:00 cmd {cmd=filelog_start}
+2026-10-12T12:59:11.819+09:00 cmd {profile=fuel.xml, cmd=switch_profile}
+2026-10-12T12:59:13.657+09:00 switch_profile fuel.xml took 1836ms (filelogRestarted=true)
+2026-10-12T12:59:14.106+09:00 cmd {hz=8, count=160, cmd=selftest_stream}
+2026-10-12T12:59:37.687+09:00 cmd {wait_ms=3000, cmd=logging_stop}

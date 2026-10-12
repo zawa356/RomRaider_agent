@@ -1,0 +1,1 @@
+Time (msec),Engine Speed (rpm),Throttle Opening Angle (%),Manifold Relative Pressure (kPa),Target Boost (4-byte)* (kPa absolute),Boost Error* (kPa),Primary Wastegate Duty Maximum* (4-byte)* (%),Primary Wastegate Duty Maximum* (4-byte)* (%),Turbo Dynamics Proportional (4-byte)* (absolute %),Turbo Dynamics Integral (4-byte)* (absolute %)

@@ -14,3 +14,6 @@ rrbridge.log
 *.tmp
 # 認証情報を含むため実ファイルはコミットしない
 sink.properties
+
+# archive/ は検証記録として意図的に保存する（上の status.json / rrbridge.log 等の除外を打ち消す）
+!archive/**

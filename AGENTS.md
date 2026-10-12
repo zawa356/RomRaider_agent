@@ -55,6 +55,8 @@
 | `switch_profile` で1区間1CSV | 実機で確認済み |
 | リアルタイム転送（spool → HTTP → SQLite） | 合成データ（`selftest_stream`）で経路確認済み。平均273ms・最大533msの遅延。受信停止中の80サンプルを復旧後に全件再送 |
 | 実ECUデータがハンドラーに届くこと | **未確認**（取り付けは成功。ECUがつながればすぐ確認可能） |
+| ChatGPTからのMCP呼び出し | ユーザーが別経路で成功と報告（2026-10-12、詳細未確認） |
+| 実データ | `archive/`（2026-09-21の実車CSV 11本ほか。`archive/README.md`） |
 | 受信API＋MCPサーバー（`server/`） | 試作 v0.1.0。自動試験32件PASS（SQLite／PostgreSQL 16）。VPS未配置。Claudeからの接続・音声モードは未検証 |
 | Supervisor（計測計画の実行・検証） | 未着手 |
 | LLMの無人起動方法 | 未解決（最大の課題） |
