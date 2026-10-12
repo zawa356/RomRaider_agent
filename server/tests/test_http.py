@@ -60,7 +60,7 @@ def test_mcp_tools(server):
     assert init.json()["result"]["serverInfo"]["name"] == "rrbridge-telemetry"
     tools = rpc(server, "tools/list", id_=2).json()["result"]["tools"]
     names = {t["name"] for t in tools}
-    assert names == {"get_vehicle_status", "list_sessions", "list_segments", "get_segment_stats", "get_recent_values",
+    assert names == {"get_vehicle_status", "get_acquisition_health", "list_sessions", "list_segments", "get_segment_stats", "get_recent_values",
                      "list_events", "query_telemetry", "add_event_marker"}
     ro = {t["name"]: t.get("annotations", {}).get("readOnlyHint") for t in tools}
     assert ro["get_vehicle_status"] is True and ro["add_event_marker"] is False

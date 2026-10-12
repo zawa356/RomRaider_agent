@@ -47,7 +47,8 @@ class Database:
 
     # ---- 基本操作 ----
     def _sql(self, sql: str) -> str:
-        return sql.replace("?", "%s") if self.kind == "postgres" else sql
+        # psycopg は % を書式として解釈するため、リテラルの % を %% にしてから ? を %s にする
+        return sql.replace("%", "%%").replace("?", "%s") if self.kind == "postgres" else sql
 
     def init_schema(self) -> None:
         serial = "BIGSERIAL" if self.kind == "postgres" else "INTEGER"

@@ -46,6 +46,47 @@ public final class SelfTest {
         check("list_profiles basic=6 fuel=7", lp.contains("\"name\":\"basic.xml\"") && lp.contains("\"count\":6") && lp.contains("\"count\":7"));
         check("list_profiles includes P8", lp.contains("\"P8\""));
 
+        // --- 取得速度ガード関連（v0.5.0） ---
+        check("default maxParams 20", Agent.maxParams == 20);
+        check("guard on by default", Agent.guardEnabled && Agent.guardMinRateHz == 2.0);
+        // 21項目のプロファイルは allowed=false
+        StringBuilder big = new StringBuilder("<?xml version=\"1.0\"?>\n<profile protocol=\"SSM\">\n<parameters>\n");
+        for (int i = 1; i <= 21; i++) big.append("<parameter id=\"P").append(i).append("\" units=\"x\" livedata=\"selected\"/>\n");
+        big.append("<parameter id=\"P99\" units=\"x\"/>\n</parameters>\n</profile>\n");
+        write(new File(Agent.profilesDir, "big21.xml"), big.toString());
+        check("selectedIds counts only selected", Agent.selectedIds(new File(Agent.profilesDir, "big21.xml")).size() == 21);
+        String lp2 = Agent.execute(map("cmd", "list_profiles"));
+        check("list_profiles marks big21 not allowed", lp2.contains("\"name\":\"big21.xml\",\"selected\"") && lp2.contains("\"count\":21,\"allowed\":false"));
+        check("list_profiles marks basic allowed", lp2.contains("\"count\":6,\"allowed\":true"));
+
+        // 速度計測: 125ms間隔で40件 → 8Hz、p95=125
+        Stream rs = new Stream();
+        long base = 1_000_000L;
+        for (int i = 0; i < 40; i++) rs.recordSample(base + i * 125);
+        long nowT = base + 39 * 125;
+        check("rateHz ~8", Math.abs(rs.rateHz(10000, nowT) - 8.0) < 0.01);
+        check("intervalP95 125", rs.intervalP95(10000, nowT) == 125);
+        check("rate window excludes old", rs.rateHz(1000, nowT + 5000) == 0);
+        // 間隔が乱れた場合
+        Stream rs2 = new Stream();
+        for (int i = 0; i < 20; i++) rs2.recordSample(base + i * (i % 10 == 9 ? 3000 : 400));
+        check("rate drops with gaps", rs2.rateHz(60000, base + 100000) < 2.0);
+
+        // 通信状態の判定（RomRaider 1.1.0 の実際のログ文言）
+        LinkMonitor lm = new LinkMonitor();
+        lm.classify("INFO", "J2534/ISO9141 connection initialised", "", 1000);
+        lm.classify("INFO", "ECU ID = 2F04785006", "", 1001);
+        lm.classify("ERROR", "Error occurred", "readMsg error: timeout expired waiting for 51 more bytes", 2000);
+        lm.classify("ERROR", "Error sending init: readMsg error: timeout expired waiting for 2 more message(s)", "", 3000);
+        lm.classify("ERROR", "Error sending init: Parameter portName must not be null or empty", "", 4000);
+        lm.classify("INFO", "TX Manager Started.", "", 5000);
+        check("link connects 1", lm.connects.get() == 1);
+        check("link ecuId parsed", lm.ecuId.equals("2F04785006") && lm.ecuInits.get() == 1);
+        check("link errors 3", lm.errors.get() == 3);
+        check("link lastError has throwable text", lm.lastError.contains("Error sending init") );
+        lm.ensureAttached(); // log4j が無い環境では失敗を記録するだけで例外を出さない
+        check("link attach without log4j is safe", lm.attachResult.startsWith("attach failed") || lm.attachResult.startsWith("attached"));
+
         // --- Stream → Receiver ---
         write(new File(root, "sink.properties"), "url=http://127.0.0.1:" + port + "/ingest\ntoken=" + token + "\n");
         Stream st = Stream.INSTANCE;

@@ -7,3 +7,14 @@ switch.settleMs=1500
 log.maxBytes=5242880
 # 送信済みspoolを残す日数（0以下で削除しない）。未送信のものと現在のセッションは消さない
 spool.retentionDays=14
+# --- 取得速度ガード（v0.5.0〜）---
+# プロファイルで選択できる項目数の上限。超えるプロファイルは読み込まない（0で無制限）
+# 実績: 8項目で約8Hz、13〜14項目で3〜4Hz、18〜19項目で約2.7Hz（2026-09-21 実車）
+profile.maxParams=20
+# 切替後に取得周波数が下限を割ったら、直前のプロファイルへ自動で戻す
+guard.enabled=true
+guard.minRateHz=2.0
+# 切替（＋switch.settleMs）後に速度を測る時間（ms、3000〜60000）
+guard.checkMs=10000
+# 直前のプロファイルが分からないとき（起動直後など）に戻す先
+guard.fallbackProfile=basic.xml

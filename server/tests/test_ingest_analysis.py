@@ -92,3 +92,23 @@ def test_query_timeout(db):
     with pytest.raises(TimeoutError):
         cols, rows, t = db.readonly_select(sql, timeout_ms=200)
     assert db_kind in ("sqlite", "postgres")
+
+
+def test_acquisition_health(db):
+    t0 = 1_700_000_000_000
+    ingest(db, sample_body(n=20, t0=t0, step_ms=125))
+    h = analysis.acquisition_health(db, now_ms=t0 + 19 * 125 + 100)
+    assert h["rateHz"] == 8.0 and h["params"] == 2 and h["ok"] is True
+    # health / link_error イベント
+    ingest(db, f"E\tS1\t1\t{t0 + 2000}\thealth rate_hz=7.95 samples=80 params=2 interval_p95_ms=126 link_errors=0 link_connects=1\n"
+               f"E\tS1\t1\t{t0 + 2100}\tlink_error count=1 Error occurred / readMsg error: timeout expired waiting for 51 more bytes\n")
+    h = analysis.acquisition_health(db, now_ms=t0 + 2500)
+    assert h["lastHealth"]["rate_hz"] == 7.95 and h["lastHealth"]["params"] == 2
+    assert h["ok"] is False and any("通信エラー" in w for w in h["warnings"])
+
+
+def test_acquisition_health_slow(db):
+    t0 = 1_700_000_000_000
+    ingest(db, sample_body(n=6, t0=t0, step_ms=900))
+    h = analysis.acquisition_health(db, now_ms=t0 + 5 * 900)
+    assert h["rateHz"] < 2.0 and h["ok"] is False and "下限" in h["warnings"][0]

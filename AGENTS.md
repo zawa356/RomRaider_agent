@@ -50,14 +50,15 @@
 
 | 項目 | 状態 |
 | --- | --- |
-| バージョン | RRBridge v0.4.0（2026-10-12 12:58 にX270へ配置済み） |
+| バージョン | RRBridge v0.5.0（2026-10-12 13:56 にX270へ配置済み） |
 | 外部制御（status / logging / filelog / profile） | X270実機で動作確認済み（ECUは無応答の状態） |
 | `switch_profile` で1区間1CSV | 実機で確認済み |
 | リアルタイム転送（spool → HTTP → SQLite） | 合成データ（`selftest_stream`）で経路確認済み。平均273ms・最大533msの遅延。受信停止中の80サンプルを復旧後に全件再送 |
+| 取得速度ガード（v0.5.0） | 項目数上限（20）での拒否、log4j経由の通信エラー計数、health イベント送信は実機確認済み。切替後の速度低下による自動復帰は**ECUデータが無いため実機未確認**（単体試験のみ） |
 | 実ECUデータがハンドラーに届くこと | **未確認**（取り付けは成功。ECUがつながればすぐ確認可能） |
 | ChatGPTからのMCP呼び出し | ユーザーが別経路で成功と報告（2026-10-12、詳細未確認） |
 | 実データ | `archive/`（2026-09-21の実車CSV 11本ほか。`archive/README.md`） |
-| 受信API＋MCPサーバー（`server/`） | 試作 v0.1.0。自動試験32件PASS（SQLite／PostgreSQL 16）。VPS未配置。Claudeからの接続・音声モードは未検証 |
+| 受信API＋MCPサーバー（`server/`） | 試作 v0.1.0（+取得速度の健全性ツール）。自動試験36件PASS（SQLite／PostgreSQL 16）。VPS未配置。Claudeからの接続・音声モードは未検証 |
 | Supervisor（計測計画の実行・検証） | 未着手 |
 | LLMの無人起動方法 | 未解決（最大の課題） |
 
@@ -104,6 +105,8 @@ RR_TEST_PG_URL=postgresql://user@host:port/db python -m pytest -q tests   # Post
 - CSVの列順はプロファイルXMLの記載順と一致しない。ETLは列名で対応付ける。
 - `logging_start`／`logging_stop` は非同期。完了を待つときは `wait_ms`（最大10000）を付ける。
 - `logging_stop` はCSV記録中なら先に記録を止める（v0.4.0〜）。
+- **K-Lineの帯域に注意**（v0.5.0〜）: 項目を増やすと周期が延び、多すぎると応答待ちのタイムアウトで全データが取れなくなる（2026-09-21 に実害あり）。`profile.maxParams`（既定20）を超えるプロファイルは拒否し、切替前に2Hz以上で取れていて切替後に下回れば直前のプロファイルへ自動復帰する（`guard.*`）。このガードを弱める変更をするときはユーザーに確認する。
+- `LinkMonitor` は log4j 1.2 の `Appender` を `java.lang.reflect.Proxy` で実装してルートロガーに追加し、RomRaiderのログ文言（`connection initialised`、`ECU ID = `、`Error sending init`、`readMsg`）で通信状態を数える。RomRaiderのログ文言が変わると数えられなくなる。
 - `Util` は受信サーバー（rrreceiver.jar）にも入るので、`com.romraider.*`、`Agent`、`Stream` を参照させない。
 - バッチファイルは CRLF（`.gitattributes` で指定）。`start-romraider-with-bridge.bat` は作業ディレクトリをRomRaiderのインストール先にする必要がある（相対パス依存。`docs/04_romraider_internals.md` §6）。
 

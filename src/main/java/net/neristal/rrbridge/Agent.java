@@ -29,9 +29,14 @@ import java.util.regex.Pattern;
  *   switch.settleMs=1500   switch_profile で読込後CSV記録を再開するまでの待ち
  *   log.maxBytes=5242880   rrbridge.log の上限（超えたら rrbridge.log.1 に退避）
  *   spool.retentionDays=14 送信済みspoolを残す日数（0以下で削除しない）
+ *   profile.maxParams=20   プロファイルで選択できる項目数の上限（超えるものは読み込まない。0で無制限）
+ *   guard.enabled=true     切替後に取得速度が落ちたら自動で元のプロファイルに戻す
+ *   guard.minRateHz=2.0    これを下回ったら「取れていない」とみなす
+ *   guard.checkMs=10000    切替（＋settleMs）後、速度を測る時間
+ *   guard.fallbackProfile= 直前のプロファイルが分からないときに戻す先（例 basic.xml）
  */
 public final class Agent {
-    static final String VERSION = "0.4.0";
+    static final String VERSION = "0.5.0";
     static final Pattern PROFILE_NAME = Pattern.compile("[A-Za-z0-9_.-]+\\.xml");
     /** 読み取り専用コマンド（排他ロック不要、HTTPでGET可） */
     static final Set<String> READ_ONLY = new HashSet<String>(Arrays.asList("status", "stream_status", "list_profiles"));
@@ -44,6 +49,16 @@ public final class Agent {
     static final AtomicReference<String> lastCommand = new AtomicReference<String>("");
     static final Object CONTROL_LOCK = new Object();
 
+    // ---- 取得速度ガード（K-Lineの帯域を超える設定で全データが取れなくなる事故を防ぐ） ----
+    static int maxParams = 20;
+    static boolean guardEnabled = true;
+    static double guardMinRateHz = 2.0;
+    static long guardCheckMs = 10000;
+    static String guardFallback = "";
+    static volatile String currentProfile = "";
+    static volatile String lastGuardAction = "";
+    static final java.util.concurrent.atomic.AtomicLong switchGeneration = new java.util.concurrent.atomic.AtomicLong();
+
     public static void premain(String args, Instrumentation inst) {
         String dir = System.getProperty("rrbridge.dir");
         if (dir == null) dir = System.getProperty("user.home") + "/Documents/OpenPortWork/RRBridge";
@@ -54,7 +69,8 @@ public final class Agent {
         t.setDaemon(true);
         t.start();
         log("agent loaded v" + VERSION + " dir=" + baseDir.getAbsolutePath()
-                + " httpAuth=" + (httpToken.isEmpty() ? "off" : "on") + " settleMs=" + settleMs);
+                + " httpAuth=" + (httpToken.isEmpty() ? "off" : "on") + " settleMs=" + settleMs
+                + " maxParams=" + maxParams + " guard=" + (guardEnabled ? ("on(min " + guardMinRateHz + "Hz, check " + guardCheckMs + "ms)") : "off"));
     }
 
     /** ディレクトリと設定の初期化（試験からも呼ぶ） */
@@ -71,6 +87,11 @@ public final class Agent {
         settleMs = Math.max(0, Math.min(10000, Util.longProp(c, "switch.settleMs", 1500)));
         logMaxBytes = Util.longProp(c, "log.maxBytes", logMaxBytes);
         Stream.INSTANCE.retentionDays = Util.longProp(c, "spool.retentionDays", 14);
+        maxParams = (int) Util.longProp(c, "profile.maxParams", 20);
+        guardEnabled = !"false".equalsIgnoreCase(c.getProperty("guard.enabled", "true").trim());
+        try { guardMinRateHz = Double.parseDouble(c.getProperty("guard.minRateHz", "2.0").trim()); } catch (NumberFormatException e) { guardMinRateHz = 2.0; }
+        guardCheckMs = Math.max(3000, Math.min(60000, Util.longProp(c, "guard.checkMs", 10000)));
+        guardFallback = c.getProperty("guard.fallbackProfile", "").trim();
     }
 
     static EcuLogger logger() { return EcuLogger.getEcuLoggerWithoutCreation(); }
@@ -81,6 +102,8 @@ public final class Agent {
             Thread.sleep(3000); // GUI構築完了待ち
             log("EcuLogger instance found");
             log("stream " + Stream.INSTANCE.install(logger(), baseDir));
+            LinkMonitor.INSTANCE.ensureAttached();
+            log("link monitor " + LinkMonitor.INSTANCE.attachResult);
             startHttp();
         } catch (Throwable e) {
             log("startup failed: " + e);
@@ -175,6 +198,15 @@ public final class Agent {
             String name = a.get("profile");
             File pf = profileFile(name);
             if (pf == null) return err(cmd, "profile must be an existing file name in profiles dir (pattern " + PROFILE_NAME.pattern() + "): " + name);
+            int nParams = selectedIds(pf).size();
+            if (maxParams > 0 && nParams > maxParams)
+                return err(cmd, "too many parameters: " + pf.getName() + " selects " + nParams + " (limit profile.maxParams=" + maxParams + "). K-Line帯域を超えて全データが取れなくなる恐れがあるため読み込みません");
+            if (nParams == 0) return err(cmd, "no parameter selected in " + pf.getName());
+            boolean byGuard = "true".equals(a.get("_guard"));
+            long now0 = System.currentTimeMillis();
+            final double prevRate = Stream.INSTANCE.rateHz(5000, now0);
+            final String prevProfile = currentProfile;
+            final long gen = switchGeneration.incrementAndGet();
             boolean wasFile = cmd.equals("switch_profile") && fileButton() != null && fileButton().isSelected();
             long t0 = System.currentTimeMillis();
             if (wasFile) { String r = setFileLog("filelog_stop", false); if (r.startsWith("{\"ok\":false")) return r; }
@@ -185,11 +217,55 @@ public final class Agent {
                 String r = setFileLog("filelog_start", true);
                 if (r.startsWith("{\"ok\":false")) return r;
             }
-            log(cmd + " " + pf.getName() + " took " + (System.currentTimeMillis() - t0) + "ms (filelogRestarted=" + wasFile + ")");
+            currentProfile = pf.getName();
+            log(cmd + " " + pf.getName() + " took " + (System.currentTimeMillis() - t0) + "ms (filelogRestarted=" + wasFile
+                    + ", params=" + nParams + ", prevRateHz=" + String.format(Locale.ROOT, "%.2f", prevRate) + (byGuard ? ", by guard" : "") + ")");
+            // ガード: 切替前に十分な速度で取れていたのに、切替後に下限を割ったら元に戻す。
+            // 切替前から取れていない（イグニッションOFF等）ときは判断材料がないので何もしない。
+            if (guardEnabled && !byGuard && prevRate >= guardMinRateHz && lg.isLogging()) {
+                String back = !prevProfile.isEmpty() ? prevProfile : guardFallback;
+                if (profileFile(back) != null && !back.equals(pf.getName())) armGuard(gen, pf.getName(), back, prevRate);
+            }
             return ok(cmd);
         }
         return err(cmd, "unknown command. allowed: " + ALLOWED);
     }
+
+    /** 切替後 settleMs + guardCheckMs 待って速度を測り、下限を割っていれば戻す（別スレッド） */
+    static void armGuard(final long gen, final String now, final String back, final double prevRate) {
+        lastGuardAction = "armed " + Util.now() + " " + now + " (fallback " + back + ", prev " + String.format(Locale.ROOT, "%.2f", prevRate) + "Hz)";
+        Thread t = new Thread(new Runnable() { public void run() {
+            sleep(settleMs + guardCheckMs);
+            if (switchGeneration.get() != gen) { lastGuardAction = "cancelled (another switch) " + Util.now(); return; }
+            double rate = Stream.INSTANCE.rateHz(guardCheckMs, System.currentTimeMillis());
+            String r = String.format(Locale.ROOT, "%.2f", rate);
+            if (rate >= guardMinRateHz) {
+                lastGuardAction = "ok " + Util.now() + " " + now + " rate " + r + "Hz";
+                log("guard ok: " + now + " rate=" + r + "Hz");
+                return;
+            }
+            String msg = "guard_revert " + now + " -> " + back + " rate=" + r + "Hz < " + guardMinRateHz + "Hz (before " + String.format(Locale.ROOT, "%.2f", prevRate) + "Hz, link_errors=" + LinkMonitor.INSTANCE.errors.get() + ")";
+            log(msg);
+            Stream.INSTANCE.event(msg);
+            Map<String, String> m = new HashMap<String, String>();
+            m.put("cmd", "switch_profile"); m.put("profile", back); m.put("_guard", "true");
+            String res = execute(m);
+            lastGuardAction = msg + " @" + Util.now() + " result=" + (res.startsWith("{\"ok\":true") ? "ok" : res);
+        } }, "RRBridge-guard");
+        t.setDaemon(true); t.start();
+    }
+
+    /** プロファイルXMLで livedata="selected" になっている項目ID */
+    static List<String> selectedIds(File f) {
+        List<String> ids = new ArrayList<String>();
+        try {
+            String xml = new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.ISO_8859_1);
+            Matcher m = SELECTED.matcher(xml);
+            while (m.find()) ids.add(m.group(2));
+        } catch (IOException ignore) {}
+        return ids;
+    }
+    static final Pattern SELECTED = Pattern.compile("<(parameter|switch|external)\\s+id=\"([^\"]+)\"[^>]*livedata=\"selected\"");
 
     static long intArg(Map<String, String> a, String key, long def, long min, long max) {
         String v = a.get(key);
@@ -218,21 +294,16 @@ public final class Agent {
         File[] fs = profilesDir.listFiles(new FilenameFilter() {
             public boolean accept(File d, String n) { return PROFILE_NAME.matcher(n).matches(); }
         });
-        StringBuilder sb = new StringBuilder("{\"ok\":true,\"cmd\":\"list_profiles\",\"profiles\":[");
+        StringBuilder sb = new StringBuilder("{\"ok\":true,\"cmd\":\"list_profiles\",\"maxParams\":" + maxParams + ",\"current\":" + Util.q(currentProfile) + ",\"profiles\":[");
         if (fs != null) {
             Arrays.sort(fs);
-            Pattern sel = Pattern.compile("<(parameter|switch|external)\\s+id=\"([^\"]+)\"[^>]*livedata=\"selected\"");
             for (int i = 0; i < fs.length; i++) {
                 if (i > 0) sb.append(',');
-                List<String> ids = new ArrayList<String>();
-                try {
-                    String xml = new String(java.nio.file.Files.readAllBytes(fs[i].toPath()), StandardCharsets.ISO_8859_1);
-                    Matcher m = sel.matcher(xml);
-                    while (m.find()) ids.add(m.group(2));
-                } catch (IOException ignore) {}
+                List<String> ids = selectedIds(fs[i]);
                 sb.append("{\"name\":").append(Util.q(fs[i].getName())).append(",\"selected\":[");
                 for (int j = 0; j < ids.size(); j++) { if (j > 0) sb.append(','); sb.append(Util.q(ids.get(j))); }
-                sb.append("],\"count\":").append(ids.size()).append('}');
+                sb.append("],\"count\":").append(ids.size())
+                  .append(",\"allowed\":").append(maxParams <= 0 || (ids.size() > 0 && ids.size() <= maxParams)).append('}');
             }
         }
         return sb.append("]}").toString();
@@ -292,6 +363,10 @@ public final class Agent {
         }
         sb.append(','); kv(sb, "lastCommand", lastCommand.get());
         sb.append(",\"stream\":").append(Stream.INSTANCE.statusJson());
+        sb.append(",\"link\":").append(LinkMonitor.INSTANCE.statusJson());
+        sb.append(",\"guard\":{\"enabled\":").append(guardEnabled).append(",\"minRateHz\":").append(guardMinRateHz)
+          .append(",\"checkMs\":").append(guardCheckMs).append(",\"maxParams\":").append(maxParams)
+          .append(",\"currentProfile\":").append(Util.q(currentProfile)).append(",\"lastAction\":").append(Util.q(lastGuardAction)).append('}');
         return sb.append('}').toString();
     }
 

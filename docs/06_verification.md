@@ -128,7 +128,27 @@ printf 'M\tX\t1\tP8\tEngine Speed\trpm\nS\tX\t1\t1\t1791775000000\tP8=750.0\n' |
 - 2つのCSVはどちらもヘッダー1行のみ（ECU無応答のためデータ行なし）。
 - 自己試験 `./test.sh`（コンテナ、Java 21で `--release 8` コンパイル）: 30項目すべてPASS。
 
-## 5. 未検証（次に実車で行うこと）
+## 5. v0.5.0（13:53〜13:58）: 取得速度ガード
+
+配置: RomRaider終了 → `rrbridge.jar` 上書き、`rrbridge.properties`（example と同内容）を新規配置 → 起動。
+（最初のダブルクリックは、ファイルが1つ増えて行がずれたため `start-receiver.bat` を誤って起動した。2つ目の受信サーバーはポート競合で起動できなかったと思われる。13:56に正しく起動）
+
+```
+2026-10-12T13:56:39.836+09:00 agent loaded v0.5.0 … httpAuth=off settleMs=1500 maxParams=20 guard=on(min 2.0Hz, check 10000ms)
+2026-10-12T13:56:50.717+09:00 link monitor attached 2026-10-12T13:56:50.708+09:00
+```
+
+| 試験 | 結果 |
+| --- | --- |
+| X270の `profiles/` に21項目の `test_21params.xml` を作成（試験用。残してある）→ `list_profiles` | `"count":21,"allowed":false`、basic/fuel は `allowed:true`、`maxParams:20` |
+| `switch_profile profile=test_21params.xml` | 拒否 `too many parameters: test_21params.xml selects 21 (limit profile.maxParams=20). K-Line帯域を超えて…` |
+| `switch_profile basic.xml` → `logging_start` → 15秒後の status | `link: {attach:"attached …", connects:6, ecuInits:0, errors:12, lastError:"Error sending init: Parameter portName must not be null or empty"}`、`stream: {realSamples:0, rateHz10s:0.0, intervalP95Ms10s:-1}`、`guard: {enabled:true, currentProfile:"basic.xml", lastAction:""}` |
+| 転送ストリーム（spool） | `E … link_error count=3 Error sending init: readMsg error: timeout expired waiting for 2 more message(s)`、`E … health rate_hz=0.00 samples=0 params=0 interval_p95_ms=-1 link_errors=8 link_connects=5` などが受信サーバーへ送られた |
+| 自動復帰 | ECUデータが無く切替前の速度が0のため作動条件を満たさず、**未確認** |
+
+自己試験: Java 44項目PASS、server 36件PASS（SQLite＋PostgreSQL 16）。
+
+## 6. 未検証（次に実車で行うこと）
 
 `09_open_issues.md` の「実車試験計画」を参照。要点:
 1. 実ECUの応答が `Stream.handleDataUpdate` に届き、値・単位・IDが正しいこと（CSVと突き合わせ）。

@@ -26,7 +26,8 @@ from .ingest import ingest
 
 INSTRUCTIONS = """スバル レガシィ BP5（EJ20X）を RomRaider Logger で計測したデータを照会するツール群です。
 データは車載PCの RRBridge からリアルタイムに送られてきます。
-- まず get_vehicle_status で最新の状態（受信中か、最新値、直近のイベント）を確認してください。
+- まず get_vehicle_status で最新の状態（受信中か、最新値、取得速度、直近のイベント）を確認してください。
+- 取得周波数は項目数でほぼ決まります（実測: 8項目で約8Hz、13〜14項目で3〜4Hz、18〜19項目で約2.7Hz）。項目を増やす提案をするときは get_acquisition_health で現在の速度を確認し、2Hzを下回る構成は提案しないでください。車載側（RRBridge）でも20項目を超える構成は拒否し、切替後に2Hzを下回ると自動で元に戻します。
 - 区間（segment）は取得項目の組み合わせが変わるたびに増えます。list_segments で一覧、get_segment_stats で統計を見られます。
 - 値の解釈（ノック補正、空燃比、ブーストなど）は、サンプリング周期や項目の組み合わせに依存します。根拠が足りない場合はそう伝えてください。
 - このツールから車両やECUを操作することはできません。add_event_marker は運転者のメモを記録するだけです。
@@ -59,6 +60,13 @@ mcp = MCPServer(name="rrbridge-telemetry", version=__version__, instructions=INS
 def get_vehicle_status() -> dict:
     """最新セッションの状態: データを受信中か、最新サンプルの全項目の値（名称・単位付き）、直近のイベント5件。"""
     return analysis.vehicle_status(db())
+
+
+@mcp.tool(title="取得速度の健全性", annotations=RO)
+def get_acquisition_health(window_sec: float = 10) -> dict:
+    """ECUからの取得周波数（Hz）、項目数、RRBridge の health／guard_revert／link_error イベント、警告。
+    項目を増やしすぎるとK-Lineの帯域を超えて全データが取れなくなるため、計測計画を考える前に必ず確認する。"""
+    return analysis.acquisition_health(db(), None, None, window_sec)
 
 
 @mcp.tool(title="セッション一覧", annotations=RO)

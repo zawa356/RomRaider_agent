@@ -206,3 +206,32 @@ CREATE INDEX samples_t ON samples(session, t_ms);
 | 受信 | `events` を実挿入件数に、`/health` 追加、4スレッド化 | 再送時に件数が誤解を招いた |
 | 構成 | 共通処理を `Util` に集約 | `Agent` と `Util` の重複 |
 | 試験 | `src/test/.../SelfTest.java` と `test.sh`（30項目） | 手動試験だけでは回帰を防げない |
+
+## 10. v0.5.0 での変更: 取得速度の可視化とガード（2026-10-12）
+
+背景 [ユーザー発言]: 「パラメータを選びすぎるとK-Lineのスローに追いつけなくなり、データがうまく取得できない問題が過去にあった。MCP経由で設定がめちゃくちゃにされると全データが取れない事故が起きかねない」。
+
+### 10.1 取得速度の計測（`Stream`）
+- `handleDataUpdate`（実ECU応答のみ。selftestは含めない）で応答時刻を512件のリングバッファに記録。
+- `rateHz(windowMs, now)` = 窓内の (件数−1)÷(最後−最初)。`intervalP95(windowMs, now)` = 窓内のサンプル間隔の95パーセンタイル。
+- `status.stream` に `realSamples`、`params`（直近サンプルの項目数）、`rateHz10s`、`intervalP95Ms10s` を追加。
+- スレッド `RRBridge-health` が10秒ごとに E 行 `health rate_hz=7.95 samples=80 params=8 interval_p95_ms=126 link_errors=0 link_connects=1` を送る（サンプルもエラー増加もない間は送らない）。ついでに `LinkMonitor.ensureAttached()` を呼ぶ。
+
+### 10.2 通信状態の計数（`LinkMonitor`、新規）
+- RomRaiderは通信の成否をlog4jにしか出さない。log4j 1.2 の `org.apache.log4j.Appender` インターフェースを `java.lang.reflect.Proxy` で実装し、`Logger.getRootLogger().addAppender()` で取り付ける（log4jをコンパイル時に参照しない＝依存を増やさない）。
+- RomRaiderは `lib/log4j.properties` を `configureAndWatch` しており再設定でアペンダーが外れうるため、10秒ごとに `isAttached` を確認して付け直す。
+- 判定（メッセージ文字列）: `connection initialised` → connects、`ECU ID = <id>` → ecuInits と ecuId、レベルERRORで `readMsg`／`timeout`／`Error sending init`／`Error occurred`（例外メッセージも見る）→ errors。エラー時は E 行 `link_error count=N <文言>` を送る（10秒に1回まで）。
+- 注意: ECU無応答時は1回の接続試行で「J2534のinit失敗」と「シリアル（portName未設定）失敗」の2件が出るため、errors は試行回数の約2倍になる。
+- `status.link` = `{attach, ecuId, connects, ecuInits, errors, lastError, lastErrorAt}`。
+
+### 10.3 項目数の上限
+- `profile.maxParams`（既定20、0で無制限）。`switch_profile`／`load_profile` は読込前にXMLの `livedata="selected"` を数え、超えれば `too many parameters …` で拒否（RomRaiderには何もしない）。選択0件も拒否。
+- 既定20の根拠: 2026-09-21 の実車で19項目（2.60Hz）までは連続取得できていた。13:51のタイムアウト連発時の構成は不明。**本来は項目数ではなく応答バイト数（1/2/4バイト項目の合計）で制限すべき**（`09_open_issues.md`）。
+- `list_profiles` に `maxParams`、`current`、各プロファイルの `allowed` を追加。
+
+### 10.4 自動復帰ガード
+- `switch_profile`（ガード自身による切替を除く）の直前に、直近5秒の取得周波数 `prevRate` と現在のプロファイル名を記録。
+- 切替後、`prevRate >= guard.minRateHz` かつロギング中なら、別スレッド `RRBridge-guard` が `settleMs + guard.checkMs` 待ってから直近 `guard.checkMs` の周波数を測る。下限未満なら、直前のプロファイル（不明なら `guard.fallbackProfile`）へ `switch_profile` し直し、E 行 `guard_revert <新> -> <戻し先> rate=… < 2.0Hz (before …Hz, link_errors=…)` を送る。
+- 判定までの間に別の切替があれば中止（世代番号 `switchGeneration`）。
+- 切替前から取れていない（イグニッションOFF等）ときは判断材料がないので作動しない。
+- `status.guard` = `{enabled, minRateHz, checkMs, maxParams, currentProfile, lastAction}`。

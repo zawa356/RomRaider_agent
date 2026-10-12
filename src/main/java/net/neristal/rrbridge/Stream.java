@@ -43,6 +43,14 @@ public final class Stream implements DataUpdateHandler {
     volatile boolean installed = false, threadsStarted = false;
     File spoolDir;
 
+    // ---------- 取得速度の計測（実ECUの応答だけを数える。selftest は含めない） ----------
+    static final int RING = 512;
+    private final long[] ring = new long[RING];
+    private int ringPos = 0, ringCount = 0;
+    final AtomicLong realSamples = new AtomicLong();
+    volatile int currentParamCount = 0;
+    volatile long healthIntervalMs = 10000;
+
     // ---------- 取り付け ----------
     synchronized String install(EcuLogger lg, File baseDir) {
         startThreads(new File(baseDir, "spool"), new File(baseDir, "sink.properties"));
@@ -76,6 +84,8 @@ public final class Stream implements DataUpdateHandler {
         t.setDaemon(true); t.start();
         Thread s = new Thread(new Runnable() { public void run() { senderLoop(); } }, "RRBridge-sender");
         s.setDaemon(true); s.start();
+        Thread h = new Thread(new Runnable() { public void run() { healthLoop(); } }, "RRBridge-health");
+        h.setDaemon(true); h.start();
         threadsStarted = true;
     }
 
@@ -105,8 +115,65 @@ public final class Stream implements DataUpdateHandler {
                 v.append(cleanId(d.getId())).append('=').append(r.getDataValue(d));
             }
             lastSampleT = r.getTimestamp();
+            currentParamCount = ds.size();
+            recordSample(r.getTimestamp());
             offer("S\t" + session + "\t" + segment + "\t" + seq.incrementAndGet() + "\t" + r.getTimestamp() + "\t" + v);
         } catch (Throwable ignore) {}
+    }
+
+    synchronized void recordSample(long t) {
+        ring[ringPos] = t;
+        ringPos = (ringPos + 1) % RING;
+        if (ringCount < RING) ringCount++;
+        realSamples.incrementAndGet();
+    }
+
+    /** 直近 windowMs（now基準）に届いた実サンプルの時刻（古い順） */
+    synchronized long[] recentTimes(long windowMs, long now) {
+        long[] tmp = new long[ringCount];
+        int n = 0;
+        for (int i = 0; i < ringCount; i++) {
+            long t = ring[(ringPos - ringCount + i + RING) % RING];
+            if (t >= now - windowMs) tmp[n++] = t;
+        }
+        return java.util.Arrays.copyOf(tmp, n);
+    }
+
+    /** 直近 windowMs の取得周波数（Hz）。サンプルが2件未満なら 0 */
+    double rateHz(long windowMs, long now) {
+        long[] t = recentTimes(windowMs, now);
+        if (t.length < 2) return 0;
+        long span = t[t.length - 1] - t[0];
+        return span <= 0 ? 0 : (t.length - 1) * 1000.0 / span;
+    }
+
+    /** 直近 windowMs のサンプル間隔の95パーセンタイル（ms）。2件未満なら -1 */
+    long intervalP95(long windowMs, long now) {
+        long[] t = recentTimes(windowMs, now);
+        if (t.length < 2) return -1;
+        long[] d = new long[t.length - 1];
+        for (int i = 1; i < t.length; i++) d[i - 1] = t[i] - t[i - 1];
+        java.util.Arrays.sort(d);
+        return d[Math.min(d.length - 1, (int) Math.ceil(d.length * 0.95) - 1)];
+    }
+
+    /** 定期的に取得速度と通信エラーを health イベントとして流す（受信側・MCPから速度が見える） */
+    void healthLoop() {
+        long lastErrors = -1;
+        while (true) {
+            sleep(healthIntervalMs);
+            try {
+                long now = System.currentTimeMillis();
+                long[] t = recentTimes(healthIntervalMs, now);
+                long errs = LinkMonitor.INSTANCE.errors.get();
+                if (t.length == 0 && errs == lastErrors) continue;  // 何も起きていなければ出さない
+                event(String.format(java.util.Locale.ROOT, "health rate_hz=%.2f samples=%d params=%d interval_p95_ms=%d link_errors=%d link_connects=%d",
+                        rateHz(healthIntervalMs, now), t.length, currentParamCount, intervalP95(healthIntervalMs, now),
+                        errs, LinkMonitor.INSTANCE.connects.get()));
+                lastErrors = errs;
+                LinkMonitor.INSTANCE.ensureAttached();
+            } catch (Throwable ignore) {}
+        }
     }
 
     void event(String text) {
@@ -230,7 +297,10 @@ public final class Stream implements DataUpdateHandler {
                 + ",\"linesSent\":" + sentLines.get() + ",\"queue\":" + queue.size() + ",\"pendingBytes\":" + pendingBytes()
                 + ",\"sendErrors\":" + sendErrors.get()
                 + ",\"sink\":" + Util.q(sinkUrl.isEmpty() ? "(spool only)" : sinkUrl) + ",\"lastSendAt\":" + Util.q(lastSendAt) + ",\"lastSendResult\":" + Util.q(lastSendResult)
-                + ",\"lastSampleAgeMs\":" + (lastSampleT == 0 ? "null" : String.valueOf(now - lastSampleT)) + "}";
+                + ",\"lastSampleAgeMs\":" + (lastSampleT == 0 ? "null" : String.valueOf(now - lastSampleT))
+                + ",\"realSamples\":" + realSamples.get() + ",\"params\":" + currentParamCount
+                + ",\"rateHz10s\":" + String.format(java.util.Locale.ROOT, "%.2f", rateHz(10000, now))
+                + ",\"intervalP95Ms10s\":" + intervalP95(10000, now) + "}";
     }
 
     /** ECU無しで経路を確認するための合成データ（params は TEST_ で始まるIDで区別） */

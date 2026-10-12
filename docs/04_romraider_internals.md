@@ -77,6 +77,11 @@ ChatGPT時代（2026-10-10以前）には公開GitHub `RomRaider/RomRaider` の 
 | `definitions` | `Settings.java` 179（既定値） |
 | `lib/windows/32`（`-Djava.library.path`） | ネイティブDLL |
 
+## 6.5 ログ出力（log4j 1.2.14）[コード調査＋実機確認]
+
+- RomRaiderは `org.apache.log4j.Logger`（`lib/common/log4j-1.2.14.jar`）で出力し、`util/LogManager.java` 31行で `configureAndWatch("lib/log4j.properties")`（設定ファイルを監視し、変更時に再設定）。
+- 通信の成否はAPIでは取れず、ログにしか出ない。RRBridge v0.5.0 の `LinkMonitor` はルートロガーにアペンダーを追加してこれを数える。2026-10-12 13:56 に実機で取り付け成功（`link monitor attached …`）、ECU無応答状態で connects 6／errors 12（15秒間）を計数。
+
 ## 7. その他の観察
 
 - 同梱JRE: Azul Zulu 8.96.0.205-CA-win32（`JAVA_VERSION="1.8.0_504"`、`OS_ARCH="i586"`）。`runtime/bin` に `javaw.exe`、`java.exe`、`instrument.dll`（javaagent用）、`jdwp.dll`、`dt_socket.dll`、`dt_shmem.dll`、Java Access Bridge（`JavaAccessBridge*.dll`、`jabswitch.exe`）。**`javac` と `attach.dll` はない**（JRE）。

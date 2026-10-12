@@ -119,8 +119,16 @@
   - ルートの `.gitignore`（`status.json`、`rrbridge.log` 等）が `archive/` 内まで除外してしまうため、`!archive/**` を追加。ディレクトリ名は既存の除外（`data/`、`outbox/`、`spool/`）と重ならない名前にした。
   - `Downloads` の `OpenPort_X270_*.md` と `Documents\Codex` はフォルダのアクセス許可の確認がタイムアウトし、未回収。
 
+## フェーズ11: 取得速度の可視化とガード（13:45〜14:00、v0.5.0）
+
+- ユーザー質問 [ユーザー発言]: 「このエージェントツールはどれぐらいのスピードが出ているかも送信するようになっていますか。パラメータを選びすぎるとK-Lineのスローに追いつけなくなってデータがうまく取得できない問題が過去にあった。MCP経由で設定がめちゃくちゃにされると全データが取れない事故が起きかねないが、対策はされていますか」。
+- 回答時点（v0.4.0）の状態: 各サンプルに時刻は付いており受信側で周波数を計算できたが、RRBridge自身は速度も通信エラーも送っていなかった。項目数の上限も、速度低下時の復帰もなかった。MCPに設定変更の道具はなく、切替は `profiles/` のファイルに限られていた。
+- 対応（v0.5.0）: 取得速度の計測と `health` イベント、log4j経由の通信状態の計数（`LinkMonitor`）、項目数の上限（既定20）、切替後の速度低下時の自動復帰。server側に `get_acquisition_health` ツールと、`get_vehicle_status` の `acquisition` 欄を追加し、MCPの `instructions` に「2Hzを下回る構成は提案しない」を追記。
+- server の PostgreSQL 試験で `LIKE 'health %'` のリテラル `%` を psycopg が書式と解釈してエラー → `db._sql()` で `%` を `%%` にしてから `?` を `%s` に変換するよう修正。
+- 実機: 21項目プロファイルの拒否、log4jアペンダーの取り付けと通信エラーの計数、health／link_error イベントの送信を確認。自動復帰はECUデータが無いため未確認。
+
 ## 2026-10-12 時点のX270の状態
 
-- RomRaider: RRBridge v0.4.0 付きで起動中（13:00時点）、ロギング停止、プロファイル fuel.xml、session `20261012_125843`。
+- RomRaider: RRBridge v0.5.0 付きで起動中（13:58時点）、ロギング停止、プロファイル basic.xml、session `20261012_135639`。`rrbridge.properties` 配置済み、`profiles/test_21params.xml`（試験用、読込不可）あり。
 - 受信サーバー: v0.4.0 で起動中（127.0.0.1:18766、`data\telemetry.db` に selftest 320＋160サンプル）。
 - OpenPort: USB接続、ECU無応答。

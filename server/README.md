@@ -3,7 +3,7 @@
 RRBridge（X270）から送られてくるTSVを受けてDBに保存し、同じデータを AI クライアント（Claude のカスタムコネクタ等）に
 **Remote MCP（Streamable HTTP）**として公開するサーバーです。`docs/02_architecture.md` §2 の推奨構成（VPS 1台）の中身にあたります。
 
-- 状態: **試作**。コンテナ内で SQLite と PostgreSQL 16 の両方に対して自動試験32件がPASS。X270の実際のspool（selftest 480サンプル）を流し込み、MCP経由で照会できることを確認済み。
+- 状態: **試作**。コンテナ内で SQLite と PostgreSQL 16 の両方に対して自動試験36件がPASS。X270の実際のspool（selftest 480サンプル）を流し込み、MCP経由で照会できることを確認済み。
 - 未確認: Docker イメージのビルドと docker compose での起動（作業環境にDockerデーモンがなく、`docker compose config` で構文のみ確認）、実際のVPS・ドメインでの運用、Claude からの接続（音声モード含む）。
 
 ## 1. 構成
@@ -36,7 +36,8 @@ Dockerfile / docker-compose.yml / Caddyfile / .env.example
 
 | ツール | 種別 | 内容 |
 | --- | --- | --- |
-| `get_vehicle_status` | 読取 | 最新セッションの受信状態（最新サンプルの経過秒、転送遅延、10秒以内に受信があるか）、全項目の最新値（名称・単位付き）、直近イベント5件 |
+| `get_acquisition_health(window_sec)` | 読取 | 取得周波数（受信したサンプル時刻から計算）、項目数、RRBridgeの直近 `health`・`guard_revert`・`link_error` イベント、警告（2Hz未満、15秒以上無受信、1分以内の通信エラー） |
+| `get_vehicle_status` | 読取 | （`acquisition` 欄に上記の健全性も含む）最新セッションの受信状態（最新サンプルの経過秒、転送遅延、10秒以内に受信があるか）、全項目の最新値（名称・単位付き）、直近イベント5件 |
 | `list_sessions(limit)` | 読取 | セッション一覧（サンプル数、長さ、区間数） |
 | `list_segments(session)` | 読取 | 区間一覧（サンプル数、長さ、周波数、項目名） |
 | `get_segment_stats(session, segment, last_seconds)` | 読取 | 項目ごとの件数・最小・最大・平均・標準偏差。直近N秒だけも可 |
@@ -59,8 +60,8 @@ Dockerfile / docker-compose.yml / Caddyfile / .env.example
 ```bash
 cd server
 pip install -r requirements-dev.txt
-python -m pytest -q tests                      # SQLite（18件）
-RR_TEST_PG_URL=postgresql://user@127.0.0.1:5432/db python -m pytest -q tests   # PostgreSQLも（計32件）
+python -m pytest -q tests                      # SQLite（20件）
+RR_TEST_PG_URL=postgresql://user@127.0.0.1:5432/db python -m pytest -q tests   # PostgreSQLも（計36件）
 ```
 
 手動起動:

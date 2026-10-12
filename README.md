@@ -12,7 +12,7 @@ RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ま
 このリポジトリは、車載PC（ThinkPad X270、Windows 10）上で RomRaider を操作し、データを取り出す部分（Adapter）を担います。
 全体構成は [`docs/02_architecture.md`](docs/02_architecture.md)。
 
-## 2. 状態（v0.4.0、2026-10-12）
+## 2. 状態（v0.5.0、2026-10-12）
 
 | 機能 | 状態 |
 | --- | --- |
@@ -20,7 +20,10 @@ RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ま
 | プロファイル読込（`profiles/` 内のみ） | 実機確認済み |
 | `switch_profile`（記録停止→読込→再開で1区間1CSV） | 実機確認済み |
 | リアルタイム転送（内部配信 → spool → HTTP → SQLite） | 合成データで確認済み（平均273ms・最大533ms。受信停止中の80件を復旧後に全件再送）。**実ECUデータは未確認** |
-| 自己試験（`./test.sh`、GUIなしで動く範囲30項目） | 全件PASS |
+| 取得速度の送信（`health` イベント10秒ごと、`status.stream.rateHz10s`）と通信エラーの計数（`status.link`） | 実機確認済み（ECU無応答時のエラー計数） |
+| 項目数の上限（`profile.maxParams`、既定20）での読込拒否 | 実機確認済み |
+| 切替後に取得速度が下がったら直前のプロファイルへ自動復帰（`guard.*`） | 単体試験のみ（ECUデータが無いため実機未確認） |
+| 自己試験（`./test.sh`、GUIなしで動く範囲44項目） | 全件PASS |
 | 受信API＋Remote MCPサーバー（`server/`、Python） | 試作。SQLite／PostgreSQL 16で自動試験32件PASS、X270の実spoolを取り込みMCPで照会できることを確認。VPS未配置 |
 | Supervisor、LLMの無人起動 | 未着手 |
 
@@ -36,6 +39,17 @@ RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ま
 
 ECUリセット、DTC読出・消去、ROM読み書き、学習値リセットなど、車両に影響する操作は公開していません。
 
+### K-Lineの帯域を守る仕組み（v0.5.0〜）
+
+SSM（K-Line）は1周期で全項目を問い合わせるため、項目が多いほど周期が延び、多すぎると応答待ちのタイムアウトで**全データが取れなくなる**（2026-09-21 の実車で発生）。
+MCP経由の設定変更でこの事故が起きないよう、三重に防いでいます。
+
+1. **MCPには設定を変える道具がない**: `server/` のMCPツールは読み取りと運転者メモの追記だけ。プロファイルの切替はX270上のRRBridgeへのコマンド（ローカルのみ）でしかできず、選べるのは `profiles/` に置いたファイルだけ。
+2. **項目数の上限**: `profile.maxParams`（既定20）を超えるプロファイルは読み込まずにエラーを返す。`list_profiles` の `allowed` で事前に分かる。
+3. **自動復帰**: 切替前に `guard.minRateHz`（既定2Hz）以上で取れていたのに、切替後 `guard.checkMs`（既定10秒）の平均が下回ったら、直前のプロファイルへ自動で戻し、`guard_revert` イベントを送る。
+
+速度と通信状態は、`status`（`stream.rateHz10s`、`stream.intervalP95Ms10s`、`link.errors` など）、10秒ごとの `health` イベント、通信エラー時の `link_error` イベントで外部（受信サーバー・MCPの `get_acquisition_health`）から見える。
+
 ## 4. リポジトリ構成
 
 ```
@@ -47,6 +61,7 @@ src/main/java/net/neristal/rrbridge/
   Agent.java               -javaagent の入口。コマンド受付（inbox/ と HTTP 127.0.0.1:18765）、status.json
   Stream.java              データ配信への取り付け、spool追記、HTTP転送、合成データ試験
   Receiver.java            検証用受信サーバー（Telemetry API 試作）。TSV → SQLite
+  LinkMonitor.java         RomRaiderのlog4j出力から通信状態（接続、ECU応答、エラー）を数える
   Util.java                RomRaider非依存の共通処理（受信サーバー用）
 src/main/resources-manifest.txt  Premain-Class
 src/test/java/net/neristal/rrbridge/SelfTest.java  自己試験（JUnit不要）
@@ -78,7 +93,7 @@ cp "/c/Program Files (x86)/RomRaider/RomRaider.jar" lib/   # コンパイル時�
 自己試験:
 
 ```bash
-./test.sh     # passed 30, failed 0 で成功
+./test.sh     # passed 44, failed 0 で成功
 ```
 
 ## 6. 配置と起動（X270）
@@ -134,7 +149,7 @@ POST http://127.0.0.1:18765/selftest_stream?count=80&hz=8
 | `stream_status` | — | 転送の状態（生成・破棄・送信済み行数、未送信バイト数、送信エラー、最終応答） |
 | `selftest_stream` | `count`≤10000、`hz`≤50 | ECU無しで転送経路を試す合成データ |
 
-設定ファイル `rrbridge.properties`（任意）: `http.token`、`switch.settleMs`（既定1500）、`log.maxBytes`（既定5MB、超えたら `.1` に退避）、`spool.retentionDays`（既定14、送信済みで古いspoolを削除）。
+設定ファイル `rrbridge.properties`（任意）: `http.token`、`switch.settleMs`（既定1500）、`log.maxBytes`（既定5MB、超えたら `.1` に退避）、`spool.retentionDays`（既定14、送信済みで古いspoolを削除）、`profile.maxParams`（既定20）、`guard.enabled`（既定true）、`guard.minRateHz`（既定2.0）、`guard.checkMs`（既定10000）、`guard.fallbackProfile`。
 
 仕様の詳細（応答形式、status JSON、エラー）: [`docs/03_rrbridge_design.md`](docs/03_rrbridge_design.md) §4〜5。
 

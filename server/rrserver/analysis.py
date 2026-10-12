@@ -56,6 +56,7 @@ def vehicle_status(db: Database, now_ms: int | None = None) -> dict[str, Any]:
             "receiving": now - recv < 10_000,
             "latest": [{"name": names.get(p, (p, ""))[0], "units": names.get(p, (p, ""))[1], "value": v, "id": p} for p, v in sorted(vals)],
         })
+        out["acquisition"] = acquisition_health(db, session, now)
     ev = db.query("SELECT t_ms, text, source FROM events WHERE session=? ORDER BY t_ms DESC LIMIT 5", (session,))
     out["recentEvents"] = [{"agoSec": round((now - t) / 1000), "text": txt, "source": src} for t, txt, src in ev]
     return out
@@ -160,3 +161,58 @@ def add_event_marker(db: Database, text: str, now_ms: int | None = None) -> dict
 def query_telemetry(db: Database, sql: str, max_rows: int = 200) -> dict[str, Any]:
     cols, rows, truncated = db.readonly_select(sql, max_rows=max(1, min(500, max_rows)))
     return {"columns": cols, "rows": [list(r) for r in rows], "rowCount": len(rows), "truncated": truncated}
+
+
+def _parse_health(text: str) -> dict[str, Any]:
+    """RRBridge の health イベント（"health rate_hz=7.95 samples=80 params=8 ..."）を dict にする"""
+    out: dict[str, Any] = {}
+    for tok in text.split()[1:]:
+        k, sep, v = tok.partition("=")
+        if not sep:
+            continue
+        try:
+            out[k] = float(v) if "." in v else int(v)
+        except ValueError:
+            out[k] = v
+    return out
+
+
+def acquisition_health(db: Database, session: str | None = None, now_ms: int | None = None,
+                       window_sec: float = 10, min_rate_hz: float = 2.0) -> dict[str, Any]:
+    """取得速度の健全性。サーバーに届いたサンプル時刻から周波数を計算し、RRBridge の health／guard／link_error イベントも併せて返す。
+
+    K-Line（SSM）は項目数が多いほど1周期が長くなり、多すぎると応答待ちのタイムアウトで全データが取れなくなる。
+    rateHz が min_rate_hz を下回る、または link_error が続いている場合は warning を返す。
+    """
+    now = now_ms or _now_ms()
+    session = session or latest_session(db)
+    if session is None:
+        return {"available": False}
+    last = db.one("SELECT MAX(t_ms), MAX(segment) FROM samples WHERE session=?", (session,))
+    last_t, seg = last if last else (None, None)
+    rate = None
+    n = 0
+    params = None
+    if last_t is not None:
+        rows = db.query("SELECT t_ms FROM samples WHERE session=? AND t_ms >= ? ORDER BY t_ms", (session, int(last_t - window_sec * 1000)))
+        n = len(rows)
+        if n >= 2 and rows[-1][0] > rows[0][0]:
+            rate = round((n - 1) * 1000 / (rows[-1][0] - rows[0][0]), 2)
+        params = db.one("SELECT COUNT(*) FROM parameters WHERE session=? AND segment=?", (session, seg))[0]
+    health = db.one("SELECT t_ms, text FROM events WHERE session=? AND text LIKE 'health %' ORDER BY t_ms DESC LIMIT 1", (session,))
+    guard = db.one("SELECT t_ms, text FROM events WHERE session=? AND text LIKE 'guard_revert %' ORDER BY t_ms DESC LIMIT 1", (session,))
+    link = db.one("SELECT t_ms, text FROM events WHERE session=? AND text LIKE 'link_error %' ORDER BY t_ms DESC LIMIT 1", (session,))
+    warnings = []
+    if rate is not None and rate < min_rate_hz:
+        warnings.append(f"取得周波数 {rate}Hz が下限 {min_rate_hz}Hz を下回っています（項目が多すぎる可能性）")
+    if last_t is not None and now - last_t > 15000:
+        warnings.append(f"最後のサンプルから {round((now - last_t) / 1000)} 秒届いていません")
+    if link and now - link[0] < 60000:
+        warnings.append("直近1分以内に通信エラーがあります: " + link[1])
+    return {
+        "available": True, "segment": seg, "params": params, "windowSec": window_sec,
+        "samplesInWindow": n, "rateHz": rate, "minRateHz": min_rate_hz, "ok": not warnings, "warnings": warnings,
+        "lastHealth": ({"agoSec": round((now - health[0]) / 1000), **_parse_health(health[1])} if health else None),
+        "lastGuardRevert": ({"agoSec": round((now - guard[0]) / 1000), "text": guard[1]} if guard else None),
+        "lastLinkError": ({"agoSec": round((now - link[0]) / 1000), "text": link[1]} if link else None),
+    }
