@@ -418,9 +418,19 @@
 
 ---
 
+## 15. 2026-10-12 午後の進捗（GitHub化・v0.4.0・サーバー試作）
+
+- **GitHub**: `zawa356/RomRaider_agent`（private）で管理開始。AI向けの詳細ドキュメント（`AGENTS.md`、`docs/00〜09`）を同梱。以後の詳細な経緯・設計・決定記録はリポジトリ側が正本（このファイルは要約と引継ぎ用）。
+- **RRBridge v0.4.0**（X270に配置・回帰試験済み）: 読み取り系コマンドのGET対応とロック分離、任意のHTTP認証、`list_profiles`、`wait_ms`、`logging_stop` でCSVも停止、設定ファイル `rrbridge.properties`、ログのローテーション、送信済みspoolの自動削除、キュー溢れの計数、自己試験 `test.sh`（30項目PASS）。
+- **server/（受信API＋Remote MCP、Python・mcp 2.3.0）試作**: `/ingest`、`/health`、`/mcp`（Streamable HTTP）。MCPツール8個（状態、セッション・区間一覧、区間統計、直近の推移、イベント、読み取り専用SQL、運転者メモの追記）。PostgreSQL／SQLite両対応、pytest 32件PASS、X270の実spoolを取り込んでMCPで照会できることを確認。Docker Compose（postgres:16＋caddy:2）は構文のみ確認。
+- **次の判断が必要なこと（ユーザー）**: ①VPSを契約するか自宅PC＋Cloudflare Tunnelにするか、②先にClaude Android音声モードからの接続を一時トンネルで試すか（手順は `server/README.md` §6）、③実車（停車・イグニッションON）での試験日程（`docs/09_open_issues.md` §4 T1〜T7）。
+
+---
+
 ## 12. 更新履歴
 
 | 日付 | 内容 |
 | --- | --- |
 | 2026-10-10 | 本チャットを元に、要望・検討経緯・暫定構成・公開コード調査・未解決課題をLibrary共有ノートとして初版作成 |
 | 2026-10-12 | Claude Coworkで実機検証。既存ログ分析、RRBridge（-javaagent）による外部制御の動作確認を第13節・第14節に追記。v0.3.0でリアルタイム転送（13.4〜13.5）を追記 |
+| 2026-10-12 | 第15節（GitHub化、v0.4.0、サーバー試作）を追記 |
