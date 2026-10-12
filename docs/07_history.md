@@ -1,0 +1,97 @@
+# 07. 作業履歴（時系列）
+
+方針: 消さずに追記する。失敗・回り道も残す（同じ失敗を繰り返さないため）。
+
+---
+
+## フェーズ0: ChatGPT での検討（〜2026-10-10）
+
+出典: 引継ぎ資料 §10（`docs/handoff/`）。この期間の作業はChatGPT上の会話で、実機での実行結果はほとんど残っていない。
+
+1. **初回の要望**: RomRaiderの手動設定・ログ取得項目設定をMCP化したい → XMLプロファイル操作で一部実現できると調査。
+2. **目標の拡張**: ユーザーがB案（RomRaider全体の操作）を最終目標に指定。運転中に ログ分割 → 解析 → 次の項目選定 → 再計測 を自律化したい。CSV解析も必須。
+3. **遠隔化**: ユーザーはChatGPT Desktop＋WorkでローカルstdioのMCPが動くことを確認済み。ただしWorkの使用量が厳しいため、Remote MCPやCloudflare Tunnelも候補に。
+4. **LLM利用料の制約**: 通信回線は使える前提、API従量課金は避けたい。Claude Code／Codex／Work／Coworkはサブスク枠が厳しい。通常のチャットに拡張機能でトリガーを送る案を検討。
+5. **データ構造案**: ユーザー案「CSV完了 → Python ETL → SQLite → 定期的にGitHubへPush → チャットのGitHub連携から検索」。GitHubはSQLを実行できず、SQLiteバイナリの頻繁なPushはリポジトリ肥大化と競合を招くため、GitHubはサマリー・ソース・レポート向きと整理。
+6. **VPC（実際はVPS）DB案**: ユーザーからMySQL/MariaDBを立てる案。リアルタイム保存とRemote MCPによるSQL照会、車載側からキューを取りに行く方式を候補に追加。
+7. **Chrome拡張案**: ユーザーが「5分間隔でチャットに自動送信」を提案。技術的には可能だが、規約・DOM依存・制限のため未採用。
+8. **音声案**: ユーザーがAndroidのChatGPT Liveで走行中に音声＋MCPを使う案を提案。自作MCPへの対応と承認フローは要実機検証。
+9. **構成整理**: 車載X270（RomRaider＋Adapter＋Supervisor＋ETL）／VPC（Telemetry API＋MariaDB＋MCP）／AIクライアント（チャット・Live）の3層を有力案に。最大の課題は「サブスクの通常チャットを使った自律的なLLM起動」。
+10. **2026-10-10**: 引継ぎ資料をChatGPTのLibraryに保存し、別チャットから参照・編集できるようにした。
+11. ChatGPT時代に公開GitHubの `RomRaider/RomRaider`（`1.1.0-NOV26-2025`）のソースを調査し、`UserProfileHandler`、`UserProfileImpl`、`UserProfileLoaderImpl`、`ReloadProfileAction`、`LoadProfileAction`、`EcuLogger`（`startLogging`/`stopLogging`/`restartLogging`/`getCurrentProfile`/`loadUserProfile`）、`FileUpdateHandlerImpl`、`FileLoggerImpl` を確認していた。この時点では「外部プログラムから自動実行するAPIの存在は未確認」。
+
+その他（ダウンロードフォルダのファイル名から）: 2026-09-13〜09-21に `OpenPort_X270_*` という名前の検討資料（Online Operation Proposal／Review、Claude Review Response、Cowork作業指示書、Work版作業指示書、AI引継資料詳細版）が作られている。内容は未確認。2026-09-21に実車で計測を行っている（`05_environment.md` §5）。
+
+---
+
+## フェーズ1: Claude Cowork へ移行、現状調査（2026-10-12 11:38〜11:52）
+
+- 11:38 ユーザーが引継ぎ資料（2026-10-10版）をClaudeのプロジェクト「【RomLogger】AI連携」に添付。
+- ユーザー発言: 「ChatGPTのワークモードが調子悪いので、このままCoworkで進めたい。今RomRaiderを起動しているので、自動化ができるかどうかの検証を進めたい」。
+- X270にリモート接続。`C:\Users\zawa\.RomRaider` のアクセス許可を得て `settings.xml`、`profile_backup.xml`、`rr_system.log` を確認。
+  - `profile_backup.xml` は245パラメーター・173スイッチ・外部5項目を列挙しているが、`selected` は付いていなかった（何も選択されていない状態で保存されたもの）。
+  - `rr_system.log` 末尾: OpenPort未接続（`ERR_DEVICE_NOT_CONNECTED`）を1秒周期で再試行中。
+- `Documents\OpenPortWork` のアクセス許可 → `Logs` に2026-09-21のCSV 11本を発見。周期と項目数を集計（`05_environment.md` §5）。**「実車疎通は未確認」とされていた引継ぎ資料の記述を「9/21に成功済み」に更新**。
+- `rr_system.log` から ECU ID `2F04785006`、FW 1.17.4877、DLL `op20pt32.dll`、13:51の「51バイト待ちタイムアウト」繰り返しを確認。
+- 画面操作でRomRaiderを前面に出そうとしたが、タスクバーのクリックにはエクスプローラーの許可が必要で、この時点では見送った。
+
+## フェーズ2: 外部制御の窓口を探す（11:52〜11:56）
+
+- `C:\Program Files (x86)\RomRaider` の読み取り許可。`src/`（ソース同梱）、`runtime/`（Zulu 8 32bit JRE）、`plugins/`、`run-logger.bat` を確認。
+- 最初に**プラグイン機構**を検討: `ExternalDataSource.getMenuAction(EcuLogger)` でインスタンスが手に入る。しかし `ExternalDataSourceLoaderImpl` はアプリのクラスローダーで読むため、自作jarをクラスパスに入れる必要がある。`plugins/` への書き込みは `Permission denied`。
+- 次に「作業ディレクトリを `RRBridge` に変えて、そこに `plugins/` を置く」案を検討 → `customize/j2534Libraries.properties`、`lib/log4j.properties`、`i18n` など相対パス依存が多く、J2534 DLL探索が壊れるため却下（`04_romraider_internals.md` §6）。
+- **`EcuLogger.getEcuLoggerWithoutCreation()`（public static）を発見** → `-javaagent` なら作業ディレクトリもクラスパスも変えずに入れると判断。`runtime/bin/instrument.dll` があることも確認。
+- 公開メソッド `startLogging`／`stopLogging`／`isLogging`／`loadUserProfile` と、CSV記録が private の `logToFileButton` 経由であることを確認。
+
+## フェーズ3: RRBridge v0.1.0 の実装と配置（11:56〜12:00）
+
+- クラウド側コンテナにJDK 21があり、`--release 8` でJava 8向けにコンパイル。RomRaider.jarをX270からコピーしてコンパイル時の参照に使用。
+- コマンドの受け口は「ファイル（inbox/outbox）」と「HTTP（127.0.0.1:18765）」の2つ。ファイル経由にしたのは、クラウド側からX270のlocalhostに直接届かず、マウントしたフォルダ経由なら試験できるため（後段のSupervisorでも使える）。
+- テスト用プロファイルは、Logger定義v370から名前→IDを引いて作成: basic（P8 rpm、P9 km/h、P13 %、P25 kPa、P2 C、P11 C）、fuel（P8、P12 g/s、P18 V、P58 Lambda、P3 %、P4 %、P13 %）。9/21に8項目8Hzで安定していた構成に近いものを選んだ。
+- `Documents\OpenPortWork\RRBridge` に jar・bat・profiles・README を配置。
+- コンテナでの起動試験: `premain` は動くが、log4jがクラスパスにないため `NoClassDefFoundError: org/apache/log4j/Logger` で止まる（コンテナ固有。実機では問題なし）。
+
+## フェーズ4: 実機での外部制御試験（12:00〜12:06）
+
+- 12:00 ユーザー「RomRaiderを再起動した」→ しかし `rrbridge.log` が出ない。`rr_system.log` の System Properties を見ると `sun.java.command=RomRaider.jar -logger`、`rrbridge` 関連のプロパティなし → **通常のショートカットで起動されていた**（11:59:27起動）。
+- エクスプローラーを「クリックのみ」の権限で許可してもらい、Claudeが RomRaider を File > Exit で終了 → `Documents\OpenPortWork\RRBridge\start-romraider-with-bridge.bat` をダブルクリックして起動。
+- 12:03 v0.1.0 起動成功。試験結果は `06_verification.md` §1。**CSV記録中のプロファイル切替でヘッダーが多重化**することを発見。
+- この時点でOpenPortはUSB接続されたがECU無応答（`timeout expired waiting for 2 more message(s)`）。
+- 12:04 `switch_profile` を追加した v0.2.0 をビルド。jarはRomRaider実行中はロックされるため、RomRaider終了 → 上書き → 再起動。
+- 12:05 v0.2.0 で1区間1CSVを確認。**同じプロファイルでも列順が変わる**ことを発見。
+- 引継ぎ資料に第13節（実機検証結果）・第14節（決定ログ）を追記し、プロジェクトに保存。
+
+## フェーズ5: リアルタイム転送の検証（12:07〜12:22）
+
+- ユーザー要求: 「CSVだけだとリアルタイム分析ができない。RomRaiderから直接SQLサーバー等に転送し、音声モードのスマホからHTTPのMCPで解析を呼び出せる構造にしたい。ログを取りながら転送できるか検証してほしい」。
+- ソース調査で、データ配信の主経路が `QueryManagerImpl.updateHandlers` → `AsyncDataUpdateHandler` であることを確認。`DataUpdateHandlerManagerImpl.addHandler` はタブ用の別経路で使えないことも確認。
+- 方式決定: 配列をリフレクションで差し替えて自前のハンドラーを追加 → キュー → spool（正本）→ HTTP送信。受信側は `session+seq` で冪等。
+- 受信側にSQLが必要 → sqlite-jdbcをMaven Centralから取得しようとして **HTTP 429（レート制限）**。20秒待って `repo.maven.apache.org` から取得（3.46.1.3、14,127,503バイト、class version 52＝Java 8、`org/sqlite/native/Windows/x86/sqlitejdbc.dll` 同梱）。SLF4Jがなくても警告のみで動作。
+- コンテナ内で、受信停止→再送、重複排除を試験して合格。送信スレッドの待機を1000ms→500msに短縮。
+- 12:14 v0.3.0 起動。`stream installed (handlers=10 …)`。受信サーバー未起動のまま80サンプル → spoolに保持を確認。
+- 12:16 `start-receiver.bat` 起動 → **失敗**。DBファイル（テーブル）は作られたが接続拒否。コマンドプロンプトの表示権限（クリックのみ）をもらって画面を確認 → `ClassNotFoundException: com.romraider.logger.ecu.ui.handler.DataUpdateHandler`（`Receiver` が `Stream.read()` を呼び、`Stream` が `DataUpdateHandler` を実装しているため、RomRaider.jarなしでは読めない）。最初のバッチは `pause` で止まっていたので出力が画面にしか残らなかった → バッチを `data\receiver.log` へ出力するよう変更。
+- 対処: 共通処理を `Util` に切り出し、受信サーバーを `rrreceiver.jar`（`Receiver*.class`＋`Util.class`）として別jarに。RomRaider側のjarを差し替えずに済むので、RomRaiderは再起動しなかった。
+- 12:18 受信サーバー起動成功 → 停止中の80サンプルが自動で全件送られた。続けて240サンプルで遅延を測定（平均273ms、最大533ms）。
+- X270のLinux VM側から `telemetry.db` を直接sqlite3で開くと `disk I/O error`（WALファイルとマウントの相性）→ ファイルをクラウド側にコピーして集計。
+- 引継ぎ資料に 13.4〜13.5 と決定ログを追記。
+
+## フェーズ6: サーバー構成の提案（12:25ごろ）
+
+- ユーザー発言: 「VPCというかVPS（レンタルサーバー）。OSもApacheもNginxも決めていないので構成を提案してほしい。自宅PCにVPNを張ってSQLサーバーを立てることもできる」。
+- 調査（2026-10-12時点の公式ヘルプ等）: MCPは各社クラウドから接続するため公開が必要。ChatGPTの自作MCPはWeb専用・Business以上（Proは読み取りのみ）、音声モードでは動かない報告あり。Claudeのカスタムコネクタは個人プランでも追加でき、Bearerトークン認証可、音声モードは接続済みツールに対応（カスタムコネクタは未明記）。
+- 提案: VPS 1台（Ubuntu 24.04、Caddy、PostgreSQL、Python受信API＋MCP、Docker Compose）。最初に「Claudeモバイル音声から自作MCPを呼べるか」をダミーMCPで検証することを推奨。詳細は `02_architecture.md` §2。ユーザーの決定はまだ。
+
+## フェーズ7: GitHub化（12:34〜）
+
+- ユーザーが空のprivateリポジトリ `zawa356/RomRaider_agent` を作成し、ここに書き込むよう依頼。
+- 初回コミット `1486092`「Initial import: RRBridge v0.3.0」を `main` に直接push（空リポジトリのため）。コミット作成者は `zawa356 <zawa356@users.noreply.github.com>`（メールアドレス非公開設定でpushが拒否されるのを避けるため）。
+- jar（RomRaider.jar、sqlite-jdbc.jar）はコミットせず `lib/` に置く方式。`build.sh` で `dist/` に配置一式を生成し、X270で動いているものと同じクラス構成になることを確認。
+- ユーザー要求「README、設計方針、履歴を詳しく。主に読むのはAIなので要約より情報量重視」→ `AGENTS.md`、`CLAUDE.md`、`docs/00〜09`、`docs/handoff/` を作成（このファイルを含む）。
+
+---
+
+## 2026-10-12 時点のX270の状態
+
+- RomRaider: RRBridge v0.3.0 付きで起動中、ロギング停止、プロファイルは前回終了時の basic.xml が復元されているはず [推測]、session `20261012_121452`。
+- 受信サーバー: 起動中（127.0.0.1:18766、`data\telemetry.db` に selftest 320サンプル）。
+- OpenPort: USB接続、ECU無応答。

@@ -1,0 +1,99 @@
+# AGENTS.md — AIエージェント向け作業ガイド
+
+このファイルは、このリポジトリで作業するAI（Claude、ChatGPT/Codex など）が最初に読むためのものです。
+人間向けの概要は `README.md`、詳細は `docs/` にあります。**情報量を優先して書いています。要約しすぎないでください。**
+
+---
+
+## 0. 最初に読む順番
+
+1. このファイル（作業ルール・禁止事項・現状）
+2. `docs/00_index.md`（ドキュメント全体の地図）
+3. `docs/07_history.md`（何をどの順で試し、何が失敗し、なぜ今の形になったか）
+4. `docs/03_rrbridge_design.md`（コードの設計と各クラスの責務）
+5. `docs/04_romraider_internals.md`（依存しているRomRaider内部の箇所。バージョン差異の確認に必須）
+6. `docs/09_open_issues.md`（未解決事項と次の作業候補）
+
+`docs/handoff/` には、ユーザーがChatGPT／Claudeの会話をまたいで使っている引継ぎ資料の全文があります（設計検討の原典）。
+
+---
+
+## 1. プロジェクトの目的（ユーザーの意図）
+
+- オーナー: zawa（GitHub: `zawa356`）。ITインフラエンジニア（開発者ではない）。普段はPython／PowerShellを書く。
+- 車両: スバル レガシィ ツーリングワゴン BP5 Spec.B（EJ20X、SSM/K-Line世代）。
+- ロガー実行PC: Lenovo ThinkPad X270（Windows 10、端末名 `laptop-glmhjuc8`、ユーザー `zawa`）。
+- ECU通信: Tactrix OpenPort 2.0（互換機）＋ RomRaider Logger。
+- 最終目標:
+  1. RomRaider Logger 全体（ロギング開始・停止、取得項目＝プロファイルの切替、状態照会、CSV解析）を外部から操作する。
+  2. 走行中にPCを触らずに、LLMが次に取得すべき項目を判断して計測計画を切り替える「適応的な計測」。
+  3. ログをローカルCSVだけでなくサーバー（SQL）へリアルタイム転送し、スマホの音声モードからHTTPのMCP経由で解析を呼び出す。
+- 制約: LLM APIの従量課金は極力避けたい。サブスク（ChatGPT／Claude）の範囲で使いたい。通信回線は使える前提でよい（ユーザー明言）。
+- 作業環境: 当初ChatGPT（Workモード）で検討 → 2026-10-12にClaude Coworkへ移行（ChatGPT Workの調子が悪いため、ユーザー判断）。
+
+---
+
+## 2. 絶対に守ること（安全・スコープ）
+
+- **ECUへの書き込み、ROMの読み書き、ECUリセット、DTC消去、学習値リセット、OpenPortのファームウェア更新は実装しない。** RomRaiderにはこれらの機能（`ResetEcuAction`、`ReadEcuCodesAction`、`LearningTableValuesAction` など、`EcuLoggerMenuBar` のToolsメニュー）があるが、エージェントからは呼ばない。
+- 公開するコマンドはホワイトリスト方式（`Agent.execute()`）。新しいコマンドを足すときは「読み取り」か「ロガーの記録制御」に限る。
+- プロファイルの読み込みは `RRBridge\profiles\` 内のファイル名（`[A-Za-z0-9_.-]+\.xml`）のみ許可。任意パスを受け付けない。
+- 走行中に画面操作を要求する設計にしない。
+- LLMの提案をそのままロガーに適用しない。Supervisor（未実装）が項目数上限・定義整合性・安全条件を検査してから適用する前提。
+- **RomRaider本体（`C:\Program Files (x86)\RomRaider` 以下）は変更しない。** 書き込み権限もない（検証で `Permission denied` を確認済み）。
+- 認証情報（`sink.properties` の token など）をコミットしない。`.gitignore` 済み。
+- RomRaiderはGPL v2。このエージェントは同じJVM内で動くため、公開・配布する場合はライセンスを確認する（現在リポジトリはprivate）。
+
+---
+
+## 3. 現在の状態（2026-10-12 時点）
+
+| 項目 | 状態 |
+| --- | --- |
+| バージョン | RRBridge v0.3.0 |
+| 外部制御（status / logging / filelog / profile） | X270実機で動作確認済み（ECUは無応答の状態） |
+| `switch_profile` で1区間1CSV | 実機で確認済み |
+| リアルタイム転送（spool → HTTP → SQLite） | 合成データ（`selftest_stream`）で経路確認済み。平均273ms・最大533msの遅延。受信停止中の80サンプルを復旧後に全件再送 |
+| 実ECUデータがハンドラーに届くこと | **未確認**（取り付けは成功。ECUがつながればすぐ確認可能） |
+| VPS／本番受信API／MCPサーバー | 未着手。構成案は `docs/02_architecture.md` |
+| Supervisor（計測計画の実行・検証） | 未着手 |
+| LLMの無人起動方法 | 未解決（最大の課題） |
+
+X270上の配置先: `C:\Users\zawa\Documents\OpenPortWork\RRBridge\`（このリポジトリの `dist/` の中身を置く）。
+
+---
+
+## 4. ビルドと検証の手順
+
+```bash
+cp "<RomRaiderインストール先>/RomRaider.jar" lib/
+./scripts/fetch-deps.sh        # lib/sqlite-jdbc.jar (3.46.1.3)
+./build.sh                     # dist/ に rrbridge.jar, rrreceiver.jar, bat, profiles, sink.properties
+```
+
+- JDK 9以上で `--release 8`。実行環境はRomRaider同梱の **Zulu 8 (1.8.0_504) 32bit**。Java 9以降のAPIを使わない。ラムダは使っていない（Java 8では使えるが、既存コードは匿名クラスで統一）。
+- 外部ライブラリをエージェント（rrbridge.jar）に追加しない。RomRaiderのクラスパスに乗らないため、`-javaagent` のjar単体で完結させる。JSONも手書き（`Agent.q()`）。
+- `rrreceiver.jar` は RomRaider のクラスに依存してはいけない（`Receiver` と `Util` のみ）。過去に `Stream.read()` を呼んで `ClassNotFoundException: DataUpdateHandler` になった（`docs/07_history.md`）。
+- ローカル（Linux）での簡易試験: `Receiver` は単体で起動でき、`curl` でTSVをPOSTして確認できる。`Agent`/`Stream` はRomRaiderのGUIが必要なため、実機（Windows）で試す。手順は `docs/06_verification.md`。
+
+---
+
+## 5. コードを変更するときの注意
+
+- RomRaiderの private フィールドにリフレクションでアクセスしている（`EcuLogger.controller`、`EcuLogger.logToFileButton`、`LoggerControllerImpl.queryManager`、`QueryManagerImpl.updateHandlers`、`QueryManagerImpl.dataUpdater`、`AsyncDataUpdateHandler.handlers`）。RomRaiderを更新したら `docs/04_romraider_internals.md` の表を見て、まだ存在するか確認する。
+- Swingの状態を変える処理（`loadUserProfile`、トグルボタン操作、`startLogging`/`stopLogging`）は `Agent.onEdt()` でEDT上で実行する。
+- `Stream.handleDataUpdate()` はRomRaiderの配信スレッド（`AsyncDataUpdater`、約16ms周期）から呼ばれる。重い処理・I/O・例外送出をしない（キューに積むだけ）。
+- プロファイル切替時、RomRaiderは項目を1つずつ登録・解除する。CSV記録中に `load_profile` すると同じCSVにヘッダー行が多重に出る。区切りたいときは `switch_profile` を使う。
+- CSVの列順はプロファイルXMLの記載順と一致しない。ETLは列名で対応付ける。
+- `logging_start` は非同期。直後の `status` では `logging=false` のことがある。
+- バッチファイルは CRLF（`.gitattributes` で指定）。`start-romraider-with-bridge.bat` は作業ディレクトリをRomRaiderのインストール先にする必要がある（相対パス依存。`docs/04_romraider_internals.md` §6）。
+
+---
+
+## 6. ドキュメント更新のルール
+
+- 新しく分かった事実・決定・失敗は `docs/07_history.md`（時系列）と `docs/08_decisions.md`（決定記録）に**追記**する。過去の記述は消さない。
+- 「実機で確認した」「コード調査のみ」「推測」「ユーザーの発言」を区別して書く。
+- 数値（周期、遅延、件数、バイト数）は測定条件とともに残す。
+- 引継ぎ資料（`docs/handoff/`）はユーザーがChatGPTのLibraryとClaudeのProjectでも共有している。更新したら同じ内容をProject側にも反映するとよい。
+- コミットメッセージは日本語可。変更理由を書く。
