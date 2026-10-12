@@ -55,7 +55,7 @@
 | `switch_profile` で1区間1CSV | 実機で確認済み |
 | リアルタイム転送（spool → HTTP → SQLite） | 合成データ（`selftest_stream`）で経路確認済み。平均273ms・最大533msの遅延。受信停止中の80サンプルを復旧後に全件再送 |
 | 実ECUデータがハンドラーに届くこと | **未確認**（取り付けは成功。ECUがつながればすぐ確認可能） |
-| VPS／本番受信API／MCPサーバー | 未着手。構成案は `docs/02_architecture.md` |
+| 受信API＋MCPサーバー（`server/`） | 試作 v0.1.0。自動試験32件PASS（SQLite／PostgreSQL 16）。VPS未配置。Claudeからの接続・音声モードは未検証 |
 | Supervisor（計測計画の実行・検証） | 未着手 |
 | LLMの無人起動方法 | 未解決（最大の課題） |
 
@@ -78,6 +78,20 @@ cp "<RomRaiderインストール先>/RomRaider.jar" lib/
 - `Agent`/`Stream` のRomRaider連携部分（EDT操作、リフレクション、実際のプロファイル切替）は自己試験では動かない。実機（Windows）で `inbox/*.cmd` を使って試す。手順は `docs/06_verification.md`。
 
 ---
+
+### 4.1 server/（Python）
+
+```bash
+cd server && pip install -r requirements-dev.txt
+python -m pytest -q tests                                   # SQLite
+RR_TEST_PG_URL=postgresql://user@host:port/db python -m pytest -q tests   # PostgreSQLも
+```
+
+- `mcp` は **2.x**（`from mcp.server.mcpserver import MCPServer`）。ネット上の例の多くは1.x の `FastMCP` なので混同しない。
+- SQLは SQLite と PostgreSQL の両方で動く書き方にする（`?` プレースホルダ、`ON CONFLICT DO NOTHING`）。`db.py` が `%s` に変換する。
+- MCPツールの中身は `analysis.py`（MCP非依存）に書き、`app.py` は薄く保つ。返り値は名称・単位付き（IDだけにしない）。
+- 受信形式は Java 版 `Receiver` と同じ。どちらかを変えたら両方と `docs/03_rrbridge_design.md` §6〜7 を揃える。
+- MCPに書き込み系ツールを足すときは、車両・ロガーを操作するものは入れない（AGENTS §2）。計測計画の提出を入れる場合も「提案を保存するだけ」にし、適用はX270側のSupervisorが検証してから行う。
 
 ## 5. コードを変更するときの注意
 

@@ -21,7 +21,8 @@ RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ま
 | `switch_profile`（記録停止→読込→再開で1区間1CSV） | 実機確認済み |
 | リアルタイム転送（内部配信 → spool → HTTP → SQLite） | 合成データで確認済み（平均273ms・最大533ms。受信停止中の80件を復旧後に全件再送）。**実ECUデータは未確認** |
 | 自己試験（`./test.sh`、GUIなしで動く範囲30項目） | 全件PASS |
-| 本番サーバー（VPS）、MCP、Supervisor | 未着手 |
+| 受信API＋Remote MCPサーバー（`server/`、Python） | 試作。SQLite／PostgreSQL 16で自動試験32件PASS、X270の実spoolを取り込みMCPで照会できることを確認。VPS未配置 |
+| Supervisor、LLMの無人起動 | 未着手 |
 
 検証の詳細: [`docs/06_verification.md`](docs/06_verification.md)。未解決事項: [`docs/09_open_issues.md`](docs/09_open_issues.md)。
 
@@ -59,6 +60,7 @@ scripts/
 lib/                       ビルド時の依存jar置き場（Git管理外。lib/README.md）
 docs/                      設計・調査・検証・履歴・決定記録（docs/00_index.md）
 docs/handoff/              会話間の引継ぎ資料（原典）
+server/                    受信API＋Remote MCPサーバー（Python、mcp 2.3.0、PostgreSQL/SQLite、docker compose＋Caddy）。server/README.md
 ```
 
 ## 5. ビルド

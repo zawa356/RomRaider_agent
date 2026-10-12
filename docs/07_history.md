@@ -98,6 +98,17 @@
 - X270の画面操作の許可が30分の無操作で失効していたため再承認を依頼（RomRaider Logger／エクスプローラー／コマンドプロンプト）。
 - 配置: RomRaider終了、受信サーバーのコンソールを閉じ、jar等を上書き、受信サーバー→RomRaiderの順に起動。実機での回帰試験は `06_verification.md` §4。全項目期待どおり。
 
+## フェーズ9: 受信API＋Remote MCPサーバーの試作（13:05〜13:35）
+
+- 「どんどん改善して進めて」の指示を受け、`02_architecture.md` §2 の推奨構成の中身を `server/` に試作。VPS・ドメインはユーザー未決定のため、配置はしていない。
+- 作業環境の `pip` で `mcp` を入れたところ **2.3.0（v2系）** で、`mcp.server.fastmcp` が存在しない（`MCPServer` に改名）。v2のAPI（`MCPServer`、`custom_route`、`streamable_http_app(stateless_http, json_response, transport_security)`、`ToolAnnotations`）で実装。
+- DB層は SQLite／PostgreSQL 両対応（`DATABASE_URL`）。スキーマはJava版受信サーバーと同一（`events.source` 列だけ追加。既存SQLiteには `ALTER TABLE` で追加）。
+- 試験: pytest。コンテナに PostgreSQL 16 のバイナリがあったので、`postgres` ユーザーで `/var/tmp/pgrr` に一時クラスタを作って試験（最初 `/tmp/claude-0` 配下に作ろうとして権限エラー、`rm -rf` を含むコマンドは安全確認で拒否されたため別ディレクトリにした）。SQLite 18件、PostgreSQL込みで32件PASS。
+- 初回の失敗: 試験データの生成時刻が呼び出しごとに変わり、イベントの重複排除の試験が誤って失敗（試験側の問題）→ 時刻を固定。
+- X270 の実際の spool（`rr_20261012_121452.tsv` 330行、`rr_20261012_125843.tsv` 172行）をそのまま PostgreSQL 版の `/ingest` に送り、全件取り込み（320＋160サンプル、イベント4＋9）→ MCP の `list_segments`、`list_events`、`add_event_marker` で照会・記録できることを確認。
+- `list_*` ツールが配列を返すとMCPの応答が要素ごとの複数contentに分かれたため、`{"sessions":[…]}`／`{"events":[…]}` の形に変更。
+- Docker デーモンがないため、イメージのビルドと起動は未確認（`docker compose config -q` で構文のみ確認）。
+
 ## 2026-10-12 時点のX270の状態
 
 - RomRaider: RRBridge v0.4.0 付きで起動中（13:00時点）、ロギング停止、プロファイル fuel.xml、session `20261012_125843`。

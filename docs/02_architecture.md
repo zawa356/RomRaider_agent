@@ -105,6 +105,10 @@ VPNだけではAIクライアント（各社クラウド）からMCPに届かな
 - 認証をトークンで扱える。DBの資格情報を車載PCに置かずに済む。
 - X270の `sink.properties` の `url`／`token` を書き換えるだけで、試作（X270内SQLite）→ VPS へ切り替えられる。
 
+### 2.5 実装状況（2026-10-12 13:30）
+
+推奨構成の中身（受信API＋MCP）を `server/` に試作済み。Python 3.13、`mcp` 2.3.0（Streamable HTTP、stateless、JSONレスポンス）、psycopg 3.3.6、uvicorn 0.53.0、Docker Compose（postgres:16、caddy:2、app）。ツールは `get_vehicle_status` など8つ（`server/README.md` §3）。VPS・ドメインは未決定のため未配置。
+
 ## 3. 推奨された進め方（2026-10-12）
 
 1. **音声モードの適合性を最初に検証**: ダミー値を返すだけのMCPを一時公開（Cloudflare Tunnelの一時URLで可）し、Claude Androidの音声モードから呼べるか、書き込み系ツールで確認が出るかを試す。結果次第で音声部分の設計が変わる。

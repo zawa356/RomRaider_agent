@@ -1,0 +1,12 @@
+# DOMAIN の証明書は Caddy が自動で取得・更新する（DNSのAレコードをVPSに向けておく）
+{$DOMAIN} {
+	encode gzip
+	# /ingest（RRBridge）と /mcp（AIクライアント）と /health だけを通す
+	@allowed path /ingest /mcp /mcp/* /health
+	handle @allowed {
+		reverse_proxy app:8000
+	}
+	handle {
+		respond 404
+	}
+}

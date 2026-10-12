@@ -1,0 +1,4 @@
+# 2026-10-12 に動作確認した版（Python 3.13 / PostgreSQL 16 / SQLite）
+mcp==2.3.0
+psycopg[binary]==3.3.6
+uvicorn==0.53.0
