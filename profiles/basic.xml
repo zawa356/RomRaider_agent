@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<profile protocol="SSM">
+    <parameters>
+        <parameter id="P8" units="rpm" livedata="selected"/>
+        <parameter id="P9" units="km/h" livedata="selected"/>
+        <parameter id="P13" units="%" livedata="selected"/>
+        <parameter id="P25" units="kPa" livedata="selected"/>
+        <parameter id="P2" units="C" livedata="selected"/>
+        <parameter id="P11" units="C" livedata="selected"/>
+    </parameters>
+</profile>

@@ -1,0 +1,5 @@
+*.bat  text eol=crlf
+*.xml  text eol=crlf
+*.properties.example text eol=crlf
+*.sh   text eol=lf
+*.java text eol=lf

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<profile protocol="SSM">
+    <parameters>
+        <parameter id="P8" units="rpm" livedata="selected"/>
+        <parameter id="P12" units="g/s" livedata="selected"/>
+        <parameter id="P18" units="V" livedata="selected"/>
+        <parameter id="P58" units="Lambda" livedata="selected"/>
+        <parameter id="P3" units="%" livedata="selected"/>
+        <parameter id="P4" units="%" livedata="selected"/>
+        <parameter id="P13" units="%" livedata="selected"/>
+    </parameters>
+</profile>

@@ -1,0 +1,16 @@
+# build output
+/build/
+/dist/
+*.class
+# 依存jar（ライセンス・サイズの都合でコミットしない。lib/README.md 参照）
+/lib/*.jar
+# 実行時に生成されるもの
+inbox/
+outbox/
+spool/
+data/
+status.json
+rrbridge.log
+*.tmp
+# 認証情報を含むため実ファイルはコミットしない
+sink.properties
