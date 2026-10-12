@@ -90,8 +90,16 @@
 
 ---
 
+## フェーズ8: v0.4.0 改善（12:45〜13:05）
+
+- ユーザー発言: 「改善する箇所があればどんどんこの環境とGitを触って改善してもらって大丈夫です。すすめてください」。
+- `09_open_issues.md` の技術的負債を中心に改善（一覧は `03_rrbridge_design.md` §9）。主なもの: 読み取り系をロックから外しHTTPを複数スレッド化、GET対応、任意のHTTP認証、`list_profiles`、`wait_ms`、`logging_stop` でCSVも停止、設定ファイル、ログのローテーション、送信済みspoolの自動削除、キュー溢れの計数、`mainLoop` の例外耐性、原子的なファイル置換、E行の文字列を保持、受信側の件数修正と `/health`。
+- 自己試験 `SelfTest.java`／`test.sh` を追加（30項目）。初回から全件PASS。
+- X270の画面操作の許可が30分の無操作で失効していたため再承認を依頼（RomRaider Logger／エクスプローラー／コマンドプロンプト）。
+- 配置: RomRaider終了、受信サーバーのコンソールを閉じ、jar等を上書き、受信サーバー→RomRaiderの順に起動。実機での回帰試験は `06_verification.md` §4。全項目期待どおり。
+
 ## 2026-10-12 時点のX270の状態
 
-- RomRaider: RRBridge v0.3.0 付きで起動中、ロギング停止、プロファイルは前回終了時の basic.xml が復元されているはず [推測]、session `20261012_121452`。
-- 受信サーバー: 起動中（127.0.0.1:18766、`data\telemetry.db` に selftest 320サンプル）。
+- RomRaider: RRBridge v0.4.0 付きで起動中（13:00時点）、ロギング停止、プロファイル fuel.xml、session `20261012_125843`。
+- 受信サーバー: v0.4.0 で起動中（127.0.0.1:18766、`data\telemetry.db` に selftest 320＋160サンプル）。
 - OpenPort: USB接続、ECU無応答。

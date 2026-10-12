@@ -12,38 +12,65 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * RRBridge PoC: RomRaider Logger と同じJVMで動く -javaagent。
- * RomRaider本体は改造しない。公開されている EcuLogger のメソッドだけを呼ぶ。
- * 公開する操作は「ロギング開始/停止」「CSV記録開始/停止」「許可フォルダ内のプロファイル読込」「状態取得」のみ。
- * ECUリセット・DTC・ROM書込などには触れない。
+ * RRBridge: RomRaider Logger と同じJVMで動く -javaagent。
+ * RomRaider本体は改造しない。公開メソッドを優先し、必要最小限の private フィールドだけリフレクションで扱う。
+ * 公開する操作は「状態取得」「ロギング開始/停止」「CSV記録開始/停止」「許可フォルダ内のプロファイル読込」「転送の状態・試験」のみ。
+ * ECUリセット・DTC・ROM読み書き・学習値リセットなど車両に影響する操作には触れない。
+ *
+ * 設定（任意）: <rrbridge.dir>/rrbridge.properties
+ *   http.token=        設定するとHTTPの全リクエストに Authorization: Bearer <token> を要求
+ *   switch.settleMs=1500   switch_profile で読込後CSV記録を再開するまでの待ち
+ *   log.maxBytes=5242880   rrbridge.log の上限（超えたら rrbridge.log.1 に退避）
+ *   spool.retentionDays=14 送信済みspoolを残す日数（0以下で削除しない）
  */
 public final class Agent {
-    static final String VERSION = "0.3.0";
+    static final String VERSION = "0.4.0";
+    static final Pattern PROFILE_NAME = Pattern.compile("[A-Za-z0-9_.-]+\\.xml");
+    /** 読み取り専用コマンド（排他ロック不要、HTTPでGET可） */
+    static final Set<String> READ_ONLY = new HashSet<String>(Arrays.asList("status", "stream_status", "list_profiles"));
+    static final String ALLOWED = "status, stream_status, list_profiles, logging_start, logging_stop, filelog_start, filelog_stop, load_profile, switch_profile, selftest_stream";
+
     static File baseDir, inbox, outbox, profilesDir, statusFile, logFile;
     static int port = 18765;
+    static String httpToken = "";
+    static long settleMs = 1500, logMaxBytes = 5L * 1024 * 1024;
     static final AtomicReference<String> lastCommand = new AtomicReference<String>("");
+    static final Object CONTROL_LOCK = new Object();
 
     public static void premain(String args, Instrumentation inst) {
         String dir = System.getProperty("rrbridge.dir");
         if (dir == null) dir = System.getProperty("user.home") + "/Documents/OpenPortWork/RRBridge";
-        baseDir = new File(dir);
+        init(new File(dir));
+        String p = System.getProperty("rrbridge.port");
+        if (p != null) port = Integer.parseInt(p);
+        Thread t = new Thread(new Runnable() { public void run() { mainLoop(); } }, "RRBridge");
+        t.setDaemon(true);
+        t.start();
+        log("agent loaded v" + VERSION + " dir=" + baseDir.getAbsolutePath()
+                + " httpAuth=" + (httpToken.isEmpty() ? "off" : "on") + " settleMs=" + settleMs);
+    }
+
+    /** ディレクトリと設定の初期化（試験からも呼ぶ） */
+    static void init(File dir) {
+        baseDir = dir;
         inbox = new File(baseDir, "inbox");
         outbox = new File(baseDir, "outbox");
         profilesDir = new File(baseDir, "profiles");
         statusFile = new File(baseDir, "status.json");
         logFile = new File(baseDir, "rrbridge.log");
         inbox.mkdirs(); outbox.mkdirs(); profilesDir.mkdirs();
-        String p = System.getProperty("rrbridge.port");
-        if (p != null) port = Integer.parseInt(p);
-        Thread t = new Thread(new Runnable() { public void run() { mainLoop(); } }, "RRBridge");
-        t.setDaemon(true);
-        t.start();
-        log("agent loaded v" + VERSION + " dir=" + baseDir.getAbsolutePath());
+        Properties c = Util.loadProps(new File(baseDir, "rrbridge.properties"));
+        httpToken = c.getProperty("http.token", "").trim();
+        settleMs = Math.max(0, Math.min(10000, Util.longProp(c, "switch.settleMs", 1500)));
+        logMaxBytes = Util.longProp(c, "log.maxBytes", logMaxBytes);
+        Stream.INSTANCE.retentionDays = Util.longProp(c, "spool.retentionDays", 14);
     }
 
     static EcuLogger logger() { return EcuLogger.getEcuLoggerWithoutCreation(); }
@@ -55,8 +82,13 @@ public final class Agent {
             log("EcuLogger instance found");
             log("stream " + Stream.INSTANCE.install(logger(), baseDir));
             startHttp();
-            long lastStatus = 0;
-            while (true) {
+        } catch (Throwable e) {
+            log("startup failed: " + e);
+        }
+        long lastStatus = 0;
+        while (true) {
+            // 1回の失敗でループ全体が止まらないよう、反復ごとに例外を捕まえる
+            try {
                 File[] cmds = inbox.listFiles(new FilenameFilter() {
                     public boolean accept(File d, String n) { return n.endsWith(".cmd"); }
                 });
@@ -65,13 +97,13 @@ public final class Agent {
                     for (File f : cmds) handleFile(f);
                 }
                 if (System.currentTimeMillis() - lastStatus > 1000) {
-                    writeAtomic(statusFile, statusJson());
+                    Util.writeAtomic(statusFile, statusJson());
                     lastStatus = System.currentTimeMillis();
                 }
-                Thread.sleep(200);
+            } catch (Throwable e) {
+                log("mainLoop error: " + e);
             }
-        } catch (Throwable e) {
-            log("mainLoop died: " + e);
+            sleep(200);
         }
     }
 
@@ -82,63 +114,128 @@ public final class Agent {
             try { p.load(in); } finally { in.close(); }
         } catch (IOException e) { log("read fail " + f + " " + e); }
         Map<String, String> m = new HashMap<String, String>();
-        for (String k : p.stringPropertyNames()) m.put(k, p.getProperty(k));
+        for (String k : p.stringPropertyNames()) m.put(k, p.getProperty(k).trim());
         String result = execute(m);
         String base = f.getName().replaceAll("\\.cmd$", "");
-        writeAtomic(new File(outbox, base + ".json"), result);
+        Util.writeAtomic(new File(outbox, base + ".json"), result);
         if (!f.delete()) f.renameTo(new File(outbox, f.getName() + ".done"));
     }
 
-    /** 全コマンドの入口（ファイル経由・HTTP経由共通） */
-    static synchronized String execute(Map<String, String> a) {
+    /** 全コマンドの入口（ファイル経由・HTTP経由共通）。読み取り系はロックなし、操作系は1つずつ実行 */
+    static String execute(Map<String, String> a) {
         final String cmd = a.get("cmd") == null ? "" : a.get("cmd").trim();
-        lastCommand.set(cmd + " @" + now());
-        log("cmd " + a);
         try {
-            final EcuLogger lg = logger();
-            if (lg == null) return err(cmd, "logger not ready");
-            if (cmd.equals("status")) return statusJson();
-            if (cmd.equals("logging_start")) { onEdt(new Runnable() { public void run() { lg.startLogging(); } }); Stream.INSTANCE.event("logging_start"); return ok(cmd); }
-            if (cmd.equals("logging_stop"))  { onEdt(new Runnable() { public void run() { lg.stopLogging(); } });  Stream.INSTANCE.event("logging_stop"); return ok(cmd); }
-            if (cmd.equals("filelog_start")) return setFileLog(cmd, true);
-            if (cmd.equals("filelog_stop"))  return setFileLog(cmd, false);
-            if (cmd.equals("stream_status")) return "{\"ok\":true,\"cmd\":\"stream_status\",\"stream\":" + Stream.INSTANCE.statusJson() + "}";
-            if (cmd.equals("selftest_stream")) {
-                int n = 40, hz = 8;
-                try { if (a.get("count") != null) n = Math.min(10000, Integer.parseInt(a.get("count"))); if (a.get("hz") != null) hz = Math.min(50, Integer.parseInt(a.get("hz"))); } catch (NumberFormatException e) { return err(cmd, "bad number"); }
-                return "{\"ok\":true,\"cmd\":\"selftest_stream\",\"result\":" + q(Stream.INSTANCE.selftest(n, hz)) + "}";
+            if (READ_ONLY.contains(cmd)) return executeReadOnly(cmd);
+            synchronized (CONTROL_LOCK) {
+                lastCommand.set(cmd + " @" + Util.now());
+                log("cmd " + a);
+                return executeControl(cmd, a);
             }
-            if (cmd.equals("switch_profile")) {
-                // CSV記録中にプロファイルを差し替えると同一CSV内にヘッダー行が多重に書かれるため、
-                // 記録中なら「記録停止→読込→記録再開」で新しいCSVに分ける。
-                File pf = profileFile(a.get("profile"));
-                if (pf == null) return err(cmd, "profile must be an existing file name in profiles dir");
-                boolean wasFile = fileButton() != null && fileButton().isSelected();
-                if (wasFile) { String r = setFileLog("filelog_stop", false); if (r.startsWith("{\"ok\":false")) return r; }
-                if (!load(lg, pf)) return err(cmd, "loadUserProfile returned false (see rr_system.log)");
-                Stream.INSTANCE.event("switch_profile " + pf.getName());
-                if (wasFile && lg.isLogging()) { Thread.sleep(1500); String r = setFileLog("filelog_start", true); if (r.startsWith("{\"ok\":false")) return r; }
-                return ok(cmd);
-            }
-            if (cmd.equals("load_profile")) {
-                String name = a.get("profile");
-                if (name == null || !name.matches("[A-Za-z0-9_.-]+\\.xml")) return err(cmd, "profile must be a file name like basic.xml");
-                final File pf = new File(profilesDir, name);
-                if (!pf.isFile()) return err(cmd, "not found in profiles dir: " + name);
-                final boolean[] r = new boolean[1];
-                onEdt(new Runnable() { public void run() { r[0] = lg.loadUserProfile(pf.getAbsolutePath()); } });
-                return r[0] ? ok(cmd) : err(cmd, "loadUserProfile returned false (see rr_system.log)");
-            }
-            return err(cmd, "unknown command. allowed: status, logging_start, logging_stop, filelog_start, filelog_stop, load_profile, switch_profile, stream_status, selftest_stream");
         } catch (Throwable e) {
+            log("cmd " + cmd + " failed: " + e);
             return err(cmd, e.toString());
         }
     }
 
+    static String executeReadOnly(String cmd) {
+        if (cmd.equals("status")) return statusJson();
+        if (cmd.equals("stream_status")) return "{\"ok\":true,\"cmd\":\"stream_status\",\"stream\":" + Stream.INSTANCE.statusJson() + "}";
+        if (cmd.equals("list_profiles")) return listProfilesJson();
+        return err(cmd, "unknown");
+    }
+
+    static String executeControl(final String cmd, Map<String, String> a) throws Exception {
+        final EcuLogger lg = logger();
+        if (lg == null) return err(cmd, "logger not ready");
+        if (cmd.equals("logging_start")) {
+            onEdt(new Runnable() { public void run() { lg.startLogging(); } });
+            Stream.INSTANCE.event("logging_start");
+            long waitMs = intArg(a, "wait_ms", 0, 0, 10000);
+            if (waitMs > 0 && !waitFor(lg, true, waitMs)) return err(cmd, "logging did not start within " + waitMs + "ms");
+            return ok(cmd);
+        }
+        if (cmd.equals("logging_stop")) {
+            // CSV記録中なら先に止める（RomRaiderはロギング停止でCSVも閉じるが、ボタン状態を揃えるため）
+            JToggleButton b = fileButton();
+            if (b != null && b.isSelected()) setFileLog("filelog_stop", false);
+            onEdt(new Runnable() { public void run() { lg.stopLogging(); } });
+            Stream.INSTANCE.event("logging_stop");
+            long waitMs = intArg(a, "wait_ms", 0, 0, 10000);
+            if (waitMs > 0 && !waitFor(lg, false, waitMs)) return err(cmd, "logging did not stop within " + waitMs + "ms");
+            return ok(cmd);
+        }
+        if (cmd.equals("filelog_start")) return setFileLog(cmd, true);
+        if (cmd.equals("filelog_stop")) return setFileLog(cmd, false);
+        if (cmd.equals("selftest_stream")) {
+            int n = (int) intArg(a, "count", 40, 1, 10000);
+            int hz = (int) intArg(a, "hz", 8, 1, 50);
+            return "{\"ok\":true,\"cmd\":\"selftest_stream\",\"result\":" + Util.q(Stream.INSTANCE.selftest(n, hz)) + "}";
+        }
+        if (cmd.equals("switch_profile") || cmd.equals("load_profile")) {
+            String name = a.get("profile");
+            File pf = profileFile(name);
+            if (pf == null) return err(cmd, "profile must be an existing file name in profiles dir (pattern " + PROFILE_NAME.pattern() + "): " + name);
+            boolean wasFile = cmd.equals("switch_profile") && fileButton() != null && fileButton().isSelected();
+            long t0 = System.currentTimeMillis();
+            if (wasFile) { String r = setFileLog("filelog_stop", false); if (r.startsWith("{\"ok\":false")) return r; }
+            if (!load(lg, pf)) return err(cmd, "loadUserProfile returned false (see rr_system.log)");
+            Stream.INSTANCE.event(cmd + " " + pf.getName());
+            if (wasFile && lg.isLogging()) {
+                sleep(settleMs);
+                String r = setFileLog("filelog_start", true);
+                if (r.startsWith("{\"ok\":false")) return r;
+            }
+            log(cmd + " " + pf.getName() + " took " + (System.currentTimeMillis() - t0) + "ms (filelogRestarted=" + wasFile + ")");
+            return ok(cmd);
+        }
+        return err(cmd, "unknown command. allowed: " + ALLOWED);
+    }
+
+    static long intArg(Map<String, String> a, String key, long def, long min, long max) {
+        String v = a.get(key);
+        if (v == null || v.isEmpty()) return def;
+        try { return Math.max(min, Math.min(max, Long.parseLong(v))); }
+        catch (NumberFormatException e) { throw new IllegalArgumentException("bad number for " + key + ": " + v); }
+    }
+
+    static boolean waitFor(EcuLogger lg, boolean logging, long ms) {
+        long end = System.currentTimeMillis() + ms;
+        while (System.currentTimeMillis() < end) {
+            if (lg.isLogging() == logging) return true;
+            sleep(100);
+        }
+        return lg.isLogging() == logging;
+    }
+
     static File profileFile(String name) {
-        if (name == null || !name.matches("[A-Za-z0-9_.-]+\\.xml")) return null;
+        if (name == null || !PROFILE_NAME.matcher(name).matches()) return null;
         File pf = new File(profilesDir, name);
         return pf.isFile() ? pf : null;
+    }
+
+    /** profiles/ 内のXMLと、選択されている項目（livedata="selected"）のIDを返す */
+    static String listProfilesJson() {
+        File[] fs = profilesDir.listFiles(new FilenameFilter() {
+            public boolean accept(File d, String n) { return PROFILE_NAME.matcher(n).matches(); }
+        });
+        StringBuilder sb = new StringBuilder("{\"ok\":true,\"cmd\":\"list_profiles\",\"profiles\":[");
+        if (fs != null) {
+            Arrays.sort(fs);
+            Pattern sel = Pattern.compile("<(parameter|switch|external)\\s+id=\"([^\"]+)\"[^>]*livedata=\"selected\"");
+            for (int i = 0; i < fs.length; i++) {
+                if (i > 0) sb.append(',');
+                List<String> ids = new ArrayList<String>();
+                try {
+                    String xml = new String(java.nio.file.Files.readAllBytes(fs[i].toPath()), StandardCharsets.ISO_8859_1);
+                    Matcher m = sel.matcher(xml);
+                    while (m.find()) ids.add(m.group(2));
+                } catch (IOException ignore) {}
+                sb.append("{\"name\":").append(Util.q(fs[i].getName())).append(",\"selected\":[");
+                for (int j = 0; j < ids.size(); j++) { if (j > 0) sb.append(','); sb.append(Util.q(ids.get(j))); }
+                sb.append("],\"count\":").append(ids.size()).append('}');
+            }
+        }
+        return sb.append("]}").toString();
     }
 
     static boolean load(final EcuLogger lg, final File pf) throws Exception {
@@ -152,11 +249,11 @@ public final class Agent {
         if (b == null) return err(cmd, "logToFileButton not accessible");
         if (on && !logger().isLogging()) return err(cmd, "logging is not started");
         onEdt(new Runnable() { public void run() { if (b.isSelected() != on) b.doClick(); } });
-        if (b.isSelected() == on) { Stream.INSTANCE.event((on ? "filelog_start " : "filelog_stop ") + lg_title()); return ok(cmd); }
+        if (b.isSelected() == on) { Stream.INSTANCE.event((on ? "filelog_start " : "filelog_stop ") + title()); return ok(cmd); }
         return err(cmd, "state did not change");
     }
 
-    static String lg_title() { try { return logger().getTitle(); } catch (Throwable e) { return ""; } }
+    static String title() { try { return logger().getTitle(); } catch (Throwable e) { return ""; } }
 
     static JToggleButton fileButton() {
         try {
@@ -174,7 +271,7 @@ public final class Agent {
         EcuLogger lg = logger();
         StringBuilder sb = new StringBuilder("{");
         kv(sb, "agent", "RRBridge " + VERSION); sb.append(',');
-        kv(sb, "time", now()); sb.append(',');
+        kv(sb, "time", Util.now()); sb.append(',');
         sb.append("\"ready\":").append(lg != null);
         if (lg != null) {
             JToggleButton b = fileButton();
@@ -189,7 +286,7 @@ public final class Agent {
                 sb.append(",\"newestCsv\":{");
                 kv(sb, "name", newest.getName());
                 sb.append(",\"bytes\":").append(newest.length());
-                sb.append(','); kv(sb, "modified", fmt(new Date(newest.lastModified())));
+                sb.append(','); kv(sb, "modified", Util.fmt(new Date(newest.lastModified())));
                 sb.append('}');
             }
         }
@@ -214,63 +311,47 @@ public final class Agent {
             HttpServer s = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
             s.createContext("/", new com.sun.net.httpserver.HttpHandler() {
                 public void handle(HttpExchange ex) throws IOException {
-                    Map<String, String> q = new HashMap<String, String>();
-                    String raw = ex.getRequestURI().getRawQuery();
-                    if (raw != null) for (String kv : raw.split("&")) {
-                        int i = kv.indexOf('=');
-                        if (i > 0) q.put(URLDecoder.decode(kv.substring(0, i), "UTF-8"), URLDecoder.decode(kv.substring(i + 1), "UTF-8"));
+                    try {
+                        if (!Util.authorized(ex, httpToken)) { Util.reply(ex, 401, err("", "unauthorized")); return; }
+                        Map<String, String> q = new HashMap<String, String>();
+                        String raw = ex.getRequestURI().getRawQuery();
+                        if (raw != null) for (String kv : raw.split("&")) {
+                            int i = kv.indexOf('=');
+                            if (i > 0) q.put(URLDecoder.decode(kv.substring(0, i), "UTF-8"), URLDecoder.decode(kv.substring(i + 1), "UTF-8"));
+                        }
+                        String path = ex.getRequestURI().getPath().replaceAll("^/+", "");
+                        if (!path.isEmpty()) q.put("cmd", path);
+                        String cmd = q.get("cmd");
+                        if (!READ_ONLY.contains(cmd) && !"POST".equals(ex.getRequestMethod())) {
+                            Util.reply(ex, 405, err(cmd, "use POST for control commands"));
+                            return;
+                        }
+                        Util.reply(ex, 200, execute(q));
+                    } catch (Throwable e) {
+                        Util.reply(ex, 500, err("", e.toString()));
                     }
-                    String path = ex.getRequestURI().getPath().replaceAll("^/+", "");
-                    if (!path.isEmpty()) q.put("cmd", path);
-                    if (!"status".equals(q.get("cmd")) && !"POST".equals(ex.getRequestMethod())) {
-                        reply(ex, 405, err(q.get("cmd"), "use POST for commands"));
-                        return;
-                    }
-                    reply(ex, 200, execute(q));
                 }
             });
+            // 操作中（switch_profile の待機など）でも status を返せるよう複数スレッドで受ける
+            s.setExecutor(Executors.newFixedThreadPool(4, new java.util.concurrent.ThreadFactory() {
+                public Thread newThread(Runnable r) { Thread t = new Thread(r, "RRBridge-http"); t.setDaemon(true); return t; }
+            }));
             s.start();
             log("http listening on 127.0.0.1:" + port);
         } catch (Throwable e) { log("http failed: " + e); }
     }
 
-    static void reply(HttpExchange ex, int code, String body) throws IOException {
-        byte[] b = body.getBytes(StandardCharsets.UTF_8);
-        ex.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
-        ex.sendResponseHeaders(code, b.length);
-        OutputStream o = ex.getResponseBody(); o.write(b); o.close();
-    }
-
-    static String ok(String cmd) { return "{\"ok\":true,\"cmd\":" + q(cmd) + ",\"status\":" + statusJson() + "}"; }
-    static String err(String cmd, String msg) { return "{\"ok\":false,\"cmd\":" + q(cmd) + ",\"error\":" + q(msg) + "}"; }
-    static void kv(StringBuilder sb, String k, String v) { sb.append(q(k)).append(':').append(q(v)); }
-    static String q(String s) {
-        if (s == null) return "null";
-        StringBuilder b = new StringBuilder("\"");
-        for (char c : s.toCharArray()) {
-            if (c == '"' || c == '\\') b.append('\\').append(c);
-            else if (c < 0x20) b.append(String.format("\\u%04x", (int) c));
-            else b.append(c);
-        }
-        return b.append('"').toString();
-    }
-    static String now() { return fmt(new Date()); }
-    static String fmt(Date d) { return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX").format(d); }
-
-    static void writeAtomic(File f, String s) {
-        try {
-            File tmp = new File(f.getPath() + ".tmp");
-            Writer w = new OutputStreamWriter(new FileOutputStream(tmp), StandardCharsets.UTF_8);
-            try { w.write(s); } finally { w.close(); }
-            if (f.exists() && !f.delete()) { /* Windowsで読取中なら次回 */ }
-            tmp.renameTo(f);
-        } catch (IOException e) { /* ignore */ }
-    }
+    static String ok(String cmd) { return "{\"ok\":true,\"cmd\":" + Util.q(cmd) + ",\"status\":" + statusJson() + "}"; }
+    static String err(String cmd, String msg) { return "{\"ok\":false,\"cmd\":" + Util.q(cmd) + ",\"error\":" + Util.q(msg) + "}"; }
+    static void kv(StringBuilder sb, String k, String v) { sb.append(Util.q(k)).append(':').append(Util.q(v)); }
+    static void sleep(long ms) { try { Thread.sleep(ms); } catch (InterruptedException ignore) {} }
 
     static synchronized void log(String s) {
+        if (logFile == null) return;
         try {
+            Util.rotateIfLarge(logFile, logMaxBytes);
             Writer w = new OutputStreamWriter(new FileOutputStream(logFile, true), StandardCharsets.UTF_8);
-            try { w.write(now() + " " + s + "\r\n"); } finally { w.close(); }
+            try { w.write(Util.now() + " " + s + "\r\n"); } finally { w.close(); }
         } catch (Throwable ignore) {}
     }
 }

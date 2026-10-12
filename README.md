@@ -12,7 +12,7 @@ RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ま
 このリポジトリは、車載PC（ThinkPad X270、Windows 10）上で RomRaider を操作し、データを取り出す部分（Adapter）を担います。
 全体構成は [`docs/02_architecture.md`](docs/02_architecture.md)。
 
-## 2. 状態（v0.3.0、2026-10-12）
+## 2. 状態（v0.4.0、2026-10-12）
 
 | 機能 | 状態 |
 | --- | --- |
@@ -20,6 +20,7 @@ RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ま
 | プロファイル読込（`profiles/` 内のみ） | 実機確認済み |
 | `switch_profile`（記録停止→読込→再開で1区間1CSV） | 実機確認済み |
 | リアルタイム転送（内部配信 → spool → HTTP → SQLite） | 合成データで確認済み（平均273ms・最大533ms。受信停止中の80件を復旧後に全件再送）。**実ECUデータは未確認** |
+| 自己試験（`./test.sh`、GUIなしで動く範囲30項目） | 全件PASS |
 | 本番サーバー（VPS）、MCP、Supervisor | 未着手 |
 
 検証の詳細: [`docs/06_verification.md`](docs/06_verification.md)。未解決事項: [`docs/09_open_issues.md`](docs/09_open_issues.md)。
@@ -40,17 +41,20 @@ ECUリセット、DTC読出・消去、ROM読み書き、学習値リセット�
 AGENTS.md / CLAUDE.md      AIエージェント向けの作業ルール
 README.md                  このファイル
 build.sh                   ビルド（dist/ に配置一式を出力）
+test.sh                    自己試験（RomRaiderのGUIなしで動く範囲）
 src/main/java/net/neristal/rrbridge/
   Agent.java               -javaagent の入口。コマンド受付（inbox/ と HTTP 127.0.0.1:18765）、status.json
   Stream.java              データ配信への取り付け、spool追記、HTTP転送、合成データ試験
   Receiver.java            検証用受信サーバー（Telemetry API 試作）。TSV → SQLite
   Util.java                RomRaider非依存の共通処理（受信サーバー用）
 src/main/resources-manifest.txt  Premain-Class
+src/test/java/net/neristal/rrbridge/SelfTest.java  自己試験（JUnit不要）
 profiles/                  テスト用プロファイル（basic.xml 6項目 / fuel.xml 7項目）
 scripts/
   start-romraider-with-bridge.bat  RomRaiderをRRBridge付きで起動
   start-receiver.bat               検証用受信サーバーを起動（data\receiver.log に出力）
   sink.properties.example          転送先URLとトークン
+  rrbridge.properties.example      RRBridgeの動作設定（HTTP認証、切替待ち、ログ上限、spool保持日数）
   fetch-deps.sh                    sqlite-jdbc を lib/ に取得
 lib/                       ビルド時の依存jar置き場（Git管理外。lib/README.md）
 docs/                      設計・調査・検証・履歴・決定記録（docs/00_index.md）
@@ -67,7 +71,13 @@ cp "/c/Program Files (x86)/RomRaider/RomRaider.jar" lib/   # コンパイル時�
 ./build.sh                                                  # dist/ に出力
 ```
 
-`dist/` の中身: `rrbridge.jar`、`rrreceiver.jar`、`sqlite-jdbc.jar`、`profiles/`、`start-romraider-with-bridge.bat`、`start-receiver.bat`、`sink.properties`。
+`dist/` の中身: `rrbridge.jar`、`rrreceiver.jar`、`sqlite-jdbc.jar`、`profiles/`、`start-romraider-with-bridge.bat`、`start-receiver.bat`、`sink.properties`、`rrbridge.properties.example`。
+
+自己試験:
+
+```bash
+./test.sh     # passed 30, failed 0 で成功
+```
 
 ## 6. 配置と起動（X270）
 
@@ -75,7 +85,7 @@ cp "/c/Program Files (x86)/RomRaider/RomRaider.jar" lib/   # コンパイル時�
 2. 既存の RomRaider Logger を終了し、`start-romraider-with-bridge.bat` で起動する。**通常のショートカットから起動するとRRBridgeは読み込まれない。**
 3. `rrbridge.log` に次の行が出れば成功:
    ```
-   agent loaded v0.3.0 dir=…
+   agent loaded v0.4.0 dir=… httpAuth=off settleMs=1500
    EcuLogger instance found
    stream installed (handlers=10, session=…, sink=…)
    http listening on 127.0.0.1:18765
@@ -94,15 +104,18 @@ cmd=switch_profile
 profile=fuel.xml
 ```
 
-### HTTP経由（127.0.0.1 のみ、認証なし）
-`status` だけ GET 可。それ以外は POST。
+### HTTP経由（127.0.0.1 のみ）
+読み取り系（`status`、`stream_status`、`list_profiles`）は GET 可。操作系は POST。
+`rrbridge.properties` に `http.token` を設定すると `Authorization: Bearer <token>` が必要になる（既定は認証なし）。
+操作の実行中（`switch_profile` の待機など）でも、読み取り系は待たされずに応答する。
 
 ```
 GET  http://127.0.0.1:18765/status
-POST http://127.0.0.1:18765/logging_start
+GET  http://127.0.0.1:18765/stream_status
+GET  http://127.0.0.1:18765/list_profiles
+POST http://127.0.0.1:18765/logging_start?wait_ms=3000
 POST http://127.0.0.1:18765/filelog_start
 POST http://127.0.0.1:18765/switch_profile?profile=basic.xml
-POST http://127.0.0.1:18765/stream_status
 POST http://127.0.0.1:18765/selftest_stream?count=80&hz=8
 ```
 
@@ -111,12 +124,15 @@ POST http://127.0.0.1:18765/selftest_stream?count=80&hz=8
 | cmd | 引数 | 内容 |
 | --- | --- | --- |
 | `status` | — | 状態（ロギング、CSV記録、タイトル、出力先、最新CSV、転送状態） |
-| `logging_start` / `logging_stop` | — | ECU通信の開始・停止（非同期） |
+| `list_profiles` | — | `profiles/` 内のXMLと選択されている項目ID・件数 |
+| `logging_start` / `logging_stop` | `wait_ms`（任意、≤10000） | ECU通信の開始・停止。`wait_ms` を付けると状態が変わるまで待つ。`logging_stop` は記録中ならCSVも止める |
 | `filelog_start` / `filelog_stop` | — | CSV記録の開始・停止（開始はロギング中のみ） |
 | `load_profile` | `profile=<名>.xml` | 読込のみ。**CSV記録中に使うとヘッダーが多重化する** |
 | `switch_profile` | `profile=<名>.xml` | 記録中なら停止→読込→再開。通常はこちら |
-| `stream_status` | — | 転送の状態 |
+| `stream_status` | — | 転送の状態（生成・破棄・送信済み行数、未送信バイト数、送信エラー、最終応答） |
 | `selftest_stream` | `count`≤10000、`hz`≤50 | ECU無しで転送経路を試す合成データ |
+
+設定ファイル `rrbridge.properties`（任意）: `http.token`、`switch.settleMs`（既定1500）、`log.maxBytes`（既定5MB、超えたら `.1` に退避）、`spool.retentionDays`（既定14、送信済みで古いspoolを削除）。
 
 仕様の詳細（応答形式、status JSON、エラー）: [`docs/03_rrbridge_design.md`](docs/03_rrbridge_design.md) §4〜5。
 

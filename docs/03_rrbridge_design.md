@@ -1,4 +1,6 @@
-# 03. RRBridge の設計（v0.3.0）
+# 03. RRBridge の設計（v0.4.0）
+
+> v0.3.0 → v0.4.0 の差分は §9 にまとめた。本文は v0.4.0 の内容に更新済み。
 
 ## 1. 方針
 
@@ -20,7 +22,7 @@ RomRaider JVM (javaw.exe, Zulu 8 32bit, cwd = C:\Program Files (x86)\RomRaider)
 │                                                     └ Stream.INSTANCE（RRBridgeが追加）
 └─ RRBridge（-javaagent: rrbridge.jar）
     ├ スレッド "RRBridge"            : 起動待ち → Stream取り付け → HTTP開始 → inbox監視・status.json更新
-    ├ HTTPサーバー 127.0.0.1:18765   : com.sun.net.httpserver（既定の単一スレッドexecutor）
+    ├ HTTPサーバー 127.0.0.1:18765   : com.sun.net.httpserver（4スレッドのプール "RRBridge-http"）
     ├ スレッド "RRBridge-spool"      : キュー → spool\rr_<session>.tsv に追記
     ├ スレッド "RRBridge-sender"     : spoolの未送信分 → HTTP POST → .sent 更新
     └ スレッド "RRBridge-selftest"   : 合成データ生成（コマンド実行時のみ）
@@ -46,13 +48,16 @@ RomRaider JVM (javaw.exe, Zulu 8 32bit, cwd = C:\Program Files (x86)\RomRaider)
   4. HTTPサーバーを開始。
   5. 200ms周期で `inbox/*.cmd` を名前順に処理。1秒ごとに `status.json` を書き換える。
 - `handleFile(f)`: `.cmd` を `java.util.Properties` として読む（`key=value`。バックスラッシュはエスケープ扱いになるので値にWindowsパスを書かない）→ `execute()` → `outbox/<同名>.json` に結果 → `.cmd` を削除（失敗時は `outbox/<名>.cmd.done` に移動）。
-- `execute(map)`（`synchronized`。ファイル経由・HTTP経由の共通入口）: コマンド表は §4。
+- `init(dir)`: ディレクトリ作成と `rrbridge.properties` の読込（試験からも呼ぶ）。`http.token`、`switch.settleMs`（0〜10000に丸める、既定1500）、`log.maxBytes`（既定5MB）、`spool.retentionDays`（既定14、`Stream` に渡す）。
+- `execute(map)`（ファイル経由・HTTP経由の共通入口）: 読み取り系（`READ_ONLY` = status、stream_status、list_profiles）はロックなしで即応答。操作系は `CONTROL_LOCK` で1つずつ実行し、`lastCommand` 更新とログ出力を行う。例外はすべて `{"ok":false}` に変換。コマンド表は §4。
+- `mainLoop()` は反復ごとに例外を捕まえる（v0.3.0までは1回の例外でループ全体が止まった）。
 - `onEdt(r)`: EDT上なら直接、そうでなければ `SwingUtilities.invokeAndWait`。
 - `fileButton()`: `EcuLogger.logToFileButton`（private `JToggleButton`）をリフレクションで取得。
 - `setFileLog(cmd, on)`: `on=true` は `logger.isLogging()` が真のときのみ。状態が違うときだけ `doClick()`（RomRaiderのActionListenerがそのまま動くので、`fileUpdateHandler.start()/stop()`、ボタン色・文言・タイトル表示もGUI操作と同じになる）。
 - `statusJson()`: §5。
-- `writeAtomic(f, s)`: `<f>.tmp` に書いて削除→rename。Windowsでは読み取り中だとdeleteに失敗し、その回の更新が飛ぶことがある（実害は次回更新で解消）。
-- `log(s)`: `rrbridge.log` に追記（ローテーションなし）。
+- `Util.writeAtomic(f, s)`: `<f>.tmp` に書いて `Files.move(REPLACE_EXISTING, ATOMIC_MOVE)`（WindowsではMoveFileExで置換）。失敗したら通常の置換、それも失敗したら一時ファイルを消して次回に持ち越す。
+- `log(s)`: `rrbridge.log` に追記。`log.maxBytes` を超えたら `rrbridge.log.1` に退避（1世代）。
+- `listProfilesJson()`: `profiles/` の各XMLから `livedata="selected"` の要素IDを正規表現で抜き出す（ISO-8859-1で読む）。
 
 ### 3.2 `Stream`（`DataUpdateHandler` 実装、シングルトン `INSTANCE`）
 
@@ -67,50 +72,57 @@ RomRaider JVM (javaw.exe, Zulu 8 32bit, cwd = C:\Program Files (x86)\RomRaider)
   - `S` 行: `seq`（セッション内通番）、`r.getTimestamp()`（`ResponseImpl` の生成時刻＝`System.currentTimeMillis()`）、`id=値` を `,` 区切り。値は `r.getDataValue(d)`（換算済みdouble、`Double.toString` 表記）。
   - 例外はすべて握りつぶす（RomRaiderのスレッドを止めないため）。
 - `event(text)`: `E` 行。`Agent` がロギング開始停止、CSV記録開始停止（タイトル文字列付き）、`switch_profile` で呼ぶ。
-- キュー: `LinkedBlockingQueue<String>`、容量200,000行。満杯なら捨てる（`linesProduced` が増えない）。
+- キュー: `LinkedBlockingQueue<String>`、容量200,000行。満杯なら捨て、`linesDropped` を数える（v0.4.0〜）。
+- `startThreads(spoolDir, sinkConfig)`: spool・送信スレッドの開始と `sink.properties` の読込。`install()` から呼ぶほか、試験からも呼べる。`url` を空にすると送信せずspoolのみ。
 - `writerLoop()`: `take()` ＋ `drainTo(…, 5000)` でまとめて `spool/rr_<session>.tsv` に追記（UTF-8、改行LF）。失敗時はログ出力して500ms待機。
-- `senderLoop()`: `spool/*.tsv` を名前順に走査し `sendSome()`。未送信がなければ500ms待機。例外時は `sendErrors++` して2秒待機。
+- `senderLoop()`: `spool/*.tsv` を名前順に走査し `sendSome()`。未送信がなければ500ms待機。例外時は `sendErrors++` して2秒待機。10分ごとに `cleanupSpool()`。
+- `cleanupSpool(days, now)`: 現在のsession以外で、`.sent` が末尾まで達し（送信済み）、最終更新が `days` 日より古いspoolと `.sent` を削除。未送信のものは日数に関係なく残す。
 - `sendSome(f)`
   - `<f>.sent` に保存された送信済みバイト位置から最大512KB読み、最後の改行までを1回のPOST本文にする（行の途中は送らない）。
   - `POST <url>`、`Content-Type: text/tab-separated-values; charset=utf-8`、tokenがあれば `Authorization: Bearer <token>`。接続3秒・読み取り10秒タイムアウト。
   - 2xxなら `.sent` を進める。非2xxなら `sendErrors++`、2秒待機、位置は進めない。
   - 過去のsessionのspoolも未送信分があれば送る（RomRaider再起動をまたいだ再送）。
-- `statusJson()`: `installed, session, segment, samples, linesProduced, linesSent, queue, sendErrors, sink, lastSendAt, lastSendResult, lastSampleAgeMs`。
+- `statusJson()`: `installed, installResult, session, segment, samples, linesProduced, linesDropped, linesSent, queue, pendingBytes（全spoolの未送信バイト合計）, sendErrors, sink, lastSendAt, lastSendResult, lastSampleAgeMs`。
 - `selftest(count, hz)`: ECU無しで経路を試すための合成データ。`TEST_RPM`／`TEST_TPS`／`TEST_MRP`（正弦波）。新しいsegmentを作り、開始・終了イベントも出す。`count` 最大10000、`hz` 最大50。
-- `clean(s)`: 名称・単位・イベント文字列のタブ、改行、`,`、`=` を空白に置換（区切り文字との衝突回避）。そのためイベント文字列 `selftest start count=80` は受信側で `selftest start count 80` になる。
+- `cleanField(s)`（M行の名称・単位、E行の本文）: タブと改行だけ空白に置換。`,` や `=` はそのまま残る（v0.3.0では空白に置換していたため、`selftest start count=80` が `selftest start count 80` になっていた）。
+- `cleanId(s)`（S行に入るID）: さらに `,` と `=` を `_` に置換（値リストの区切りとの衝突回避。実際のIDには含まれない）。
 
 ### 3.3 `Receiver`（検証用受信サーバー＝Telemetry APIの試作）
 
 - 起動引数: `[db] [bind] [port] [token]`。既定 `telemetry.db 127.0.0.1 18766`、token空（認証なし）。
 - `PRAGMA journal_mode=WAL`、autocommit off。
-- `POST /ingest`: 本文を行ごとに処理し1トランザクションでcommit。応答 `{"ok":true,"samples":n,"measurements":n,"events":n,"duplicates":n,"maxLagMs":n}`。`events` は挿入試行数（重複でも数える）。
+- `POST /ingest`: 本文を行ごとに処理し1トランザクションでcommit。応答 `{"ok":true,"samples":n,"measurements":n,"events":n,"duplicates":n,"maxLagMs":n}`。`events` は実際に挿入した件数（v0.4.0〜。v0.3.0は重複でも数えていた）。`duplicates` は重複した S 行の数。
+- `GET /health`: 認証不要の死活確認 `{"ok":true,"service":"rrbridge-receiver","time":…}`。
+- HTTPは4スレッドのプール。認証は `Util.authorized()`（`Authorization: Bearer <token>`、tokenが空なら不要）。
 - `GET /stats`: session別の件数・先頭/末尾時刻・平均/最大遅延（`received_ms - t_ms`）と、最新サンプルの全項目値。
 - `ingest()`/`stats()` は `synchronized`（SQLite接続を1本共有）。
 - RomRaiderのクラスに依存しない（`Util` のみ）。`rrreceiver.jar` に `Receiver*.class` と `Util.class` だけを入れる。
 
 ### 3.4 `Util`
 
-`q()`（JSON文字列エスケープ）、`read()`（InputStream→UTF-8文字列）、`reply()`（JSON応答）。`Receiver` 用に `Agent`/`Stream` から切り出したもの。`Agent` にも同等の `q()`/`reply()` が残っている（重複。`09_open_issues.md`）。
+RomRaiderに依存しない共通処理（受信サーバーにも入る）: `q()`（JSON文字列）、`read()`、`reply()`、`writeAtomic()`、`loadProps()`、`longProp()`、`now()`/`fmt()`、`rotateIfLarge()`、`authorized()`。v0.4.0で `Agent` 側の重複実装を削除し、すべてここに集約した。
 
 ## 4. コマンド仕様
 
 | cmd | 引数 | 動作 | 応答 | 備考 |
 | --- | --- | --- | --- | --- |
-| `status` | なし | 状態取得 | §5 の status JSON そのもの | HTTPはGET可 |
-| `logging_start` | なし | EDTで `EcuLogger.startLogging()`（`controller.start()`） | `ok` | 非同期。直後は `logging=false` のことがある。イベント `logging_start` |
-| `logging_stop` | なし | EDTで `stopLogging()` | `ok` | イベント `logging_stop` |
+| `status` | なし | 状態取得 | §5 の status JSON そのもの | 読み取り系。HTTPはGET可、ロック不要 |
+| `list_profiles` | なし | `profiles/` のXMLと選択項目ID | `{"ok":true,"profiles":[{"name","selected":[…],"count"}]}` | 読み取り系 |
+| `logging_start` | `wait_ms`（任意、0〜10000） | EDTで `EcuLogger.startLogging()`（`controller.start()`）。`wait_ms` 指定時は `isLogging()` が真になるまで100ms間隔で待つ | `ok`／`logging did not start within …` | イベント `logging_start` |
+| `logging_stop` | `wait_ms`（任意） | CSV記録中なら先に `filelog_stop`、続けてEDTで `stopLogging()` | `ok` | イベント `logging_stop` |
 | `filelog_start` | なし | ロギング中なら「Start file log」ボタンを押す | `ok`／`logging is not started` | 新しいCSV `romraiderlog_yyyyMMdd_HHmmss.csv` が作られる。イベント `filelog_start <タイトル>` |
 | `filelog_stop` | なし | 「Stop file log」 | `ok` | イベント `filelog_stop <タイトル>` |
 | `load_profile` | `profile=<名>.xml` | EDTで `EcuLogger.loadUserProfile(<profiles>/<名>)` | `ok`／エラー | **CSV記録中に使うとCSVヘッダーが多重化する** |
-| `switch_profile` | `profile=<名>.xml` | CSV記録中なら 記録停止 → 読込 → 1.5秒待機 → 記録再開 | `ok`／エラー | 推奨。1区間1CSV。イベント `switch_profile <名>` |
-| `stream_status` | なし | 転送状態 | `{"ok":true,"cmd":"stream_status","stream":{…}}` | HTTPはPOSTのみ（現実装の制約） |
+| `switch_profile` | `profile=<名>.xml` | CSV記録中なら 記録停止 → 読込 → `switch.settleMs`（既定1.5秒）待機 → 記録再開。所要時間を `rrbridge.log` に記録 | `ok`／エラー | 推奨。1区間1CSV。イベント `switch_profile <名>` |
+| `stream_status` | なし | 転送状態 | `{"ok":true,"cmd":"stream_status","stream":{…}}` | 読み取り系 |
 | `selftest_stream` | `count`（≤10000、既定40）、`hz`（≤50、既定8） | 合成データを転送経路に流す | `selftest started` | |
 
 - `ok` 応答: `{"ok":true,"cmd":"<cmd>","status":{status JSON}}`
 - エラー応答: `{"ok":false,"cmd":"<cmd>","error":"<理由>"}`
 - 未知のコマンド: `unknown command. allowed: …`
 - プロファイル名の検証: 正規表現 `[A-Za-z0-9_.-]+\.xml` かつ `profiles/` に実在。`../../.RomRaider/settings.xml` のような指定は拒否されることを実機確認。
-- HTTP: `http://127.0.0.1:18765/<cmd>?key=value`。`status` 以外はPOST必須（GETは405）。**認証なし**（localhost限定のため。同じPCの任意のプロセスから操作可能）。
+- HTTP: `http://127.0.0.1:18765/<cmd>?key=value`。読み取り系はGET可、操作系はPOST必須（GETは405）。既定は**認証なし**（localhost限定。同じPCの任意のプロセスから操作可能）。`rrbridge.properties` の `http.token` を設定すると全リクエストでBearerトークン必須（401）。
+- 数値引数が数字でない場合は `bad number for <key>: <値>` のエラー。範囲外は丸める。
 - ファイル: `inbox/<任意>.cmd` に Properties 形式（CRLF可）。書き込み途中を拾わないよう `.tmp` で書いてから `.cmd` にrenameするのが安全（検証スクリプトはそうしている）。
 
 ## 5. status JSON（実機の出力例、2026-10-12 12:03）
@@ -174,3 +186,23 @@ CREATE INDEX samples_t ON samples(session, t_ms);
 | CSVの追記を監視して転送 | `FileLoggerImpl` がバッファリングするため遅れる。全項目が揃った行しか書かれない。プロファイル切替でヘッダーが崩れる |
 | RomRaiderから直接DB（MariaDB/MySQL）へJDBCで書き込み | DBを外部公開することになる。通信断時の扱い・重複排除・認証を車載側に持つことになる |
 | JDWP（デバッガ接続）やAttach API での後付け注入 | 同梱がJRE（`attach.dll` なし）。起動時 `-javaagent` で足りる |
+
+## 9. v0.4.0 での変更（2026-10-12）
+
+| 区分 | 変更 | 理由 |
+| --- | --- | --- |
+| 応答性 | 読み取り系（status / stream_status / list_profiles）を操作系のロックから外し、HTTPを4スレッド化 | v0.3.0では `execute` 全体が `synchronized` で、`switch_profile` の待機中は status も待たされた。HTTPも単一スレッド |
+| HTTP | 読み取り系はGET可 | ドキュメントと実装の食い違い（stream_status がPOSTのみ）を解消 |
+| 認証 | `http.token`（任意）でBearer認証 | localhostでも同じPCの他プロセスから操作できるため |
+| コマンド | `list_profiles` 追加 | Supervisor／MCPが「何に切り替えられるか」を知る手段 |
+| コマンド | `logging_start`／`logging_stop` に `wait_ms` | 非同期で応答時の状態が古かった |
+| 挙動 | `logging_stop` は記録中なら先にCSVを止める | ボタン状態と実際の記録状態を揃える |
+| 設定 | `rrbridge.properties`（`http.token`、`switch.settleMs`、`log.maxBytes`、`spool.retentionDays`） | 固定値をやめる |
+| 堅牢性 | `mainLoop` を反復ごとに例外処理 | 1回の例外で inbox 監視と status.json 更新が永久に止まる恐れ |
+| 堅牢性 | `writeAtomic` を `Files.move(ATOMIC_MOVE)` に | delete→rename の間に読み取り側がファイルを見失う |
+| 運用 | `rrbridge.log` のローテーション、送信済みspoolの自動削除 | 長期運用でディスクを使い続ける |
+| 観測 | `linesDropped`、`pendingBytes`、`installResult` を status に追加 | キュー溢れ・未送信量・取り付け結果が見えなかった |
+| データ | E行・M行で `,` `=` を残す（IDのみ置換） | イベント文字列が変わっていた |
+| 受信 | `events` を実挿入件数に、`/health` 追加、4スレッド化 | 再送時に件数が誤解を招いた |
+| 構成 | 共通処理を `Util` に集約 | `Agent` と `Util` の重複 |
+| 試験 | `src/test/.../SelfTest.java` と `test.sh`（30項目） | 手動試験だけでは回帰を防げない |

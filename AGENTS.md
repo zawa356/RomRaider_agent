@@ -50,7 +50,7 @@
 
 | 項目 | 状態 |
 | --- | --- |
-| バージョン | RRBridge v0.3.0 |
+| バージョン | RRBridge v0.4.0（2026-10-12 12:58 にX270へ配置済み） |
 | 外部制御（status / logging / filelog / profile） | X270実機で動作確認済み（ECUは無応答の状態） |
 | `switch_profile` で1区間1CSV | 実機で確認済み |
 | リアルタイム転送（spool → HTTP → SQLite） | 合成データ（`selftest_stream`）で経路確認済み。平均273ms・最大533msの遅延。受信停止中の80サンプルを復旧後に全件再送 |
@@ -72,9 +72,10 @@ cp "<RomRaiderインストール先>/RomRaider.jar" lib/
 ```
 
 - JDK 9以上で `--release 8`。実行環境はRomRaider同梱の **Zulu 8 (1.8.0_504) 32bit**。Java 9以降のAPIを使わない。ラムダは使っていない（Java 8では使えるが、既存コードは匿名クラスで統一）。
-- 外部ライブラリをエージェント（rrbridge.jar）に追加しない。RomRaiderのクラスパスに乗らないため、`-javaagent` のjar単体で完結させる。JSONも手書き（`Agent.q()`）。
+- 外部ライブラリをエージェント（rrbridge.jar）に追加しない。RomRaiderのクラスパスに乗らないため、`-javaagent` のjar単体で完結させる。JSONも手書き（`Util.q()`）。
 - `rrreceiver.jar` は RomRaider のクラスに依存してはいけない（`Receiver` と `Util` のみ）。過去に `Stream.read()` を呼んで `ClassNotFoundException: DataUpdateHandler` になった（`docs/07_history.md`）。
-- ローカル（Linux）での簡易試験: `Receiver` は単体で起動でき、`curl` でTSVをPOSTして確認できる。`Agent`/`Stream` はRomRaiderのGUIが必要なため、実機（Windows）で試す。手順は `docs/06_verification.md`。
+- **自己試験 `./test.sh`**（v0.4.0〜）: RomRaiderのGUIなしで動く範囲（Util、プロファイル名検証と一覧、設定読込、Stream→Receiverの転送、受信停止中の保持と再送、重複排除、トークン認証、spool掃除）を30項目確認する。コードを変えたら必ず実行し、全件PASSを確認してからコミットする。
+- `Agent`/`Stream` のRomRaider連携部分（EDT操作、リフレクション、実際のプロファイル切替）は自己試験では動かない。実機（Windows）で `inbox/*.cmd` を使って試す。手順は `docs/06_verification.md`。
 
 ---
 
@@ -85,7 +86,9 @@ cp "<RomRaiderインストール先>/RomRaider.jar" lib/
 - `Stream.handleDataUpdate()` はRomRaiderの配信スレッド（`AsyncDataUpdater`、約16ms周期）から呼ばれる。重い処理・I/O・例外送出をしない（キューに積むだけ）。
 - プロファイル切替時、RomRaiderは項目を1つずつ登録・解除する。CSV記録中に `load_profile` すると同じCSVにヘッダー行が多重に出る。区切りたいときは `switch_profile` を使う。
 - CSVの列順はプロファイルXMLの記載順と一致しない。ETLは列名で対応付ける。
-- `logging_start` は非同期。直後の `status` では `logging=false` のことがある。
+- `logging_start`／`logging_stop` は非同期。完了を待つときは `wait_ms`（最大10000）を付ける。
+- `logging_stop` はCSV記録中なら先に記録を止める（v0.4.0〜）。
+- `Util` は受信サーバー（rrreceiver.jar）にも入るので、`com.romraider.*`、`Agent`、`Stream` を参照させない。
 - バッチファイルは CRLF（`.gitattributes` で指定）。`start-romraider-with-bridge.bat` は作業ディレクトリをRomRaiderのインストール先にする必要がある（相対パス依存。`docs/04_romraider_internals.md` §6）。
 
 ---

@@ -1,0 +1,9 @@
+# RRBridge の動作設定（任意）。rrbridge.properties として RRBridge フォルダに置く。未設定の項目は既定値。
+# HTTP(127.0.0.1:18765) に認証を掛ける場合に設定。設定すると Authorization: Bearer <token> が必要になる
+http.token=
+# switch_profile でプロファイル読込後、CSV記録を再開するまでの待ち（ms、0〜10000）
+switch.settleMs=1500
+# rrbridge.log の上限（バイト）。超えたら rrbridge.log.1 に退避
+log.maxBytes=5242880
+# 送信済みspoolを残す日数（0以下で削除しない）。未送信のものと現在のセッションは消さない
+spool.retentionDays=14

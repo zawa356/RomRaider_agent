@@ -103,7 +103,32 @@ printf 'M\tX\t1\tP8\tEngine Speed\trpm\nS\tX\t1\t1\t1791775000000\tP8=750.0\n' |
 → {"ok":true,"samples":1,"measurements":1,"events":0,"duplicates":0,…}
 ```
 
-## 4. 未検証（次に実車で行うこと）
+## 4. v0.4.0（12:58〜13:00）
+
+配置手順: RomRaiderを File > Exit、受信サーバーのコンソールを閉じる → `rrbridge.jar`、`rrreceiver.jar`、バッチ、`rrbridge.properties.example` を上書き → `start-receiver.bat` → `start-romraider-with-bridge.bat`。`rrbridge.properties` は置いていない（既定値で動作）。
+
+```
+2026-10-12T12:58:43.462+09:00 agent loaded v0.4.0 dir=C:\Users\zawa\Documents\OpenPortWork\RRBridge httpAuth=off settleMs=1500
+2026-10-12T12:58:53.499+09:00 EcuLogger instance found
+2026-10-12T12:58:53.520+09:00 stream installed (handlers=10, session=20261012_125843, sink=http://127.0.0.1:18766/ingest)
+2026-10-12T12:58:54.440+09:00 http listening on 127.0.0.1:18765
+```
+
+| # | コマンド | 結果 |
+| --- | --- | --- |
+| s1 | `status` | `agent:"RRBridge 0.4.0"`、`stream.installResult` に取り付け結果、`linesDropped:0`、`pendingBytes:0` |
+| s2 | `list_profiles` | `basic.xml` → `["P8","P9","P13","P25","P2","P11"]`（6）、`fuel.xml` → `["P8","P12","P18","P58","P3","P4","P13"]`（7） |
+| s3 | `switch_profile profile=../x.xml` | 拒否 `profile must be an existing file name in profiles dir (pattern …): ../x.xml` |
+| s4 | `logging_start wait_ms=3000` | ok、応答時点で `logging:true`（v0.3.0では false だった） |
+| s5 | `filelog_start` | ok、`romraiderlog_20261012_125911.csv` |
+| s6 | 記録中に `switch_profile fuel.xml` | ok、`romraiderlog_20261012_125913.csv` に切替。`rrbridge.log`: `switch_profile fuel.xml took 1836ms (filelogRestarted=true)`（ECU無応答時の値） |
+| s7 | `selftest_stream count=160 hz=8` → 22秒後 `stream_status` | `samples:160, linesProduced:170, linesDropped:0, linesSent:170, pendingBytes:0, sendErrors:0` |
+| s9 | 記録中のまま `logging_stop wait_ms=3000` | ok、`logging:false, fileLogging:false`（CSV記録も止まった）、タイトル `Stopped logging to file` |
+
+- 2つのCSVはどちらもヘッダー1行のみ（ECU無応答のためデータ行なし）。
+- 自己試験 `./test.sh`（コンテナ、Java 21で `--release 8` コンパイル）: 30項目すべてPASS。
+
+## 5. 未検証（次に実車で行うこと）
 
 `09_open_issues.md` の「実車試験計画」を参照。要点:
 1. 実ECUの応答が `Stream.handleDataUpdate` に届き、値・単位・IDが正しいこと（CSVと突き合わせ）。

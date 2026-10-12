@@ -17,4 +17,5 @@ cp lib/sqlite-jdbc.jar dist/
 cp -r profiles dist/
 cp scripts/start-romraider-with-bridge.bat scripts/start-receiver.bat dist/
 cp scripts/sink.properties.example dist/sink.properties
+cp scripts/rrbridge.properties.example dist/rrbridge.properties.example
 echo "dist/ に出力しました。dist/ の中身を X270 の Documents\\OpenPortWork\\RRBridge にコピーして使います。"

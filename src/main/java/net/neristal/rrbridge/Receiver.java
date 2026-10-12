@@ -9,6 +9,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.Executors;
 
 /**
  * 検証用の受信サーバー（Telemetry API の試作）。RRBridge から TSV を受け、SQLite に縦持ちで保存する。
@@ -45,18 +46,19 @@ public final class Receiver {
             try { reply(ex, 200, ingest(body)); }
             catch (Exception e) { try { db.rollback(); } catch (SQLException ignore) {} reply(ex, 500, "{\"ok\":false,\"error\":" + Util.q(e.toString()) + "}"); }
         }});
+        s.createContext("/health", new HttpHandler() { public void handle(HttpExchange ex) throws IOException {
+            reply(ex, 200, "{\"ok\":true,\"service\":\"rrbridge-receiver\",\"time\":" + Util.q(Util.now()) + "}");
+        }});
         s.createContext("/stats", new HttpHandler() { public void handle(HttpExchange ex) throws IOException {
             if (!authorized(ex)) { reply(ex, 401, "{\"ok\":false,\"error\":\"unauthorized\"}"); return; }
             try { reply(ex, 200, stats()); } catch (Exception e) { reply(ex, 500, "{\"ok\":false,\"error\":" + Util.q(e.toString()) + "}"); }
         }});
+        s.setExecutor(Executors.newFixedThreadPool(4));
         s.start();
         System.out.println("Receiver listening on " + bind + ":" + port + " db=" + new File(dbPath).getAbsolutePath());
     }
 
-    static boolean authorized(HttpExchange ex) {
-        if (token.isEmpty()) return true;
-        return ("Bearer " + token).equals(ex.getRequestHeaders().getFirst("Authorization"));
-    }
+    static boolean authorized(HttpExchange ex) { return Util.authorized(ex, token); }
 
     static synchronized String ingest(String body) throws SQLException {
         long now = System.currentTimeMillis();
@@ -90,7 +92,7 @@ public final class Receiver {
                 }
                 ms.executeBatch();
             } else if (f[0].equals("E") && f.length >= 5) {
-                es.setString(1, f[1]); es.setInt(2, Integer.parseInt(f[2])); es.setLong(3, Long.parseLong(f[3])); es.setString(4, f[4]); es.setLong(5, now); es.executeUpdate(); nE++;
+                es.setString(1, f[1]); es.setInt(2, Integer.parseInt(f[2])); es.setLong(3, Long.parseLong(f[3])); es.setString(4, f[4]); es.setLong(5, now); if (es.executeUpdate() > 0) nE++;
             }
         }
         for (String s : sessions) { se.setString(1, s); se.setLong(2, now); se.setLong(3, now); se.executeUpdate(); }
