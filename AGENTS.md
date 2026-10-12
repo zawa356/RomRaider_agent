@@ -13,7 +13,7 @@
 4. `docs/03_rrbridge_design.md`（コードの設計と各クラスの責務）
 5. `docs/04_romraider_internals.md`（依存しているRomRaider内部の箇所。バージョン差異の確認に必須）
 6. `docs/09_open_issues.md`（未解決事項と次の作業候補）
-7. `docs/10_interfaces.md`（**接続規約**。部品間で何を受け取り何を送るか。接続口を変える前に必ず読む）
+7. `docs/10_interfaces.md`（**現行PoCの接続規約**。接続口を変える前に必ず読む）\n8. **製品版の作業時:** [RomRaiderServerの設計資料一覧](https://github.com/zawa356/RomRaiderServer/blob/main/docs/README.md) と [Server–Agent通信契約v1](https://github.com/zawa356/RomRaiderServer/blob/main/docs/interfaces/server_agent_wire_v1.md)。PoCと製品仕様は別世代であり、旧C8/C9規約を無条件に踏襲しない
 
 `docs/handoff/` には、ユーザーがChatGPT／Claudeの会話をまたいで使っている引継ぎ資料の全文があります（設計検討の原典）。
 
