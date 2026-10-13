@@ -270,3 +270,8 @@
 - RomRaider: RRBridge v0.5.0 付きで起動中（13:58時点）、ロギング停止、プロファイル basic.xml、session `20261012_135639`。`rrbridge.properties` 配置済み、`profiles/test_21params.xml`（試験用、読込不可）あり。
 - 受信サーバー: v0.4.0 で起動中（127.0.0.1:18766、`data\telemetry.db` に selftest 320＋160サンプル）。
 - OpenPort: USB接続、ECU無応答。
+
+## 2026-10-14 — 4b-2d-2b-1 初回ロック分離試験
+
+- 別JVMの旧/新writer競合matrixと純粋別lockの反例を追加。初回Linux試験で新writerの診断handle closeがguardを消すためsplit→oldがFAIL。所有handle内検証へ修正後39項目PASS、既存99項目PASS。Windows CIとVPSの結果は後続追記。
+- WSL Java未導入はUbuntu公式パッケージのユーザー領域展開で対応。絶対java.security symlinkの初回エラーを修正。VPS1に専用codex clone、baseline99項目PASS。Git資格情報はVPSに移さずlocal ghでpush。

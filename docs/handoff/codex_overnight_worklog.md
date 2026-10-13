@@ -47,3 +47,9 @@
 - FAIL: WSL Linux OpenJDK17.0.20.1、split→old contenderが拒否されない。原因: constructorがFileLock取得後にLiveJournalReadProbeの別FileChannelを開閉し、POSIXプロセスロックを解放してしまう。
 - Next: 同じRandomAccessFileのみで検証し、別journal handle開閉を禁止。全matrix再実行、Windows CIはNOT RUN。
 - 環境: VPS1 codex cloneでbaseline99件PASS。WSLはsudo -nがpassword requiredのためUbuntu公式JDKパッケージをユーザー専用dirに展開。最初は/etcへの絶対symlinkでjava.security失敗→展開先に結び直し復旧。VPS sudoもpassword必要、privilege不要の作業経路は成功。Git操作はlocal gh、資格情報は転送しない。
+
+## 2026-10-14 JST — 4b-2d-2b-1 / WORKING (修正後)
+
+- 74d6269 REDのPOSIX close問題を所有handle検証へ修正。WSL Linuxのjournal計138チェックPASS（新39）。
+- Next: python3 /tmp/romlogger-sync.py ...でVPS専用clone更新、journal/SQLite実試験→PR→両OS最新SHA CI確認。SQLiteローカルは実行中。
+- 本番配線は未変更。readerは別JVM限定。同一JVM別handle closeがguardを消す制約は運用承認ゲート。

@@ -48,10 +48,9 @@ public final class SplitLockJournalPrototype implements Closeable {
             guard = acquire(data, GUARD_OFFSET, 1);
             // Identity creation is writer-only and happens after BOTH locks.
             JournalIdentityPrototype.open(absolute);
-            LiveJournalReadProbe.Result result = LiveJournalReadProbe.inspect(absolute);
-            if (result.status != LiveJournalReadProbe.Status.COMPLETE || result.observedBytes > quota)
-                throw new IOException("source requires review; never repair tail");
-            sequence = result.frames;
+            // POSIX locks can be released when ANY other handle to this inode
+            // is closed in the same process. Do not use a separate probe here.
+            sequence = validateOwnedHandle(data, quota);
         } catch (IOException | RuntimeException problem) {
             release(guard, problem); release(owner, problem);
             close(data, problem); close(coord, problem);
@@ -64,6 +63,29 @@ public final class SplitLockJournalPrototype implements Closeable {
     private static void checkPath(File path) throws IOException {
         if (Files.isSymbolicLink(path.toPath()) || (path.exists() && !path.isFile()))
             throw new IOException("regular non-symlink path required");
+    }
+    private static long validateOwnedHandle(RandomAccessFile data, long quota) throws IOException {
+        long size = data.length(), pos = 0, seq = 0;
+        if (size > quota) throw new IOException("source exceeds bounded quota");
+        data.seek(0);
+        while (pos < size) {
+            if (size - pos < IngressJournalPrototype.HEADER_BYTES) throw new IOException("incomplete header");
+            int magic = data.readInt(), length = data.readInt();
+            long next = data.readLong(); int checksum = data.readInt();
+            if (magic != IngressJournalPrototype.FRAME_MAGIC || length < 1 ||
+                    length > IngressJournalPrototype.MAX_ROW_BYTES || next != seq + 1 ||
+                    length > size - pos - IngressJournalPrototype.HEADER_BYTES)
+                throw new IOException("invalid or incomplete frame; retain original");
+            byte[] raw = new byte[length]; data.readFully(raw);
+            CRC32 crc = new CRC32(); crc.update(raw);
+            if ((int) crc.getValue() != checksum) throw new IOException("invalid CRC");
+            String row = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(raw)).toString();
+            if (row.isEmpty() || row.indexOf('\r') >= 0 || row.indexOf('\n') >= 0)
+                throw new IOException("invalid row");
+            pos += IngressJournalPrototype.HEADER_BYTES + length; seq = next;
+        }
+        return seq;
     }
     private static FileLock acquire(RandomAccessFile file, long offset, long length) throws IOException {
         try {

@@ -270,3 +270,8 @@
 - 物理電源断・disk-full・SQLite破損時の実機試験、車載PCのZulu 8 32bitおよびRomRaider同一JVMへの組込は未検証
 - SQLite初期DB生成／ACK済み本体回収に対する性能特性の測定は今後実施
 - [PR #3](https://github.com/zawa356/RomRaider_agent/pull/3)／[GitHub Actions](https://github.com/zawa356/RomRaider_agent/actions/runs/38336131261)：**ubuntu-latest・windows-latestともに実SQLiteの42チェックが成功**。Java 8互換コンパイル確認。X270の32bit Zulu8や電源断の実機試験は引き続き未実施
+
+## Phase 4b-2d-2b-1 — lock分離候補 / WORKING
+
+- 新SplitLockJournalPrototypeと別JVMの旧→新/新→旧/新→新/旧→旧、旧/純粋別lock両方向の反例を追加。quota外guardでデータ範囲をreaderへ開放。既存writerと製品配線は変更しない。
+- WSL Linux Java17 --release8: 39新規＋99既存=138 PASS。初回POSIX closeでのlock喪失FAILはD-039に記録し修正。VPS新規、Windows、SQLite回帰は確認中。
