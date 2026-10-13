@@ -138,10 +138,12 @@ public final class IngressHandoffPrototype {
      * Replays the immutable journal from the beginning: NO cursor advance.
      * sourceId must be an externally persisted, immutable journal UUID.
      * The sink must enforce (recordId,payload) idempotence durably.
+     * A consumer MAY resume after an acknowledged sequence; if no durable
+     * cursor exists, replay from zero and depend on sink idempotence.
      * This class is NOT linked to the existing SQLite outbox.
      */
-    public int replayTo(String sourceId, IdempotentSink sink, int maxEntries) throws Exception {
-        if (sink == null || maxEntries < 1 || maxEntries > 8192)
+    public int replayTo(String sourceId, IdempotentSink sink, long afterSequence, int maxEntries) throws Exception {
+        if (sink == null || afterSequence < 0 || maxEntries < 1 || maxEntries > 8192)
             throw new IllegalArgumentException("invalid replay arguments");
         String canonical = UUID.fromString(sourceId).toString();
         if (!canonical.equals(sourceId))
@@ -149,6 +151,7 @@ public final class IngressHandoffPrototype {
         List<IngressJournalPrototype.Entry> all = appender.replay();
         int count = 0;
         for (IngressJournalPrototype.Entry entry : all) {
+            if (entry.sequence <= afterSequence) continue;
             if (count == maxEntries) break;
             String id = UUID.nameUUIDFromBytes(("RomLogger-ingress-prototype|"
                 + canonical + "|" + entry.sequence).getBytes(StandardCharsets.UTF_8)).toString();
