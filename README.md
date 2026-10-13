@@ -14,6 +14,18 @@ RomRaider 本体には手を加えず、`-javaagent` で同じJVMに読み込ま
 このリポジトリは、車載PC（ThinkPad X270、Windows 10）上で RomRaider を操作し、データを取り出す部分（Adapter）を担います。
 全体構成は [`docs/02_architecture.md`](docs/02_architecture.md)。
 
+## 製品版Phase 2.1-A（開発中／既存PoCと分離）
+
+[Agent製品版の実装進捗台帳](docs/product_v1_implementation_progress.md)を参照。既存RRBridge本体には手を入れず、`src/main/java/net/neristal/rrbridge/product/v1/DurableSpool.java`にJava 8互換のSQLite永続スプールを独立追加した。原本record IDの重複排除、ProfileRevisionの送信確認、同一runでのバッチ化、成功ACK以外では未送信を保持する処理を実装。
+
+**Server v1へのHTTP送信・実ECU／X270への組込みは未実装／未検証**。Ubuntu/WindowsのCIでは専用スプール試験のみを実行し、PoCのTSV転送を置き換えない。
+
+```bash
+bash scripts/test-product-v1-spool.sh
+```
+
+`RomRaider.jar`を必要としない。この試験はJDK 9以上でJava 8向けにコンパイルしてSQLiteの永続化を確認する。実車環境（Zulu 8 32bit）での動作は後続フェーズで検証する。
+
 ## 2. 状態（v0.5.0、2026-10-12）
 
 | 機能 | 状態 |
