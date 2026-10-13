@@ -48,3 +48,9 @@ java -cp "build/product-v1-test${sep}${cp}" \
   net.neristal.rrbridge.product.v1.LegacyTsvBridgeTest
 java -cp "build/product-v1-test${sep}${cp}" \
   net.neristal.rrbridge.product.v1.IncrementalTsvBridgeTest
+java -cp "build/product-v1-test${sep}${cp}" \
+  net.neristal.rrbridge.product.v1.ProductDeliveryCoordinatorTest
+java -cp "build/product-v1-test${sep}${cp}" \
+  net.neristal.rrbridge.product.v1.ProductLegacyScannerTest
+java -cp "build/product-v1-test${sep}${cp}" \
+  net.neristal.rrbridge.product.v1.ProductBridgeWorkerTest

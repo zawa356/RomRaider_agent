@@ -100,6 +100,12 @@ public final class DurableSpool {
                 "batch_id TEXT PRIMARY KEY, record_count INTEGER NOT NULL," +
                 "inserted_count INTEGER NOT NULL, duplicate_count INTEGER NOT NULL," +
                 "acked_at TEXT NOT NULL)");
+            sql.execute("CREATE TABLE IF NOT EXISTS v1_delivery_state (" +
+                "singleton INTEGER PRIMARY KEY CHECK(singleton=1)," +
+                "retry_count INTEGER NOT NULL CHECK(retry_count>=0)," +
+                "next_attempt_ms INTEGER NOT NULL CHECK(next_attempt_ms>=0)," +
+                "needs_review INTEGER NOT NULL CHECK(needs_review IN (0,1))," +
+                "last_outcome TEXT NOT NULL)");
             sql.execute("CREATE TABLE IF NOT EXISTS v1_import_cursors (" +
                 "source_path TEXT PRIMARY KEY, device_id TEXT NOT NULL, vehicle_id TEXT NOT NULL," +
                 "file_key TEXT NOT NULL, offset_bytes INTEGER NOT NULL CHECK (offset_bytes>=0)," +
@@ -199,6 +205,62 @@ public final class DurableSpool {
         p.setLong(start+4,c.offsetBytes);p.setLong(start+5,c.lineNumber);
         p.setInt(start+6,c.headBytes);p.setString(start+7,c.headSha256);
         p.setString(start+8,c.tailSha256);p.setString(start+9,c.snapshot);
+    }
+
+    /** Diagnostic: a source which disappears after checkpointing is never silently ignored. */
+    public synchronized List<String> importedSourcePaths() throws SQLException {
+        List<String> paths=new ArrayList<String>();
+        try(Connection db=open(); PreparedStatement p=db.prepareStatement(
+                "SELECT source_path FROM v1_import_cursors ORDER BY source_path");
+            ResultSet r=p.executeQuery()) {
+            while(r.next())paths.add(r.getString(1));
+        }
+        return paths;
+    }
+
+    /** Local delivery scheduling state. Does NOT imply Server ACK. */
+    public static final class DeliveryState {
+        public final int retryCount;
+        public final long nextAttemptMs;
+        public final boolean needsReview;
+        public final String lastOutcome;
+        DeliveryState(int retries,long next,boolean review,String outcome) {
+            retryCount=retries;nextAttemptMs=next;needsReview=review;lastOutcome=outcome;
+        }
+    }
+
+    public synchronized DeliveryState loadDeliveryState() throws SQLException {
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+            "SELECT retry_count,next_attempt_ms,needs_review,last_outcome"+
+            " FROM v1_delivery_state WHERE singleton=1");
+            ResultSet r=p.executeQuery()) {
+            if(!r.next()) return new DeliveryState(0,0,false,"NEVER_RUN");
+            return new DeliveryState(r.getInt(1),r.getLong(2),r.getInt(3)!=0,r.getString(4));
+        }
+    }
+
+    /** Committed separately after sender action: crashes may retry, never drop data. */
+    public synchronized void saveDeliveryState(int retryCount,long nextAttemptMs,
+            boolean needsReview,String lastOutcome) throws SQLException {
+        if(retryCount<0||retryCount>30||nextAttemptMs<0||
+           lastOutcome==null||lastOutcome.length()>40||
+           !("RETRY_LATER".equals(lastOutcome)||
+             "NEEDS_REVIEW".equals(lastOutcome)||
+             "BATCH_ACKED".equals(lastOutcome)||
+             "PROFILE_ACKED".equals(lastOutcome)||
+             "IDLE".equals(lastOutcome)||
+             "OPERATOR_RESET".equals(lastOutcome)))
+            throw new IllegalArgumentException("Invalid delivery state");
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+            "INSERT INTO v1_delivery_state(singleton,retry_count,next_attempt_ms,"+
+            "needs_review,last_outcome) VALUES(1,?,?,?,?) ON CONFLICT(singleton) "+
+            "DO UPDATE SET retry_count=excluded.retry_count,"+
+            "next_attempt_ms=excluded.next_attempt_ms,"+
+            "needs_review=excluded.needs_review,last_outcome=excluded.last_outcome")) {
+            p.setInt(1,retryCount);p.setLong(2,nextAttemptMs);
+            p.setInt(3,needsReview?1:0);p.setString(4,lastOutcome);
+            p.executeUpdate();
+        }
     }
 
     private Connection open() throws SQLException {

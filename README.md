@@ -51,6 +51,12 @@ bash scripts/test-product-v1-spool.sh
 
 **まだ既存Loggerから自動起動しない。** 旧TSV writerやbounded queueの欠損、ディスク故障、X270/Zulu8 32bit、実車を検証済みとは扱わない。
 
+### 製品版Phase 2.1-D2b-1：明示起動WorkerとSQLite永続送信backoff
+
+旧TSVを読み取り専用に監視する`ProductBridgeWorker --once|--foreground`と、SQLiteに再送間隔・要調査停止を保持する`ProductDeliveryCoordinator`を追加。`NEEDS_REVIEW`発生時には再起動しても**自動再送しない**。旧TSV消失を検知して停止する。詳細は[製品送信Worker・未解決欠損リスク](docs/product_v1_delivery_worker.md)。
+
+**車載RomRaiderから自動起動しない。** 現行PoCのqueue drop・writer失敗後の行消失・旧送信ACKによるTSV削除が残り、無欠損保証／X270実機保証ではない。
+
 ## 2. 状態（v0.5.0、2026-10-12）
 
 | 機能 | 状態 |

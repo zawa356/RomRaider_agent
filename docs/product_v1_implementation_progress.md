@@ -21,11 +21,26 @@
 | 2.1-C2b | Agent最新main自動同期E2E／常駐取り込み接続 | **未実装**（本Agent repoのPrivate checkout専用E2EはtokenなしでNOT RUN） | [E2E run](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160) |
 | 2.1-D1 | TSV増分取り込み、SQLite永続offset＋安全再開・障害注入 | **CI合格・Agent PR #8** | [PR #8](https://github.com/zawa356/RomRaider_agent/pull/8) |
 | 2.1-D2a | Agent増分取り込み版の実Server E2E再pin・再起動試験 | **実FastAPI/PostgreSQL E2E PASS・Server PR #24** | [Server PR #24](https://github.com/zawa356/RomRaiderServer/pull/24)／[E2E CI](https://github.com/zawa356/RomRaiderServer/actions/runs/38350030034) |
-| 2.1-D2b | 常駐送信・バックオフ・上流データ欠損検知 | 未着手 | Issue #7 |
+| 2.1-D2b-1 | 明示起動の独立Worker、SQLite永続backoff／要調査ゲート、旧TSV監視 | **Windows/Linux各208件PASS・PR #11** | [PR #11](https://github.com/zawa356/RomRaider_agent/pull/11)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
+| 2.1-D2b-2 | PoC queue drop／TSV writer破棄・削除条件の欠損対策、fresh/backlog公平転送 | 未着手 | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
 ## 変更履歴
+
+### 2026-10-13 — Phase 2.1-D2b-1：永続backoffと明示起動Worker／旧TSVソース欠損検知
+
+- `DurableSpool.java`：ローカル`v1_delivery_state`にretry回数・次回送信時刻・要調査停止状態・最終送信結果を保存。Server側のACK/原本JSONの削除条件は変更しない
+- `ProductDeliveryCoordinator.java`：RETRY_LATER時は2→4→8…最大120秒で遅延。再起動で待ち時間維持。認証・契約不備の`NEEDS_REVIEW`は再起動後も**送信禁止**。専用APIによる明示的なoperator resetまで止める
+- `ProductBridgeWorker.java`：**`--once`／`--foreground`で明示起動した別Javaプロセスのみ**。TSVの増分取り込みと送信を分離し、SQLiteとOS lock fileで同一workerの多重起動を抑止。RomRaider Logger JVM本体・既存PoCの操作コードへ自動組込なし
+- `ProductLegacyScanner.java`：旧TSVソース64個の上限・取り込み済みTSV消失／移動・symlinkを検知して**fail closed**。ファイルを削除しない
+- `ProductDeliveryCoordinatorTest`：実SQLiteで再起動後のバックオフ・上限・正しいACKでの解除・要調査の永続停止／手動解除・予期しない例外伝播を47件試験
+- `ProductLegacyScannerTest`：実SQLiteで途中行・再起動・元ファイル移動・64ファイル超・未ACK保全を14件試験
+- `ProductBridgeOnce`（従来の明示CLI）も**共通の永続retry／reviewゲート**へ接続し、停止を迂回できないよう修正
+- `ProductBridgeWorkerTest`：別のJavaプロセス（合成HTTPモック）で定義送信→次プロセスでバッチ送信→ACK済行の再送防止→既読ファイル消失時のプロセス停止を11件試験
+- [Windows/Linux CI #38352330245](https://github.com/zawa356/RomRaider_agent/actions/runs/38352330245)：両OSで **SQLite42＋HTTP41＋旧TSV16＋増分37＋retry47＋scanner14＋別JVM11＝各208項目PASS**
+- [送信Worker詳細／旧PoCの欠損リスク調査](product_v1_delivery_worker.md)。旧`Stream.offer()`のdrop、`writerLoop()`のdrain後write失敗時の行消失、`cleanupSpool()`の旧ACKだけによる元ファイル削除は**なお未解決**。D2b-2で優先対応
+- **実Server E2EのD2b-1版pinは未更新**。現行Server PR #24はD2aのJava実ソースのみ。ECU・X270／Zulu8 32-bit・電源断・disk-full・常駐起動設定も未検証。自動デプロイは行わない
 
 ### 2026-10-13 — Phase 2.1-D2a：実Server E2Eの最新増分取り込み対応（テストコード）
 
