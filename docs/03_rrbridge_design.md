@@ -8,7 +8,7 @@
 2. **Program Filesに書き込まない。** 配置先は `Documents\OpenPortWork\RRBridge`。起動バッチだけを差し替える。
 3. **車両に影響する操作は公開しない。** コマンドはホワイトリスト。
 4. **ロガーを止めない。** RomRaiderのスレッド（EDT、配信スレッド）では重い処理をしない。転送の失敗がロギングに影響しない構造（キュー → spool → 送信は別スレッド）。
-5. **データを失わない。** spool（ローカルTSV）を正本とし、送信済み位置を永続化。受信側は冪等。
+5. **データ保全を優先する。** spool（ローカルTSV）を保持し、送信済み位置を永続化する。**キューが満杯の瞬間の観測やクラッシュ直前の未永続化行は復元できない**ため、欠損を検出・明示し、無欠損とは主張しない。
 6. **依存を増やさない。** エージェントは標準ライブラリのみ（JSONも手書き）。実行環境は Java 8（Zulu 8, 32bit）。
 7. **後段（Supervisor・MCP）から使いやすい窓口。** ファイル（inbox/outbox）とHTTP（localhost）の2経路で同じ処理を呼ぶ。
 
@@ -72,11 +72,11 @@ RomRaider JVM (javaw.exe, Zulu 8 32bit, cwd = C:\Program Files (x86)\RomRaider)
   - `S` 行: `seq`（セッション内通番）、`r.getTimestamp()`（`ResponseImpl` の生成時刻＝`System.currentTimeMillis()`）、`id=値` を `,` 区切り。値は `r.getDataValue(d)`（換算済みdouble、`Double.toString` 表記）。
   - 例外はすべて握りつぶす（RomRaiderのスレッドを止めないため）。
 - `event(text)`: `E` 行。`Agent` がロギング開始停止、CSV記録開始停止（タイトル文字列付き）、`switch_profile` で呼ぶ。
-- キュー: `LinkedBlockingQueue<String>`、容量200,000行。満杯なら捨て、`linesDropped` を数える（v0.4.0〜）。
+- キュー: `LinkedBlockingQueue<String>`、容量200,000行。満杯の場合は非ブロッキングで該当行を破棄し`linesDropped`加算。**実測損失としてTSVへ`E ... queue_overflow lost_lines=...`を後続writerが追記**する。これによって失われた原本が復活するわけではない。
 - `startThreads(spoolDir, sinkConfig)`: spool・送信スレッドの開始と `sink.properties` の読込。`install()` から呼ぶほか、試験からも呼べる。`url` を空にすると送信せずspoolのみ。
-- `writerLoop()`: `take()` ＋ `drainTo(…, 5000)` でまとめて `spool/rr_<session>.tsv` に追記（UTF-8、改行LF）。失敗時はログ出力して500ms待機。
+- `writerLoop()`（2026-10-13改善）: dequeueしたバッチは**fsync成功までメモリ上で保持**。IOExceptionで破棄せず同じ原文を再試行、既存TSV末尾がLF欠損なら停止状態を保って手動調査。write/readerのI/Oロックでcommit前の部分行送信を防ぐ。**電源断で未fsyncのキューデータは依然失われ得る**。
 - `senderLoop()`: `spool/*.tsv` を名前順に走査し `sendSome()`。未送信がなければ500ms待機。例外時は `sendErrors++` して2秒待機。10分ごとに `cleanupSpool()`。
-- `cleanupSpool(days, now)`: 現在のsession以外で、`.sent` が末尾まで達し（送信済み）、最終更新が `days` 日より古いspoolと `.sent` を削除。未送信のものは日数に関係なく残す。
+- `cleanupSpool(days, now)`（2026-10-13安全変更）: **自動削除無効（常に0）**。旧`.sent`は製品Server ACKではなく、製品Workerがまだ取り込んでいないTSVを消す危険がある。バックアップ・製品SQLite import cursor・Server ACKの照合に基づくオフライン手動移行だけを許容。
 - `sendSome(f)`
   - `<f>.sent` に保存された送信済みバイト位置から最大512KB読み、最後の改行までを1回のPOST本文にする（行の途中は送らない）。
   - `POST <url>`、`Content-Type: text/tab-separated-values; charset=utf-8`、tokenがあれば `Authorization: Bearer <token>`。接続3秒・読み取り10秒タイムアウト。
