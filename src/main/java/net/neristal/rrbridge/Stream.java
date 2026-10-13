@@ -32,6 +32,8 @@ public final class Stream implements DataUpdateHandler {
     // This is loss mitigation, NOT durable buffering or a zero-loss guarantee.
     static final int SAMPLE_QUEUE_LIMIT = QUEUE_CAPACITY - 4096;
     static final int MAX_POST_BYTES = 512 * 1024;
+    // Bound transient encoding memory while reducing per-row disk write calls.
+    static final int WRITE_CHUNK_BYTES = 64 * 1024;
 
     final String session = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
     final AtomicLong seq = new AtomicLong();
@@ -256,34 +258,64 @@ public final class Stream implements DataUpdateHandler {
         File file = spoolFile();
         // Reader must not see a complete LF-delimited row before fsync.
         synchronized (spoolIoLock) {
-        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
-            long before = raf.length();
-            if (before > 0) {
-                raf.seek(before - 1);
-                if (raf.read() != '\n')
-                    throw new IOException("Incomplete TSV tail; manual recovery required");
+            try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+                appendDurably(raf, pending);
             }
-            try {
-                raf.seek(before);
-                for (String line : pending) {
-                    raf.write(line.getBytes(StandardCharsets.UTF_8));
-                    raf.write('\n');
-                }
-                raf.getFD().sync();
-            } catch (IOException ex) {
-                // Best-effort rollback of this write attempt; if rollback is
-                // impossible, retain both buffer and evidence for diagnosis.
-                try { raf.setLength(before); raf.getFD().sync(); }
-                catch (IOException rollback) { ex.addSuppressed(rollback); }
-                throw ex;
-            }
-        }
         } // release spool I/O mutex after durable fsync
         if (pendingDropMarker >= 0) {
             lastDropMarker = pendingDropMarker;
             pendingDropMarker = -1;
         }
         pending.clear();
+    }
+
+    /**
+     * Append the entire in-flight group or restore the original file length
+     * on a write/sync failure. The caller retains pending until this returns.
+     * Package-private so fault tests exercise the SAME production rollback.
+     */
+    static void appendDurably(RandomAccessFile raf, List<String> rows) throws IOException {
+        long before = raf.length();
+        if (before > 0) {
+            raf.seek(before - 1);
+            if (raf.read() != '\n')
+                throw new IOException("Incomplete TSV tail; manual recovery required");
+        }
+        try {
+            raf.seek(before);
+            writeRowsBatched(raf, rows);
+            raf.getFD().sync();
+        } catch (IOException | RuntimeException ex) {
+            // Partial rows MUST NOT become source data for the scanner.
+            try { raf.setLength(before); raf.getFD().sync(); }
+            catch (IOException rollback) { ex.addSuppressed(rollback); }
+            throw ex;
+        }
+    }
+
+    /** Write byte-for-byte identical UTF-8/LF TSV in fixed-size blocks.
+     * A rare oversized row is written directly (no second large copy).
+     */
+    static void writeRowsBatched(RandomAccessFile raf, List<String> rows) throws IOException {
+        byte[] chunk = new byte[WRITE_CHUNK_BYTES];
+        int used = 0;
+        for (String row : rows) {
+            byte[] encoded = row.getBytes(StandardCharsets.UTF_8);
+            if (encoded.length + 1 > chunk.length) {
+                if (used > 0) { raf.write(chunk, 0, used); used = 0; }
+                raf.write(encoded);
+                raf.write('\n');
+                continue;
+            }
+            if (encoded.length + 1 > chunk.length - used) {
+                raf.write(chunk, 0, used);
+                used = 0;
+            }
+            System.arraycopy(encoded, 0, chunk, used, encoded.length);
+            used += encoded.length;
+            chunk[used++] = (byte) '\n';
+        }
+        if (used > 0) raf.write(chunk, 0, used);
     }
 
     // ---------- 転送（spoolの未送信分を送る） ----------

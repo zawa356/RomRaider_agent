@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-10-13：Phase 2.1-D2b-2c-2（64KiB writerバッチ・失敗復旧）
+
+- 既存PoCのTSV writerが2,400サンプルを行単位で繰り返し書く処理を64KiB固定のチャンク書込に変更。短い行はまとめ、長大行は直接書込。TSVのバイト列／LFは維持
+- 書き込み途中でIOExceptionを発生させた合成試験で元のファイル長へrollbackし、同じ行を再試行して重複／欠落がないことを確認。不正な行でRuntimeExceptionが発生した場合もrollbackする
+- CloudPCの隔離cloneで実`Stream.java`をJava8対象にビルドし31チェックPASS。GitHub Actions [run #38369405259](https://github.com/zawa356/RomRaider_agent/actions/runs/38369405259)はWindows/Linux両ジョブPASS
+- 初回 [run #38369266614](https://github.com/zawa356/RomRaider_agent/actions/runs/38369266614)はLF文字エスケープのコンパイルミスで失敗、修正後にPASS
+- 依然としてメモリqueueは有限。長期間のI/O停止、disk-full、物理電源断、X270実車について無欠損とは判断しない。Caddy/MCP・車両・本番環境は未変更
+
+## 2026-10-13：Phase 2.1-D2b-2c-1（メタデータ予約領域）
+
+- [Agent PR #15](https://github.com/zawa356/RomRaider_agent/pull/15) で、S行の占有を最大195904行に制限してM/Eイベントのために4096行の余地を確保。定義やhealthイベントまで完全保証するわけではない
+- [main CI #38367748133](https://github.com/zawa356/RomRaider_agent/actions/runs/38367748133) Linux/Windows PASS。電源断前のメモリにあるデータは未保全
+
 ## 2026-10-13：Phase 2.1-D2b-2a 旧TSV原本の書き込み・保持安全化
 
 - 旧PoC writerがQueueから取り出した後にIOExceptionで原文を失う問題を、fsync成功まで同じバッチを保持・再試行する方式へ修正
