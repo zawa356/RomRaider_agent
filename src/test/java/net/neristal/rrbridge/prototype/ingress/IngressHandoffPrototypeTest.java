@@ -130,11 +130,11 @@ public final class IngressHandoffPrototypeTest {
 
         final IdempotentMap sink = new IdempotentMap();
         sink.failAfterSecond = true;
-        rejects("downstream may crash AFTER durable ID commit",
+        rejects("synthetic sink failure after in-memory ID insertion",
             new Action() {
                 public void run() throws Exception { pump.replayTo(sourceUuid,sink,0,3); }
             });
-        ok("two idempotency IDs retained after replay failure", sink.rows.size() == 2);
+        ok("test-map retains two IDs after replay exception", sink.rows.size() == 2);
         sink.failAfterSecond = false;
         ok("replay from zero commits and deduplicates without a cursor",
             pump.replayTo(sourceUuid,sink,0,3) == 3 && sink.rows.size() == 3);
