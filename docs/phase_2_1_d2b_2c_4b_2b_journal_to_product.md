@@ -35,7 +35,7 @@ journal.rlj + journal.rlj.identity
 - 別JVMを**製品観測レコードcommit直後／journal cursor CAS直前**に`Runtime.halt(79)`で強制終了し、別JVM相当の次回取込で一度だけのSQLite登録とcursor進行を確認。電源断やハード故障は再現していない。
 - `bash scripts/test-ingress-sqlite-receipts.sh`：製品v1＋独立receipt試験、合計**284項目PASS**。`bash scripts/test-ingress-journal-prototype.sh`：旧journal/handoff **75項目PASS**。合計359項目。テスト用SQLite／Java合成のみで実ECU接続なし。
 - 追加した別JVMクラッシュfixtureにより結果レコードが1件増えたため、末尾で期待件数が以前の3件のままになり一度失敗。テスト期待値を更新し、上記すべてを再実行してPASS。製品コードの障害ではない。
-- GitHub Actionsは`product-v1-spool-ci.yml`と既存のjournal prototype CIでWindows/Linuxを別途確認。正式CI SHAと実行結果はPR完了時に追記する。
+- [PR #22 Windows/Linux CI #38384353160](https://github.com/zawa356/RomRaider_agent/actions/runs/38384353160)で製品v1の本当のJava8コンパイル／実SQLite全試験ステップPASS。[real-server-e2e #38384353153](https://github.com/zawa356/RomRaider_agent/actions/runs/38384353153)はgated状態宣言だけで実Server/Postgres接続は**NOT RUN**。\n- GitHub Actionsは`product-v1-spool-ci.yml`と既存のjournal prototype CIでWindows/Linuxを別途確認。正式CI SHAと実行結果はPR完了時に追記する。
 
 ## 未完了・安全ゲート
 
