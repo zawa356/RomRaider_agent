@@ -34,7 +34,7 @@ journal(前段RLJ1ファイル) + journal.identity(RLI1 UUID/CRC)
 - `bash scripts/test-ingress-sqlite-receipts.sh`: 製品v1既存回帰試験を実SQLiteで実行したうえで、新しい受領台帳**22件PASS**。
 - 新規22件には、異なるjournalごとのUUID、ID再起動維持、2件のみ取込とcursor、再取込時の重複防止、checkpoint前の故障rollback、別JVMのSQLite commit直後Runtime.halt(77)／再起動確認、サイドカー欠落／CRC破損、journal prefix改変の拒否を含む。
 - 初回の試験はサイドカーCRC文字を固定の`0`へ変更するfixtureが既に`0`なら破損しないため失敗した。元値と異なる値に必ず変更するよう修正し、全試験PASS。失敗履歴を保持する。
-- 新しいGitHub ActionsではUbuntu/Windowsの両OSで、既存ジャーナルと製品v1実SQLite回帰＋受領台帳試験を実施する。テストで新設したテーブルは製品APIの保証を意味しない。
+- [PR CI #38381013007](https://github.com/zawa356/RomRaider_agent/actions/runs/38381013007)および[main CI #38381208274](https://github.com/zawa356/RomRaider_agent/actions/runs/38381208274)でUbuntu/Windows両OSの既存ジャーナル・製品v1実SQLite回帰＋受領台帳試験がすべて成功。テストで新設したテーブルは製品APIの保証を意味しない。
 
 ## 後続のPhase 4b-2b（未実装）
 
