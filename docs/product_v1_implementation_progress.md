@@ -26,7 +26,7 @@
 | 2.1-D2b-2b | fresh/backlog公平配送（原本ACKベースの3:1） | **合成CI合格・PR #13** | [PR #13](https://github.com/zawa356/RomRaider_agent/pull/13) |
 | 2.1-D2b-2c-1 | S行が全キューを占有しないようM/E用に4096枠予約 | **合成CI合格・PR #15** | [PR #15](https://github.com/zawa356/RomRaider_agent/pull/15) |
 | 2.1-D2b-2c-2 | 旧TSV writerの64KiB分割書込／障害時巻戻しテスト | **Linux/Windows合成CI合格・PR #16** | [Agent PR #16](https://github.com/zawa356/RomRaider_agent/pull/16)／[PR CI #38369809042](https://github.com/zawa356/RomRaider_agent/actions/runs/38369809042) |
-| 2.1-D2b-2c-3 | writer未fsync行・障害状態の可視化／19.6万行飽和復旧試験 | **CloudPC合成44項目PASS、CI確認待ち** | Agent PR準備中 |
+| 2.1-D2b-2c-3 | writer未fsync行・障害状態の可視化／19.6万行飽和復旧試験 | **CloudPC合成44項目・Windows/Linux CI合格・PR #17** | [PR #17](https://github.com/zawa356/RomRaider_agent/pull/17)／[CI #38372123905](https://github.com/zawa356/RomRaider_agent/actions/runs/38372123905) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
@@ -35,7 +35,7 @@
 - 旧PoC `Stream.java` の`status`/`stream_status`に`writerPendingLines`、`memoryBufferedLines`、`spoolWriteFailures`、`writerDegraded`、`lastWriterFsyncAtMs`、`lastWriterFailureAtMs`を**追加のみ**で公開。writer待機中の行も未fsync原本として表示できる。契約正本`docs/10_interfaces.md` C4.1を同期。
 - 既存のwriter保護と非ブロッキングcallbackは維持。書込失敗は試行数・最終失敗時刻・劣化状態へ記録し、元データは`pending`に保持。正常fsyncで劣化状態を解除しても、過去の欠損を否定しない。
 - 合成試験ではspoolディレクトリのパスを通常ファイルに置き換えることでwriterの書込だけを失敗させ、全体ディスク容量・実ホストのI/Oを枯渇させない。Queueを`SAMPLE_QUEUE_LIMIT=195904`件まで飽和させ、追加10サンプルのdropとM/E定義保持、復旧後の受理全195904行・損失マーカー1件・メタデータ3行を確認する。
-- CloudPC（Ubuntu側、Java17 `--release 8`）でスタブ合成44チェックPASS。初回のテストでは過去成功fsync時刻をnullと誤って期待し失敗、既存の成功時刻が残る仕様に修正。**試験実行は実ECUや本番VPSデータの操作を含まない。**
+- CloudPC（Ubuntu側、Java17 `--release 8`）でスタブ合成44チェックPASS。[PR #17 のCI #38372123905](https://github.com/zawa356/RomRaider_agent/actions/runs/38372123905)でもUbuntu/Windowsとも実テストステップPASS。初回のテストでは過去成功fsync時刻をnullと誤って期待し失敗、既存の成功時刻が残る仕様に修正。**試験実行は実ECUや本番VPSデータの操作を含まない。**
 - **未解決**：writer停止時間が無制限なら有限メモリqueueでは無欠損保証不能。writerが正常化する前にJVM/PCが落ちれば未fsyncの`queue`と`pending`は失われる。失敗カウンターも同様にメモリ内のみで再起動後は失われる。本番運用監視・永続journalの導入には別のリソース／安全ゲート検討が必要。
 - 製品v1のSQLite送信Worker・Server通信形式・安全ガードは変更しない。X270/Zulu8 32bit/実車・長期disk-full・本番配備は未実施。最新Agent→実PostgreSQL E2Eも未実施。
 
