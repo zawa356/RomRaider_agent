@@ -42,6 +42,7 @@ public final class Stream implements DataUpdateHandler {
     volatile long retentionDays = 14;
     volatile boolean installed = false, threadsStarted = false;
     File spoolDir;
+    private final Object spoolIoLock = new Object();
     // Writer-only state. A failed append retains the same queued lines for retry.
     // A queue overflow cannot be recovered, so persist an explicit loss marker
     // as soon as the local TSV is writable again.
@@ -243,6 +244,8 @@ public final class Stream implements DataUpdateHandler {
         }
         if (pending.isEmpty()) return;
         File file = spoolFile();
+        // Reader must not see a complete LF-delimited row before fsync.
+        synchronized (spoolIoLock) {
         try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
             long before = raf.length();
             if (before > 0) {
@@ -265,6 +268,7 @@ public final class Stream implements DataUpdateHandler {
                 throw ex;
             }
         }
+        } // release spool I/O mutex after durable fsync
         if (pendingDropMarker >= 0) {
             lastDropMarker = pendingDropMarker;
             pendingDropMarker = -1;
@@ -302,16 +306,20 @@ public final class Stream implements DataUpdateHandler {
     boolean sendSome(File f) throws IOException {
         File off = new File(f.getPath() + ".sent");
         long pos = readLong(off);
-        long len = f.length();
-        if (pos >= len) return false;
-        RandomAccessFile raf = new RandomAccessFile(f, "r");
+        long len;
         byte[] chunk;
-        try {
-            raf.seek(pos);
-            int n = (int) Math.min(len - pos, MAX_POST_BYTES);
-            chunk = new byte[n];
-            raf.readFully(chunk);
-        } finally { raf.close(); }
+        synchronized (spoolIoLock) {
+            // Copy a committed byte range while the writer cannot append or
+            // roll back an interrupted write. Network I/O stays OUTSIDE lock.
+            try (RandomAccessFile raf = new RandomAccessFile(f, "r")) {
+                len = raf.length();
+                if (pos >= len) return false;
+                raf.seek(pos);
+                int n = (int) Math.min(len - pos, MAX_POST_BYTES);
+                chunk = new byte[n];
+                raf.readFully(chunk);
+            }
+        }
         int end = chunk.length;
         while (end > 0 && chunk[end - 1] != '\n') end--;   // 行の途中は送らない
         if (end == 0) return false;
