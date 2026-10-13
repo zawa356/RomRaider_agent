@@ -218,3 +218,13 @@
 - 安全上の限界: fsync自体やrollbackが失敗し得る。電源断時の非永続キューは救えず、queue上限時はS行を失う。時間ベンチマークでの帯域保証、X270 Zulu8 32bitや実ECUの保証はない。**D2b-2cの根本的な無欠損保証は未達**。
 - 合成検証: Linux/Windowsの`Stream.java`スタブ試験で複数チャンク途中の強制IOExceptionと復旧、RuntimeException rollback、UTF-8／長大行、旧writer回帰を確認。[GitHub Actions #38369405259](https://github.com/zawa356/RomRaider_agent/actions/runs/38369405259)。
 - 状態: D2b-2c-2の限定対策として採用。実車・本番に自動展開しない。
+
+
+## D-031 非ブロッキング取得と有限メモリqueueの欠損限界を明確化し、writer状態を可視化する（2026-10-13、D2b-2c-3）
+
+- 背景：RomRaiderの`handleDataUpdate`はECU通信への悪影響を避けるためディスクI/O・待機・例外送出を行わない。writer故障中にwriter側`pending`とmemory queueの行が溜まり、どれがfsync済みか外部からわかりづらかった。
+- 評価：取得callbackが非ブロッキング、RAM量が有限、writerが無制限に停止し得るなら、いつか必ずキューが飽和する。データ無欠損・無期限I/O停止耐性は、この条件のままでは論理的に保証できない。
+- 決定：今回の小PhaseはLogger callbackの処理・キュー容量・転送形式を変えず、writer側のみの障害計数と状態可視化を追加し、故障時に`pending`を解放しないことを維持する。新しいstream statusフィールドは追加のみとし既存の読取互換を維持する。
+- 合成検証：書込先を通常ファイルにした安全な擬似I/O不能を使い、S行195904件、追加10件の欠損計数、M/E行予約、故障復旧後の厳密な行数と欠損マーカーを確認。VMのホスト全体のディスク満杯、実ECU試験は行わない。
+- 将来：writerの無限停止・異常終了に耐えるなら、取得を安全に一時停止する独立Supervisorの明示的な運用判断、または別の永続キューと非ブロッキング取込限界の仕様化が必要。callbackへの同期fsync追加や無制限メモリ増量を既定の回避策にしない。
+- 状態：D2b-2c-3の限定対策。完全なdurable ingress・X270安全検証は未完了。

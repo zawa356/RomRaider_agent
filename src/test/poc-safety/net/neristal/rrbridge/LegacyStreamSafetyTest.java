@@ -87,12 +87,27 @@ public final class LegacyStreamSafetyTest {
             public void run()throws Exception {stream.flushPending(pending);}
         });
         ok("two dequeued originals still in pending",pending.size()==2);
+        ok("writer failure is visible while originals remain in memory",
+            stream.writerDegraded && stream.spoolWriteFailures.get() == 1
+            && stream.writerPendingLines == 2
+            && stream.lastWriterFailureAtMs > 0);
+        String failedStatus = stream.statusJson();
+        ok("status exposes failure and uncommitted data without claiming fsync",
+            failedStatus.contains("\"writerDegraded\":true")
+            && failedStatus.contains("\"writerPendingLines\":2")
+            && failedStatus.contains("\"memoryBufferedLines\":2")
+            && failedStatus.contains("\"lastWriterFsyncAtMs\":"
+                + stream.lastWriterFsyncAtMs));
         ok("no duplicated queue entries after failure",stream.queue.isEmpty());
         stream.spoolDir=good;
         stream.flushPending(pending);
         ok("writer retry commits unchanged originals exactly once",
             read(stream.spoolFile()).endsWith("E\tsession\t0\t3\tthird\nE\tsession\t0\t4\tfourth\n"));
         ok("retry clears pending after fsync",pending.isEmpty());
+        ok("successful fsync clears degraded flag but retains failure history",
+            !stream.writerDegraded && stream.writerPendingLines == 0
+            && stream.spoolWriteFailures.get() == 1
+            && stream.lastWriterFsyncAtMs >= stream.lastWriterFailureAtMs);
 
         write(stream.spoolFile(),"uncommitted-partial");
         stream.queue.offer("E\tsession\t0\t5\tfifth");
@@ -205,6 +220,75 @@ public final class LegacyStreamSafetyTest {
             read(batchFile).equals(mixedExpected.toString()));
         ok("oversized line ends with LF before next complete event",
             read(batchFile).contains("終\nE\tsynthetic\t2\t1000\tlast\n"));
+
+        // D2b-2c-3: simulate a sustained disk outage WITHOUT touching the
+        // machine's real disk state. Verify real callback offer policy,
+        // writer in-flight preservation, queued backlog and eventual drain.
+        stream.spoolDir = block; // a regular file: all attempted opens fail
+        stream.offer("E\tstall\t0\t1\tbefore-outage");
+        long errorsBeforeStall = stream.spoolWriteFailures.get();
+        failure("sustained outage leaves first event in writer memory",
+            new Action() { public void run() throws Exception { stream.flushPending(pending); } });
+        ok("failure counter increases and in-flight row remains visible",
+            stream.spoolWriteFailures.get() == errorsBeforeStall + 1
+                && pending.size() == 1 && stream.writerPendingLines == 1
+                && stream.writerDegraded);
+        long dropsBeforeStall = stream.dropped.get();
+        for (int i = 0; i < Stream.SAMPLE_QUEUE_LIMIT; i++) {
+            stream.offer("S\tstall\t2\t" + i + "\t1000\tRPM=" + i);
+        }
+        for (int i = 0; i < 10; i++) {
+            stream.offer("S\tstall\t2\t" + (Stream.SAMPLE_QUEUE_LIMIT + i) + "\t1000\tRPM=DROP");
+        }
+        stream.offer("M\tstall\t2\tRPM\tEngine Speed\trpm");
+        stream.offer("E\tstall\t2\t2000\thealth");
+        ok("bounded nonblocking producer counts exactly ten dropped samples",
+            stream.dropped.get() == dropsBeforeStall + 10
+            && stream.queue.size() == Stream.SAMPLE_QUEUE_LIMIT + 2);
+        ok("metadata survives synthetic queue saturation",
+            stream.queue.contains("M\tstall\t2\tRPM\tEngine Speed\trpm")
+            && stream.queue.contains("E\tstall\t2\t2000\thealth"));
+        String stalledStatus = stream.statusJson();
+        ok("status reports total volatile backlog during writer failure",
+            stalledStatus.contains("\"writerDegraded\":true")
+            && stalledStatus.contains("\"memoryBufferedLines\":"
+                + (Stream.SAMPLE_QUEUE_LIMIT + 3))
+            && stalledStatus.contains("\"linesDropped\":" + stream.dropped.get()));
+        stream.spoolDir = good;
+        int drainCycles = 0;
+        while (!pending.isEmpty() || !stream.queue.isEmpty()) {
+            stream.flushPending(pending);
+            if (++drainCycles > 100) throw new AssertionError("writer did not drain restored backlog");
+        }
+        ok("entire accepted backlog drained after disk restoration",
+            stream.queue.isEmpty() && pending.isEmpty() && !stream.writerDegraded
+            && stream.writerPendingLines == 0 && drainCycles > 20);
+        long recoveredSamples = 0;
+        long recoveredMarkers = 0;
+        long recoveredMeta = 0;
+        try (java.util.stream.Stream<String> lines = Files.lines(stream.spoolFile().toPath(),
+                StandardCharsets.UTF_8)) {
+            java.util.Iterator<String> iter = lines.iterator();
+            while (iter.hasNext()) {
+                String row = iter.next();
+                if (row.startsWith("S\tstall\t2\t")) recoveredSamples++;
+                if (row.contains("queue_overflow lost_lines=10 dropped_total="
+                    + stream.dropped.get())) recoveredMarkers++;
+                if (row.equals("M\tstall\t2\tRPM\tEngine Speed\trpm")
+                    || row.equals("E\tstall\t2\t2000\thealth")
+                    || row.equals("E\tstall\t0\t1\tbefore-outage")) recoveredMeta++;
+            }
+        }
+        ok("every accepted synthetic S row was persisted exactly once",
+            recoveredSamples == Stream.SAMPLE_QUEUE_LIMIT);
+        ok("one and only one loss marker is durable after recovery",
+            recoveredMarkers == 1);
+        ok("all three metadata rows were persisted", recoveredMeta == 3);
+        ok("post-recovery status retains failure evidence",
+            stream.statusJson().contains("\"spoolWriteFailures\":"
+                + stream.spoolWriteFailures.get())
+            && stream.spoolWriteFailures.get() >= 2
+            && stream.lastWriterFsyncAtMs > 0);
 
         File old=new File(good,"rr_20000101_000000.tsv");
         write(old,"E\told\t0\t1\tline\n");
