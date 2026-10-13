@@ -147,6 +147,34 @@ public final class IncrementalTsvBridgeTest {
             new IncrementalTsvBridge(new DurableSpool(dbfile),id(),vehicle).importNew(input,10);
         }});
         ok("all unacknowledged records remain durable",spool.countPending()==6);
+        // Hard crash exactly after SQLite sample commit but before cursor CAS:
+        // replay must write zero additional rows and advance the checkpoint.
+        File crashFolder=Files.createTempDirectory("incremental-cursor-crash-").toFile();
+        File crashFile=new File(crashFolder,"rr_"+SESSION+".tsv");
+        File crashDb=new File(crashFolder,"crash.db");
+        Files.write(crashFile.toPath(),
+                    row("M","TEST_RPM\\tSynthetic RPM\\trpm").getBytes(StandardCharsets.UTF_8));
+        DurableSpool crashSpool=new DurableSpool(crashDb);
+        final String crashDevice=id(), crashVehicle=id();
+        new IncrementalTsvBridge(crashSpool,crashDevice,crashVehicle).importNew(crashFile,10);
+        append(crashFile,row("S","0\\t1791838800000\\tTEST_RPM=1234"));
+        final long atMetadata=offset(crashSpool,crashFile);
+        IncrementalTsvBridge interrupted=new IncrementalTsvBridge(
+            crashSpool,crashDevice,crashVehicle,new Runnable(){
+                public void run(){throw new IllegalStateException("synthetic crash after SQLite commit");}
+            });
+        rejected("failure injected AFTER durable sample BEFORE checkpoint",new Op(){
+            public void run()throws Exception{interrupted.importNew(crashFile,10);}
+        });
+        ok("source cursor not advanced by injected crash",offset(crashSpool,crashFile)==atMetadata);
+        ok("record itself was committed despite crash",crashSpool.countPending()==1);
+        DurableSpool afterPowerLoss=new DurableSpool(crashDb);
+        ok("restart replays same record ID and advances cursor",
+           new IncrementalTsvBridge(afterPowerLoss,crashDevice,crashVehicle)
+             .importNew(crashFile,10).observations==1);
+        ok("replayed record remains one unique original",afterPowerLoss.countPending()==1);
+        ok("crash recovery moves checkpoint to EOF",offset(afterPowerLoss,crashFile)==crashFile.length());
+
         System.out.println("IncrementalTsvBridgeTest passed "+checks+
             " checks (synthetic growing TSV, real SQLite; no ECU)");
     }
