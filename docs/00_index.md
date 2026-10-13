@@ -1,5 +1,7 @@
 # docs/ 索引
 
+**2026-10-13 チャット移行の開始点:** [Agent固有の引継ぎ](handoff/2026-10-13_chat_handoff.md)と[Server側の全体引継ぎ](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-13_chat_handoff.md)。次回は先にmain/CIを再検証する。
+
 | ファイル | 内容 | 主な読者 |
 | --- | --- | --- |
 | [RomLogger製品全体の要件定義書（別リポジトリ／正本）](https://github.com/zawa356/RomRaiderServer/blob/main/docs/system_requirements.md) | サーバー・クライアント・MCP連携を横断する承認済み要件。既存PoCの暫定制限より製品要件として優先するが、現行安全ガードを無断で変更しない | 全員 |\n| [製品基本設計書・論理データ・MCP・安全検証（Server側正本）](https://github.com/zawa356/RomRaiderServer/blob/main/docs/README.md) | BD-001〜008、要件全件の追跡、責務分界、設計未検証の区別 | 設計・実装 |\n| [製品 Server–Agent通信契約v1](https://github.com/zawa356/RomRaiderServer/blob/main/docs/interfaces/server_agent_wire_v1.md) | HTTPS/JSON、原子的DB保存後ACK、UUID、冪等、状態・操作要求。**下記10_interfaces.mdのPoC契約とは別世代** | 実装 |\n| [Windows Agent詳細設計](https://github.com/zawa356/RomRaiderServer/blob/main/docs/agent_detailed_design.md) | 既存Java Agent再利用候補、spool／転送／Supervisor／安全判定・動作モード | 実装・検証 |\n| [製品の契約・受入試験計画](https://github.com/zawa356/RomRaiderServer/blob/main/docs/test_acceptance_plan.md) | 合成転送・実ECU・安全・MCPの段階ゲート。未検証項目は未合格扱い | 検証 |
