@@ -14,7 +14,7 @@
 
 | Phase | 対象 | 状態 | 記録 |
 | --- | --- | --- | --- |
-| 2.1-A | Java 8対応SQLite durable spool、原本・定義とACK台帳 | **実装／CI結果確認中** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
+| 2.1-A | Java 8対応SQLite durable spool、原本・定義とACK台帳 | **CI合格・PR #3** | [PR #3](https://github.com/zawa356/RomRaider_agent/pull/3)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-B | Server v1プロファイル登録・バッチJSON送信・ACK検証・再送 | 未着手 | Issue #7 |
 | 2.1-C | 既存RRBridgeから製品spoolへ取り込み（合成PoC first） | 未着手 | Issue #7 |
 | 2.1-D | Windows再起動／通信断／ディスク不足／実機での耐久検証 | 未着手 | Issue #7 |
@@ -22,7 +22,7 @@
 
 ## 変更履歴
 
-### 2026-10-13 — Phase 2.1-A（検証中）
+### 2026-10-13 — Phase 2.1-A（Linux/Windows合成CI合格）
 
 **追加**
 
@@ -44,4 +44,4 @@
 - HTTP送受信、トークン管理、認証失敗・Server 409/422の隔離、未ACK backlogの優先制御は未実装
 - 物理電源断・disk-full・SQLite破損時の実機試験、車載PCのZulu 8 32bitおよびRomRaider同一JVMへの組込は未検証
 - SQLite初期DB生成／ACK済み本体回収に対する性能特性の測定は今後実施
-- PRとCI実行URLは合格・統合後に追記
+- [PR #3](https://github.com/zawa356/RomRaider_agent/pull/3)／[GitHub Actions](https://github.com/zawa356/RomRaider_agent/actions/runs/38336131261)：**ubuntu-latest・windows-latestともに実SQLiteの42チェックが成功**。Java 8互換コンパイル確認。X270の32bit Zulu8や電源断の実機試験は引き続き未実施
