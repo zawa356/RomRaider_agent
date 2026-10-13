@@ -87,12 +87,26 @@ public final class LegacyStreamSafetyTest {
             public void run()throws Exception {stream.flushPending(pending);}
         });
         ok("two dequeued originals still in pending",pending.size()==2);
+        ok("writer failure is visible while originals remain in memory",
+            stream.writerDegraded && stream.spoolWriteFailures.get() == 1
+            && stream.writerPendingLines == 2
+            && stream.lastWriterFailureAtMs > 0);
+        String failedStatus = stream.statusJson();
+        ok("status exposes failure and uncommitted data without claiming fsync",
+            failedStatus.contains("\"writerDegraded\":true")
+            && failedStatus.contains("\"writerPendingLines\":2")
+            && failedStatus.contains("\"memoryBufferedLines\":2")
+            && failedStatus.contains("\"lastWriterFsyncAtMs\":null"));
         ok("no duplicated queue entries after failure",stream.queue.isEmpty());
         stream.spoolDir=good;
         stream.flushPending(pending);
         ok("writer retry commits unchanged originals exactly once",
             read(stream.spoolFile()).endsWith("E\tsession\t0\t3\tthird\nE\tsession\t0\t4\tfourth\n"));
         ok("retry clears pending after fsync",pending.isEmpty());
+        ok("successful fsync clears degraded flag but retains failure history",
+            !stream.writerDegraded && stream.writerPendingLines == 0
+            && stream.spoolWriteFailures.get() == 1
+            && stream.lastWriterFsyncAtMs >= stream.lastWriterFailureAtMs);
 
         write(stream.spoolFile(),"uncommitted-partial");
         stream.queue.offer("E\tsession\t0\t5\tfifth");
