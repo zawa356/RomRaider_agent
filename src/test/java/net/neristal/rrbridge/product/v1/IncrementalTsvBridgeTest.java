@@ -153,11 +153,11 @@ public final class IncrementalTsvBridgeTest {
         File crashFile=new File(crashFolder,"rr_"+SESSION+".tsv");
         File crashDb=new File(crashFolder,"crash.db");
         Files.write(crashFile.toPath(),
-                    row("M","TEST_RPM\\tSynthetic RPM\\trpm").getBytes(StandardCharsets.UTF_8));
+                    row("M","TEST_RPM\tSynthetic RPM\trpm").getBytes(StandardCharsets.UTF_8));
         DurableSpool crashSpool=new DurableSpool(crashDb);
         final String crashDevice=id(), crashVehicle=id();
         new IncrementalTsvBridge(crashSpool,crashDevice,crashVehicle).importNew(crashFile,10);
-        append(crashFile,row("S","0\\t1791838800000\\tTEST_RPM=1234"));
+        append(crashFile,row("S","0\t1791838800000\tTEST_RPM=1234"));
         final long atMetadata=offset(crashSpool,crashFile);
         IncrementalTsvBridge interrupted=new IncrementalTsvBridge(
             crashSpool,crashDevice,crashVehicle,new Runnable(){
