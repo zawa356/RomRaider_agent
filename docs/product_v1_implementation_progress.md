@@ -23,6 +23,13 @@
 
 ## 変更履歴
 
+### 2026-10-13 — Phase 2.1-C1追加修正：mainマージ後Windows CIの外部依存403
+
+- **障害履歴（隠さない）**：[Agent main CI #38339774312](https://github.com/zawa356/RomRaider_agent/actions/runs/38339774312)のWindowsジョブで、`repo.maven.apache.org`からの依存JARダウンロードがHTTP403を返して終了。LinuxジョブはPASS、Javaコードのテスト自体はWindowsで開始できなかった
+- **原因区分**：ビルド用依存ファイルの外部取得失敗。SQLite/HTTP/TSVの業務ロジック不一致ではないが、main CIの失敗として取り扱う
+- **修正**：Maven Central公式2エンドポイントへの段階的再試行、部分ダウンロードを隔離、Java `jar tf`で破損確認してからJAR配置、OSごとのテスト依存jarキャッシュ
+- **修正ブランチ再試験**：[PR #6](https://github.com/zawa356/RomRaider_agent/pull/6)／[Windows・Linux CI #38340182185](https://github.com/zawa356/RomRaider_agent/actions/runs/38340182185)ともに**99項目PASS**。mainへマージ後の再検証も行う。実Server E2EのNOT RUN問題はこのCI修正では解消しない
+
 ### 2026-10-13 — Phase 2.1-C1：RRBridge PoC TSV→製品SQLite取り込み（合成CI）
 
 **追加**

@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-10-13：Windows main CI Maven 403への修正
+
+- [main CI #38339774312](https://github.com/zawa356/RomRaider_agent/actions/runs/38339774312)はWindows runnerがテスト用SQLite JDBC JARのHTTP取得中に403を受けて失敗（テストは未実行）。Linuxは成功。
+- Maven Central 公式URLの再試行／代替ドメイン／JARの破損検査／GitHub Actions依存キャッシュを追加。修正コミットと修正後のCIを正本に追記する。
+
+---
+
 ## 2026-10-13：製品版Phase 2.1-C1 PoC TSV→v1取込／E2E準備
 
 - PoCの`Stream.java`内部のQueue/TSV writerとServer v1の送信契約が違うため、Logger callbackにI/Oを足さず**TSVの読み取り専用インポーター**を追加。
