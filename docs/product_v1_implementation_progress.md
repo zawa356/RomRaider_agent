@@ -17,11 +17,19 @@
 | 2.1-A | Java 8対応SQLite durable spool、原本・定義とACK台帳 | **CI合格・PR #3** | [PR #3](https://github.com/zawa356/RomRaider_agent/pull/3)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-B | Server v1プロファイル／バッチのHTTP送信・ACK厳密検証（契約モックCI） | **合成CI完了・PR #4** | [PR #4](https://github.com/zawa356/RomRaider_agent/pull/4)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-C1 | 既存RRBridge TSV→製品v1 SQLiteの非破壊取込・合成CI | **CI合格、PR #5** | [PR #5](https://github.com/zawa356/RomRaider_agent/pull/5)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
-| 2.1-C2 | Agent→実FastAPI→PostgreSQL E2Eと常駐取り込み接続 | **E2Eワークフロー実装済み／別Private Repo認証未設定で未実行** | [E2E run](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160) |
+| 2.1-C2a | Agent固定版（JavaソースSHA照合）→実FastAPI/Postgresの合成E2E | **PASS（Server CI、Agent commit 6dd46835固定）** | [Server PR #22](https://github.com/zawa356/RomRaiderServer/pull/22)／[E2E CI](https://github.com/zawa356/RomRaiderServer/actions/runs/38346271102) |
+| 2.1-C2b | Agent最新main自動同期E2E／常駐取り込み接続 | **未実装**（本Agent repoのPrivate checkout専用E2EはtokenなしでNOT RUN） | [E2E run](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160) |
 | 2.1-D | Windows再起動／通信断／ディスク不足／実機での耐久検証 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
 ## 変更履歴
+
+### 2026-10-13 — Phase 2.1-C2a：pin済みAgentと実Server/PostgreSQL合成E2Eの成功
+
+- [Server PR #22](https://github.com/zawa356/RomRaiderServer/pull/22)に、本Agentのcommit `6dd46835a200d961d517f5bb54f11eb2d7bdd2af` のJavaソース5ファイルと実Server E2Eスクリプトを**検証用に原本blob SHA一致で固定**。製品版Agent本体は変更していない
+- [E2E CI #38346271102](https://github.com/zawa356/RomRaiderServer/actions/runs/38346271102)で、Java8互換の実ソース→レガシー合成TSV→SQLite→実FastAPI→Disposable PostgreSQL16（観測2件＋定義1件）を成功。**別SQLiteからの同一record ID再送も重複登録なし**
+- これで**pinしたAgentバージョンの実Server結合は検証できた**が、Agentの将来のmain自動追従ではない。旧RRBridgeの実車Logger callback、ECU、X270、Zulu8 32bit、TSV writer欠損／queue drop、常駐自動運用は未試験
+- [pin版と同期更新手順](https://github.com/zawa356/RomRaiderServer/blob/main/tests/e2e/agent_v1_snapshot/README.md)。本Agent repoの`ROMLOGGER_SERVER_READ_TOKEN`を必要とする別Private checkoutワークフローは引き続き**NOT RUN**（別ルートの成功とは区別する）
 
 ### 2026-10-13 — Phase 2.1-C1追加修正：mainマージ後Windows CIの外部依存403
 
