@@ -50,7 +50,7 @@ java -cp "build/product-v1-test:lib/sqlite-jdbc.jar:lib/slf4j-api.jar:lib/slf4j-
 
 ## 本物のServer/PostgreSQLとのE2E試験
 
-**Phase 2.1-D2a の更新:** Agent側`ProductServerE2E`は`IncrementalTsvBridge`によるTSVの行数制限・途中行・追記・再起動を使った**観測3件と冪等再送**へ移行する。Server側のpin更新とCI合格後に実Server統合完了と記載する。これまでの旧2件版CIが新増分版の成功を意味するわけではない。
+**Phase 2.1-D2a PASS:** Agent側`ProductServerE2E`は`IncrementalTsvBridge`によるTSVの行数制限・途中行・追記・再起動を使った**観測3件と冪等再送**へ移行。[Server PR #24](https://github.com/zawa356/RomRaiderServer/pull/24)でAgent commit `668ad5230e7e3db4fc592311c857906f43802ad3`へ再pinし、[実E2E CI #38350030034](https://github.com/zawa356/RomRaiderServer/actions/runs/38350030034)がPASS。これまでの旧2件版CIとは区別する。
 
 **2026-10-13追記：実E2Eは別経路で初めて成功。** [RomRaiderServer PR #22](https://github.com/zawa356/RomRaiderServer/pull/22)は、Agent commit `6dd46835a200d961d517f5bb54f11eb2d7bdd2af` のJava原本をSHAで固定したテスト専用snapshotで、実FastAPIとPostgreSQL16へTSV由来の合成2件を送信・完全ACK・別SQLiteから冪等再送し、[CIが成功](https://github.com/zawa356/RomRaiderServer/actions/runs/38346271102)しました。
 
