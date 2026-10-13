@@ -33,7 +33,7 @@
 - M/E行には4,096枠の予約余地を確保する。ただしM/E行の大量生成、競合、writer停止が続けば全体上限に到達し得る。**メタデータ完全保全・欠損ゼロの保証ではない**。
 - 拒否したS行も既存`dropped`計数と`queue_overflow lost_lines`イベントへ反映する。原本の復元はできない。
 - Logger callbackへディスクI/O・sleep・ブロッキング待機は追加しない。PoC/製品v1の通信契約、旧TSV原本の自動削除禁止は変更しない。
-- スタブ合成試験で予約閾値・M/E格納・累積欠損マーカーを確認する。CI証跡はPR確認後に追記する。
+- スタブ合成試験で予約閾値・M/E格納・累積欠損マーカーを確認する。[PR #15](https://github.com/zawa356/RomRaider_agent/pull/15)／[CI run #38367644971](https://github.com/zawa356/RomRaider_agent/actions/runs/38367644971) のLinux/Windows両ジョブ成功。初期試験fixtureのキュー再充填忘れにより [run #38367585353](https://github.com/zawa356/RomRaider_agent/actions/runs/38367585353) は失敗、修正commit `cb220de` で修復。
 - **未完了**：長期I/O停止・プロセス異常終了時の未fsyncメモリ、完全なdurable ingress、実車X270/32bit/disk-full。後続のD2b-2c-2以降で設計・故障注入する。
 
 ## 変更履歴
