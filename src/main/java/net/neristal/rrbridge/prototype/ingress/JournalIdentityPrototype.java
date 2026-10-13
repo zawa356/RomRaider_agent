@@ -17,6 +17,16 @@ public final class JournalIdentityPrototype {
 
     /** Never silently regenerate an identity for a nonempty journal. */
     public static JournalIdentityPrototype open(File journal) throws IOException {
+        return load(journal,true);
+    }
+    /**
+     * Existing identity only: STRICTLY NO create/write, even if a sidecar
+     * disappears after a caller's preflight check. Use this from all readers.
+     */
+    public static JournalIdentityPrototype readExisting(File journal) throws IOException {
+        return load(journal,false);
+    }
+    private static JournalIdentityPrototype load(File journal,boolean allowCreate) throws IOException {
         if (journal == null) throw new IllegalArgumentException("journal required");
         File source = journal.getAbsoluteFile();
         File parent = source.getParentFile();
@@ -29,7 +39,7 @@ public final class JournalIdentityPrototype {
                 || (sidecar.exists() && !sidecar.isFile()))
             throw new IOException("invalid identity path");
         if (!sidecar.exists()) {
-            if (source.length() != 0)
+            if (!allowCreate || source.length() != 0)
                 throw new IOException("identity missing for nonempty journal; operator review");
             byte[] content = encode(UUID.randomUUID().toString()).getBytes(StandardCharsets.US_ASCII);
             try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(

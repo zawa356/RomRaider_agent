@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-10-13：Phase 2.1-D2b-2c-4b-2d-2a（ライブ原本読み取り専用診断、製品経路未接続）
+
+- LiveJournalReadProbeをJava8 FileChannel.READ専用で実装。writerのlockを奪わずCRC/sequence/UTF8、容量、部分header/bodyや原本変更を検出。COMPLETEは観測結果であり**fsync済みの証明ではない**。
+- JournalIdentityPrototype.readExistingを追加し、probe/Scanner/製品journal importerが空原本のID sidecarを勝手に新規発行しないよう変更。writer従来open互換維持。
+- CloudPCで既存journal/handoff75＋新reader24、製品SQLite/receipt344＝計**443件PASS**。160行writerと最大320回readerの同時検査を5回反復PASS。
+- [Agent PR #25](https://github.com/zawa356/RomRaider_agent/pull/25)で[最終journal CI #38401119395](https://github.com/zawa356/RomRaider_agent/actions/runs/38401119395)、[製品v1 CI #38401119457](https://github.com/zawa356/RomRaider_agent/actions/runs/38401119457) が両OS PASS。Windowsではライブ試験をBLOCKEDと明記したまま、閉鎖後の安全な読取のみPASS。本物のServer E2EはGitHub ActionsでSKIPPED。
+- 初回PR Windows CIでmandatory FileLockによりwriter保有中のFileChannel.readが拒否されることを確認。Linuxライブ読取とのOS差を明示し、Windowsは既知BLOCKEDとして診断試験を更新した。実ECU・Zulu8 32bit・電源断、製品SQLite/Server ACKのライブ動作は未実施。次はlock分離・watermark設計。[詳細](phase_2_1_d2b_2c_4b_2d_2a_live_readonly_probe.md)。
+
 ## 2026-10-13：Phase 2.1-D2b-2c-4b-2d-1（offline Workerと持続停止・監視状態のread-only化）
 
 - CloudPC独立cloneで`--journal-once` Worker、原本preflight、SQLite持続`INGRESS_REVIEW_REQUIRED`を実装。既定TSV経路は不変更。writerと並列の`--journal-foreground`は安全ゲートを満たさず非対応とした。
