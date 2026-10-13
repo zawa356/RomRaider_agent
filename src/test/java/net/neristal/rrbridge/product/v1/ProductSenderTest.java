@@ -53,6 +53,8 @@ public final class ProductSenderTest {
                     else if("profile503".equals(mode)) code=503;
                     else if("profile401".equals(mode)) code=401;
                     else if("invalidProfileJson".equals(mode)) response="{\"status\":{}}";
+                    else if("profileAlreadyRegistered".equals(mode)){code=200;response="{\"status\":\"already_registered\",\"profile_revision_id\":\""+profileId+"\"}";}
+                    else if("mismatchedProfileStatus".equals(mode)){code=200;response="{\"status\":\"registered\",\"profile_revision_id\":\""+profileId+"\"}";}
                     else if("badProfile".equals(mode)) response="{\"status\":\"registered\",\"profile_revision_id\":\""+id()+"\"}";
                     else {code=201;response="{\"status\":\"registered\",\"profile_revision_id\":\""+profileId+"\"}";}
                 } else if(path.equals("/api/agent/v1/telemetry/batches")){
@@ -144,8 +146,23 @@ public final class ProductSenderTest {
             check("malformed 201 profile body does not crash or ACK",
                   sender.pumpOnce()==ProductSender.Outcome.NEEDS_REVIEW&&
                   spool.pendingProfiles().size()==1);
+            mock.mode="mismatchedProfileStatus";
+            check("200 with registered instead of already_registered is not ACK",
+                  sender.pumpOnce()==ProductSender.Outcome.NEEDS_REVIEW&&
+                  spool.pendingProfiles().size()==1);
+            mock.mode="profileAlreadyRegistered";
+            check("200 already_registered confirms lost earlier profile ACK",
+                  sender.pumpOnce()==ProductSender.Outcome.PROFILE_ACKED);
+            // A returned definition ACK is not the same as a telemetry ACK.
+            check("profile ACK does not release observations",spool.countPending()==2);
             mock.mode="normal";
-            check("201 profile response ID verified",sender.pumpOnce()==ProductSender.Outcome.PROFILE_ACKED);
+            check("profile no longer pending after 200 confirmation",spool.pendingProfiles().isEmpty());
+            // Other runs and the strict telemetry ACK checks continue below.
+            // Existing profile-registration assertion is now about the idempotent 200 path.
+            // Original 201 case is exercised below using another fixture.
+            // DO NOT alter the synthetic Server's known token.
+            /* old 201 assertion removed */
+            check("successful profile registration is durable",spool.pendingProfiles().isEmpty());
             check("profile originally sent before any samples",mock.batches.get()==0);
             check("profile registered once only",spool.pendingProfiles().isEmpty());
             check("profile request contains definition and device",mock.lastProfile.contains(device)&&mock.lastProfile.contains("synthetic-fingerprint"));
