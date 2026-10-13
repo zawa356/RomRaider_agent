@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-10-13：Phase 2.1-D2b-2c-4b-2a（source UUID永続化・実SQLite原子受領）
+
+- CloudPCのjr2twt専用cloneで実装・コンパイル・障害系試験。journal側UUID/CRCを別sidecarに一度のみ保存、破損／欠落はfail closed。
+- 実SQLite（別`proto_ingress_*`テーブル）へ原本とcursorを同一transactionでcommit。新規22チェック＋既存journal/handoff75チェック＋製品v1回帰PASS。別JVMのcommit直後停止と再起動でも重複を増やさないことを確認。
+- 初回試験fixtureは破損CRC文字を固定の0にしたため、元が0の場合に失敗。元と異なる文字へ必ず変更するよう直して再試験成功。
+- 製品v1観測レコードへの変換、正式なServer ACK、電源断やX270実車試験は**一切未実施**。[仕様とゲート](phase_2_1_d2b_2c_4b_2a_sqlite_receipts.md)。
+
 ## 2026-10-13：Phase 2.1-D2b-2c-4b-1（独立handoffと再生IDの合成検証）
 
 - `IngressHandoffPrototype`で非ブロッキングのメモリ受理とworker側の同期fsyncを切り分けた。writer待ち／故障後のin-flight維持／明示復旧／quota時停止を検証。

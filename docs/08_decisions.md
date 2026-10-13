@@ -250,3 +250,15 @@
 - 検証・記録：[4b-1の設計と試験](phase_2_1_d2b_2c_4b_1_handoff_contract.md)。PoCであるため製品v1 API/旧TSVの変更なし。
 - 次のゲート：journal IDのファイル内永続化、重複排除とsource変換の実SQLite試験、checkpoint更新順序、X270/32bitの検証、容量逼迫時のSupervisor通知。
 - 状態：**独立PoCのみ。実車・製品版には未接続、D2b-2c全体は継続中。**
+
+
+## D-034 ジャーナル前段の不変source IDと実SQLite receipt/cursorを製品v1から分離する（2026-10-13、D2b-2c-4b-2a）
+
+- 背景：4b-1の`sourceUuid`は外部入力で永続性未確定、重複回避はテスト専用Mapだけだった。元journalと後段SQLiteのどちらが成功したか区別する必要がある。
+- 決定：空journalに対してのみ一度のUUID sidecarを生成しfsync。既に原本があるのにIDが欠落・破損した際は自動再採番しない。受領SQLiteの`proto_ingress_rows`はjournalのsource UUID/sequence/原文SHA-256を保持し、`proto_ingress_cursor`と単一transactionでcommitする。
+- 選択理由：原本・受領cursorが別transactionだと先送りcursorによるデータ欠落を招く。初回は試作用テーブルとして製品`v1_records`と責任を分離し、既存のプロファイル・観測ID・ACKを一切変更しない。
+- フェイルクローズ：source IDの欠落、CRC不一致、変更済みの受領prefix、journalの縮小、SQLite commit失敗では保存済み原本と台帳を残す。
+- 検証：CloudPC実SQLite新規22チェック、既存journal75チェックおよび製品v1回帰。commit直前例外／別JVMのcommit直後halt・復旧、元原本改変を確認。
+- 制約：sidecarとjournalの二ファイル整合・ディレクトリ永続化はOSの物理電源断では未証明、Windows32bit・ECU接続なし。SQLite受領receiptを製品レコード登録／Server ACK済みと誤認しない。
+- 後続：ジャーナルの固有IDを原本に埋める設計とファイル回転、既存TSVと二重投入を防ぐ製品v1変換契約、キュー容量上限時の安全な運用停止判断。
+- 状態：独立PoCとして試験完了。実車/本番への接続は引き続き禁止。
