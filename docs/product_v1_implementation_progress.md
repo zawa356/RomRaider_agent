@@ -29,7 +29,7 @@
 | 2.1-D2b-2c-3 | writer未fsync行・障害状態の可視化／19.6万行飽和復旧試験 | **CloudPC合成44項目・Windows/Linux CI合格・PR #17** | [PR #17](https://github.com/zawa356/RomRaider_agent/pull/17)／[CI #38372123905](https://github.com/zawa356/RomRaider_agent/actions/runs/38372123905) |
 | 2.1-D2b-2c-4a | 独立した有界fsync前段journal PoC・異常終了／破損／quota検証 | **PR #18／Windows・Linux CI合格、製品接続は未実装** | [PR #18](https://github.com/zawa356/RomRaider_agent/pull/18)／[PR CI #38373993678](https://github.com/zawa356/RomRaider_agent/actions/runs/38373993678)／[設計・試験記録](phase_2_1_d2b_2c_4a_ingress_journal_prototype.md) |
 | 2.1-D2b-2c-4b-1 | 有界非ブロッキングhandoff・失敗保持・安定再生IDの独立PoC | **CloudPC合成75チェックPASS、CI確認中、製品未接続** | [設計・試験記録](phase_2_1_d2b_2c_4b_1_handoff_contract.md) |
-| 2.1-D2b-2c-4b-2a | 永続source UUID sidecar＋実SQLiteの原本receipt/cursor原子的commit | **CloudPC実SQLite22項目＋旧PoC75項目PASS、CI確認中・製品v1変換未接続** | [設計・試験](phase_2_1_d2b_2c_4b_2a_sqlite_receipts.md) |
+| 2.1-D2b-2c-4b-2a | 永続source UUID sidecar＋実SQLiteの原本receipt/cursor原子的commit | **CloudPC実SQLite22項目＋旧PoC75項目PASS・PR/main CI両OS PASS、製品v1変換未接続** | [Agent PR #20](https://github.com/zawa356/RomRaider_agent/pull/20)／[main CI #38381208274](https://github.com/zawa356/RomRaider_agent/actions/runs/38381208274)／[設計・試験](phase_2_1_d2b_2c_4b_2a_sqlite_receipts.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
@@ -38,6 +38,7 @@
 - 原本journalが**空のうちに**UUIDをsidecarへCREATE_NEW＋同期保存。非空journalにIDがなければfail closed。サイドカーCRC不一致も修復せず停止する。
 - `JournalSqliteReceiptPrototype`はSQLiteの試作用`proto_ingress_rows`と`proto_ingress_cursor`だけを使用。原本SHA-256・決定的record UUID・source連番を確認し、レコード＋カーソルを同一SQLite transactionでcommit。製品用`v1_records`／ACK／TSV変換には未接続。
 - CloudPC上のJava8互換・**実SQLite**で新規22チェックPASS、従来journal/handoff75チェックPASS、製品v1既存回帰PASS。失敗注入によるDB rollback、別JVMのcommit直後halt・次JVMでの再開、サイドカー欠落／変更、元journal改変を検証。
+- [PR CI #38381013007](https://github.com/zawa356/RomRaider_agent/actions/runs/38381013007)と[Agent main CI #38381208274](https://github.com/zawa356/RomRaider_agent/actions/runs/38381208274)：Ubuntu/Windows両方のjournal＋製品v1実SQLite回帰＋receipt testを実行して成功。
 - 初回は試験fixtureがCRC文字を固定`0`にしたため、同じ文字の場合だけ破損しない失敗があった。**異なる文字に確実に変更する修正後PASS**。詳細は[4b-2a設計](phase_2_1_d2b_2c_4b_2a_sqlite_receipts.md)。
 - サイドカーのOS電源断・ディレクトリfsync、Windows32bit、journalとIDのペアの移動・ローテーション、原本→製品v1変換・実Server、キュー飽和時の無欠損保証は**NOT RUN/未実装**。本Phaseは独立PoCに限定。
 
