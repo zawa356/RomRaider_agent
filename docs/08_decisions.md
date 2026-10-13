@@ -238,3 +238,15 @@
 - 制約：1行最大128KiB、ファイル最大8MiBは実証用。CRC32は偶発破損検知用で耐改ざん性を持たない。JVM `Runtime.halt`は物理電源断・フラッシュキャッシュの再現ではなく、ゼロ欠損を保証しない。多数の小レコードを先頭から読み込むため容量を無限に増やせない。
 - 次の判定条件：専用writerへの安全な受渡し・永続ACK/replay契約・高負荷／容量逼迫・Windows32bitへの影響を設計してから、X270での安全検証を別途行う。
 - 状態：**PoCのみ採用。実運用での有効化・自動起動は禁止。**
+
+
+## D-033 揮発性受理・永続ジャーナル・製品outboxの成功境界を分離する（2026-10-13、D2b-2c-4b-1）
+
+- 背景：`DataUpdateHandler`からfsyncやSQLiteへ直接書くとRomRaider Loggerを妨げる。前段journalのPoCができても、実際に永続化される前に`offer()`が成功する期間が残る。
+- 選択肢：A.callbackから同期fsync（安全上不採用）、B.大きなRAM queueを「永続」と呼ぶ（不採用）、C.揮発性受理と別worker fsyncを明確に分離（今回の限定PoC）、D.製品SQLiteへ直接接続（後続で原本形式・重複を設計してから）。
+- 決定：入口`offer`は容量・状態に応じた受理可否のみを返す。専用workerは`journal.append`のfsync成功で初めて永続確定と扱う。失敗したin-flight行は保持しfail-closed、quotaは自動解除しない。
+- 重複抑止：journal本体の連番と、外部で**永続管理が必須**のsourceUUIDから安定IDを派生させる。下流はこのID＋不変原文でdurable idempotent commitし、カーソルをその後に進める契約とする。4b-1のMapは模擬sinkであり、`DurableSpool`に接続していない。
+- 限界：callbackがブロックしない有限メモリ方式のため、I/Oが停止し続ければ拒否・欠損し得る。受理後fsync前の電源断も同様。同期プロセスを既存Loggerへ自動組込することは禁止。
+- 検証・記録：[4b-1の設計と試験](phase_2_1_d2b_2c_4b_1_handoff_contract.md)。PoCであるため製品v1 API/旧TSVの変更なし。
+- 次のゲート：journal IDのファイル内永続化、重複排除とsource変換の実SQLite試験、checkpoint更新順序、X270/32bitの検証、容量逼迫時のSupervisor通知。
+- 状態：**独立PoCのみ。実車・製品版には未接続、D2b-2c全体は継続中。**
