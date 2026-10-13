@@ -199,6 +199,9 @@ profile=fuel.xml
 | `lastSampleAgeMs` | 最後のサンプルからの経過（ms、なければ null） |
 | `linesProduced` / `linesDropped` / `linesSent` | 生成した行／キュー溢れで失った行／旧経路の送信済み行。`linesDropped`増加分はTSVに`E ... queue_overflow lost_lines=N dropped_total=N`として明示記録（行自体の復元不可） |
 | `queue` / `pendingBytes` | メモリキューの行数／spoolの未送信バイト合計 |
+| `writerPendingLines` / `memoryBufferedLines` | writerがキューから取り出してfsync未確定の行数（欠損マーカーを含む）／`queue + writerPendingLines`の概算値。**いずれもメモリ上でのみ保持され、電源断・プロセス異常終了時に失われ得る** |
+| `writerDegraded` / `spoolWriteFailures` | 最後の書込試行が失敗してから正常fsyncしていない場合true／このRRBridgeプロセス中の書込失敗試行の累積数。falseは過去の欠測ゼロを示さない |
+| `lastWriterFsyncAtMs` / `lastWriterFailureAtMs` | 最後に成功したTSV fsync／書込障害を観測した時刻（epoch ms）。まだ発生していなければnull。これらはプロセス再起動を跨いで復元されない |
 | `sendErrors` / `lastSendAt` / `lastSendResult` | 送信失敗回数／最後の送信時刻／最後の応答（HTTPコード、本文、所要時間、バイト数） |
 | `sink` | 送信先URL（空なら `(spool only)`） |
 
