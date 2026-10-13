@@ -170,3 +170,12 @@
 - 理由: 未ACKデータ保全を最優先し、障害時に本体から勝手に消さない。誤応答・不正形式は`NEEDS_REVIEW`、一時接続障害は`RETRY_LATER`へ分岐して将来の送信スケジューラが判断する。
 - 影響: 現段階では接続先FastAPI/PostgreSQLとの実結合はまだ検証しておらず、ローカルHTTP契約モックだけがCI対象。ACK失敗時の不良レコード隔離やRetry-After制御は次工程。Java AgentのLogger処理・実車操作は変更しない。
 - 状態: Phase 2.1-Bの限定実装。追加検証が必要。
+
+## D-026 旧PoCのLogger callbackを保持し、TSV→製品v1を先行する（2026-10-13、Phase 2.1-C1）
+
+- 背景: `Stream.handleDataUpdate`はLoggerスレッドで実行され、PoCはbounded queue→TSV writer→旧HTTP senderの経路。ここで同期SQLite/HTTPを直接呼ぶとECUロギング阻害の危険がある。また旧キューは飽和時に行が失われ得る。
+- 決定: **先行Phaseでは旧TSVを読み取り専用にスキャン**し、不変ID・ProfileRevision・時刻・値・イベントを製品v1 SQLiteへ変換する独立クラスを採用。既存RRBridgeの本番動作・安全制御を変更しない。
+- 利点: 全変換をWindows/Linux実SQLiteで再現でき、PoCの合成`selftest_stream`も`synthetic`として正しく区別できる。連携で未ACK原本を削除しない。
+- 制約: 現時点の取込は**明示実行・先頭再走査**であり、長期運用の効率・複数同時writer・ファイル削除とqueue drop時のデータ欠損問題を解消していない。安全な常駐化・障害通知は次工程。
+- 実Server E2E: Agent/Server両方Privateのため、別リポジトリへの読取専用認証情報が設定されるまでCIを`NOT RUN`表示。モックを実Server成功と扱わない。
+- 状態: C1の限定実装。実車での有効化は未承認／未実行。
