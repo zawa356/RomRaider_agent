@@ -43,12 +43,19 @@ public final class IncrementalTsvBridge {
     }
     private final DurableSpool spool;
     private final String deviceId,vehicleId;
+    private final Runnable beforeCheckpoint;
 
     public IncrementalTsvBridge(DurableSpool spool,String deviceId,String vehicleId){
+        this(spool,deviceId,vehicleId,null);
+    }
+    // Package-private deterministic CI failpoint; production leaves it null.
+    IncrementalTsvBridge(DurableSpool spool,String deviceId,String vehicleId,
+                         Runnable beforeCheckpoint){
         if(spool==null)throw new IllegalArgumentException("Spool required");
         this.spool=spool;
         this.deviceId=UUID.fromString(deviceId).toString();
         this.vehicleId=UUID.fromString(vehicleId).toString();
+        this.beforeCheckpoint=beforeCheckpoint;
     }
     private String uuid(String kind,String session,String segment,String key){
         return UUID.nameUUIDFromBytes(
@@ -258,6 +265,9 @@ public final class IncrementalTsvBridge {
                 String tail=digest(input,Math.max(0,end-128),(int)Math.min(128,end));
                 DurableSpool.ImportCursor next=new DurableSpool.ImportCursor(
                     path,deviceId,vehicleId,key,end,lineNo,headBytes,head,tail,encode(state));
+                // Data/profile append has COMMITTED at this point. A crash
+                // here leaves the cursor behind, causing harmless replay.
+                if(beforeCheckpoint!=null)beforeCheckpoint.run();
                 spool.saveImportCursor(cursor,next);
                 cursor=next;last=end;complete++;
                 if(kind==1)m++;else if(kind==2)s++;else if(kind==3)e++;
