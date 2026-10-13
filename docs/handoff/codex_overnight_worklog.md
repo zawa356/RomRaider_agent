@@ -30,3 +30,13 @@
 - 未解決・危険・承認待ち事項：
 - **次に打つコマンド/直すファイル/Phase最小タスク（他のセッションがここから開始）**：
 - 自分が起動した試験プロセスの状態：
+
+## 2026-10-13 22:38 JST / 13:38 UTC — Phase 4b-2d-2b-1 / WORKING
+
+- Base: Agent 923423bb4d716a6f2fe891ea270ac091e794d0e9 / Server 9f98c2e5b6dc673cbc806a89aa87229ed3c784ff; open PR 両方0。作業ツリーclean。
+- Branch: feat/phase-4b2d2b1-lock-isolation; local /home/zawa/git/RomRaider_agent; author個人noreply。
+- 方針: 旧writerは変更せず、新しい合成専用namespaceでlock分離を検証。旧writerへの無防備な移行は承認待ち。
+- Tests: 新規NOT RUN。前main CIはsuccess、実Server E2EはSKIPPEDとして扱う。
+- Next: VPS環境と専用clone確認→prototype/reader/identity/scanner責務確認→別JVMロック競合試験。
+- Gate: ECU/X270/Caddy/MCP/既存サービス・DB、原本削除、既存writer配線は変更しない。
+- 起動済み試験プロセス: なし。
