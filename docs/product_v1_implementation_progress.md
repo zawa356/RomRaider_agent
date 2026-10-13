@@ -27,7 +27,7 @@
 | 2.1-D2b-2c-1 | S行が全キューを占有しないようM/E用に4096枠予約 | **合成CI合格・PR #15** | [PR #15](https://github.com/zawa356/RomRaider_agent/pull/15) |
 | 2.1-D2b-2c-2 | 旧TSV writerの64KiB分割書込／障害時巻戻しテスト | **Linux/Windows合成CI合格・PR #16** | [Agent PR #16](https://github.com/zawa356/RomRaider_agent/pull/16)／[PR CI #38369809042](https://github.com/zawa356/RomRaider_agent/actions/runs/38369809042) |
 | 2.1-D2b-2c-3 | writer未fsync行・障害状態の可視化／19.6万行飽和復旧試験 | **CloudPC合成44項目・Windows/Linux CI合格・PR #17** | [PR #17](https://github.com/zawa356/RomRaider_agent/pull/17)／[CI #38372123905](https://github.com/zawa356/RomRaider_agent/actions/runs/38372123905) |
-| 2.1-D2b-2c-4a | 独立した有界fsync前段journal PoC・異常終了／破損／quota検証 | **PoC CI合格、製品接続は未実装** | [設計・試験記録](phase_2_1_d2b_2c_4a_ingress_journal_prototype.md)／[CI #38373518940](https://github.com/zawa356/RomRaider_agent/actions/runs/38373518940) |
+| 2.1-D2b-2c-4a | 独立した有界fsync前段journal PoC・異常終了／破損／quota検証 | **PR #18／Windows・Linux CI合格、製品接続は未実装** | [PR #18](https://github.com/zawa356/RomRaider_agent/pull/18)／[PR CI #38373993678](https://github.com/zawa356/RomRaider_agent/actions/runs/38373993678)／[設計・試験記録](phase_2_1_d2b_2c_4a_ingress_journal_prototype.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
@@ -35,7 +35,7 @@
 
 - 既存の`Stream.java`やlogger callback・実ECU・製品v1 SQLite outboxを一切変更せず、**独立したJava8互換`IngressJournalPrototype`** を追加。TSV原文をlength/sequence/CRC32付きframeとして保存し、各追記後のfsync、OS file lock、quota明示拒否、完全性検証、再起動後の読込を試験する。
 - 復旧方針はfail closed。破損末尾は自動切詰め・再書込・削除せず、運用者の保全と判断を必須とする。1行最大128KiB、ジャーナル最大8MiBは**PoC検証上の上限**であり、実車用容量・性能評価ではない。
-- CloudPC上の隔離cloneでJava17の`--release 8`を用い**34チェックPASS**、別Javaプロセスをfsync後`Runtime.halt(73)`で強制終了しても次起動時に既存行を再読込できた。GitHub Actions [CI #38373518940](https://github.com/zawa356/RomRaider_agent/actions/runs/38373518940)のWindows/Linux実試験ステップも両方PASS。
+- CloudPC上の隔離cloneでJava17の`--release 8`を用い**34チェックPASS**、別Javaプロセスをfsync後`Runtime.halt(73)`で強制終了しても次起動時に既存行を再読込できた。GitHub Actions [CI #38373518940](https://github.com/zawa356/RomRaider_agent/actions/runs/38373518940)と[PR #18 CI #38373993678](https://github.com/zawa356/RomRaider_agent/actions/runs/38373993678)のWindows/Linux実試験ステップも両方PASS。
 - **限定点**：JVM異常終了と物理電源断は同等ではない。OS/ディスクのキャッシュ・dir fsync・Windows x86・実デバイスの過負荷は未検証。finite RAM＋callback非ブロッキング＋無制限disk停止の条件では無欠損にならない。同期appendをECU callbackへ繋いではならない。
 - 既存製品v1 SQLite outboxとの責任分界、別workerへの受渡し、データ量の保護・停止条件、重複排除と原本の明示管理は**後続Phaseの設計対象**。本Phaseは独立PoCの有効性のみ判定し、実車・本番へは配備しない。
 - 詳細：[Phase 2.1-D2b-2c-4a 設計と検証記録](phase_2_1_d2b_2c_4a_ingress_journal_prototype.md)。
