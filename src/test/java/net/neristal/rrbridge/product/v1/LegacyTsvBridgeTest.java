@@ -32,7 +32,8 @@ public final class LegacyTsvBridgeTest {
             "E\t20261013_123456\t1\t1791838800501\tselftest end\n";
         Files.write(file.toPath(),tsv.getBytes(StandardCharsets.UTF_8));
         DurableSpool spool=new DurableSpool(db);
-        LegacyTsvBridge adapter=new LegacyTsvBridge(spool,id(),id());
+        String device=id(), vehicle=id();
+        LegacyTsvBridge adapter=new LegacyTsvBridge(spool,device,vehicle);
         LegacyTsvBridge.Result first=adapter.importFile(file);
         ok("complete stream contains metadata and samples",first.metadata==2 &&
             first.observations==2 && first.events==1 && !first.incompleteTail);
@@ -45,8 +46,7 @@ public final class LegacyTsvBridgeTest {
         LegacyTsvBridge.Result again=adapter.importFile(file);
         ok("re-import is idempotent",again.observations==2&&spool.countPending()==3);
         DurableSpool restored=new DurableSpool(db);
-        LegacyTsvBridge resumed=new LegacyTsvBridge(restored,
-            getDevice(p.json),getVehicle(p.json));
+        LegacyTsvBridge resumed=new LegacyTsvBridge(restored,device,vehicle);
         // Use the persisted profile's device/vehicle so IDs stay stable after restart.
         resumed.importFile(file);
         ok("reopen/replay preserves IDs",restored.countPending()==3);
@@ -79,6 +79,4 @@ public final class LegacyTsvBridgeTest {
 
         System.out.println("LegacyTsvBridgeTest passed "+checks+" checks (synthetic TSV / SQLite)");
     }
-    static String getDevice(String json){return AgentWire.requireString(AgentWire.flatObject(json),"device_id");}
-    static String getVehicle(String json){return AgentWire.requireString(AgentWire.flatObject(json),"vehicle_id");}
 }
