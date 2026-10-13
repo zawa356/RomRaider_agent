@@ -17,3 +17,6 @@ sink.properties
 
 # archive/ は検証記録として意図的に保存する（上の status.json / rrbridge.log 等の除外を打ち消す）
 !archive/**
+
+# CloudPC local-only Python E2E environment
+/.venv/
