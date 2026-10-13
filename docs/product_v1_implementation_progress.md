@@ -288,3 +288,8 @@
 
 - DurableWatermarkPrototype RLC1、SplitLockJournalPrototype.checkpoint、別JVM reader試験。既存原本/RLJ1/identity/製品Worker/SQLite/Server IFへ配線しない。
 - WSL Linux JDK17 --release8: journal194チェックPASS (99+39+56)。dir force SYNCED観測。Windows/VPS、実物理電源断はNOT RUN。永続reader highwater未実装、tmp残存は自動修復せず停止。
+
+### Phase 4b-2d-2b-2 現在のゲート — Windows watermark BLOCKED
+
+- 初回journal Windows CI38409471808/38409589169 FAIL (fileKey null)。Linux full watermark56ケースPASS、Windowsはpublic fileKeyがないのでfullケースを実行できない。安全側に拒否し3件の停止/保全試験を追加。
+- Phase 4b-2d-2b-3の合成SQLite結合はBLOCKED (両OS成立ゲート未達)。production foreground/rotation/DB/ACKに導入しない。代替設計とファイルセット保全条件を文書化する。

@@ -63,7 +63,8 @@ public final class DurableWatermarkPrototype {
         return sha().digest(a.fileKey().toString().getBytes(StandardCharsets.UTF_8));
     }
     private static byte[] boundedRead(Path path, int expected) throws IOException {
-        if (Files.isSymbolicLink(path)) throw new IOException("unsafe watermark");
+        if (Files.isSymbolicLink(path) || !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+            throw new IOException("missing or unsafe watermark");
         try (FileChannel f = FileChannel.open(path, StandardOpenOption.READ)) {
             if (f.size() != expected) throw new IOException("invalid watermark size");
             ByteBuffer buf = ByteBuffer.allocate(expected);
@@ -168,7 +169,8 @@ public final class DurableWatermarkPrototype {
         if (previouslyObserved != null && !Arrays.equals(previouslyObserved.prefixHash,
                 sha().digest(Arrays.copyOf(prefix.array(), (int) previouslyObserved.offset))))
             throw new IOException("previously observed prefix modified");
-        if (!Arrays.equals(key(before), key(attributes(source))) ||
+        BasicFileAttributes after = attributes(source);
+        if (after.size() < wm.offset || !Arrays.equals(key(before), key(after)) ||
                 !wm.sourceUuid.equals(JournalIdentityPrototype.readExisting(source).sourceUuid()) ||
                 Files.exists(temp(source), LinkOption.NOFOLLOW_LINKS) ||
                 !Arrays.equals(markerBytes, boundedRead(marker(source), BYTES)))

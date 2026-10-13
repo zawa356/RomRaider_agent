@@ -55,8 +55,9 @@ public final class SplitLockJournalPrototype implements Closeable {
             // is closed in the same process. Do not use a separate probe here.
             sequence = validateOwnedHandle(data, quota);
             Object fileKey = Files.readAttributes(absolute.toPath(), java.nio.file.attribute.BasicFileAttributes.class).fileKey();
-            if (fileKey == null) throw new IOException("stable file identity unavailable");
-            openedKey = fileKey.toString();
+            // Preserve lock-only PoC support when this provider lacks fileKey.
+            // Watermark publication independently REQUIRES a non-null key.
+            openedKey = fileKey == null ? null : fileKey.toString();
             openedUuid = JournalIdentityPrototype.readExisting(absolute).sourceUuid();
         } catch (IOException | RuntimeException problem) {
             release(guard, problem); release(owner, problem);
@@ -112,7 +113,7 @@ public final class SplitLockJournalPrototype implements Closeable {
     }
     private void checkContinuity() throws IOException {
         Object key = Files.readAttributes(source.toPath(), java.nio.file.attribute.BasicFileAttributes.class).fileKey();
-        if (sourceKey == null || key == null || !sourceKey.equals(key.toString()) ||
+        if ((sourceKey != null && (key == null || !sourceKey.equals(key.toString()))) ||
                 !sourceUuid.equals(JournalIdentityPrototype.readExisting(source).sourceUuid()))
             throw new IOException("owned source replaced; review required");
     }

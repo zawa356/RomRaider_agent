@@ -333,3 +333,9 @@
 - previouslyObservedはメモリ内だけ。新readerで古いvalid watermarkを読むと安全な古いprefixへ戻る場合があり、永続highwater/SQLiteとの原子的統合は本Phase未実装。CRC/hashは認証ではなく管理者による同時原本+marker改変の耐改ざん保証なし。
 - WSL OpenJDK17 --release8の新56＋既存138=194チェックPASS。JVM halt3段階、擬似I/O/quota故障、部分marker、live別JVM READを検証。Windows/VPSはこれから。実ディスク満杯/物理電源断/実ECUはNOT RUN。
 - 状態: 独立PoCのみ。製品cursor/ACK/Worker非接続。実運用採用と原本セットrotationは別判断。
+
+### D-040補記 — Windows fileKey非対応をBLOCKEDとする（2026-10-13 23:05 JST）
+
+- Windows Actions journal CI38409471808/38409589169でfileKey nullによる初回FAIL。OpenJDK17 WindowsFileAttributes.fileKey()は常にnullを返す公式実装を確認。内部ensureAccurateMetadata設定でもpublic APIのkeyは得られない。設定案は推測を訂正し未採用。
+- SplitLockのlock-only機能はfileKey任意で前Phase互換を維持、watermarkはnon-null必須を維持。Windowsで3件のfail-closed/原本保全を試験、watermark56シナリオはBLOCKED/NOT RUNと表示する。Windows/Linux atomic stagingとdirectory forceは別の合成試験を追加。
+- 2b-3結合は両OSでwatermark成立のゲート未達としてBLOCKED。代替候補: 公開APIのhardlink anchor+isSameFile、Windows native file identity、原本内UUIDを含む新形式。いずれもlock/互換/dir耐久の追加検証と運用採用承認が必要。夜間は配線せずこの候補を保持。

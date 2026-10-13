@@ -92,6 +92,23 @@ public final class DurableWatermarkPrototypeTest {
             }
             throw new AssertionError("crash hook not reached");
         }
+        storagePrimitives();
+        final File availability = Files.createTempDirectory("romlogger-watermark-provider-").resolve("availability.rlj").toFile();
+        try (final SplitLockJournalPrototype writer = new SplitLockJournalPrototype(availability, 4096)) {
+            writer.append("E\tsynthetic\tprovider-check");
+            if (Files.readAttributes(availability.toPath(), java.nio.file.attribute.BasicFileAttributes.class,
+                    java.nio.file.LinkOption.NOFOLLOW_LINKS).fileKey() == null) {
+                denied(new Action() { public void run() throws Exception { writer.checkpoint(); } },
+                    "missing provider fileKey refuses watermark publication");
+                denied(new Action() { public void run() throws Exception { DurableWatermarkPrototype.readCommitted(availability, null); } },
+                    "missing provider fileKey refuses committed reader");
+                check(availability.length() > 0 && !Files.exists(marker(availability)),
+                    "unavailable file identity preserves original without marker");
+                System.out.println("BLOCKED default provider fileKey unavailable; watermark integration NOT SUPPORTED");
+                System.out.println("DurableWatermarkPrototypeTest passed " + checks + " fail-closed checks; 56 watermark scenarios NOT RUN");
+                return;
+            }
+        }
         final File source = fixture();
         byte[] valid = Files.readAllBytes(marker(source));
         final DurableWatermarkPrototype.Snapshot first = DurableWatermarkPrototype.readCommitted(source, null);
@@ -200,6 +217,27 @@ public final class DurableWatermarkPrototypeTest {
             childCheck("old-attempt", liveSource, "unused", "watermark publication retains compatibility guard");
         }
         System.out.println("DurableWatermarkPrototypeTest passed " + checks + " checks (synthetic only; NO physical power-loss guarantee)");
+    }
+    private static void storagePrimitives() throws Exception {
+        Path dir = Files.createTempDirectory("romlogger-storage-primitives-");
+        Path target = dir.resolve("atomic-marker"), staged = dir.resolve("atomic-marker.tmp");
+        Files.write(target, new byte[]{1});
+        try (java.nio.channels.FileChannel file = java.nio.channels.FileChannel.open(staged,
+                java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE)) {
+            file.write(ByteBuffer.wrap(new byte[]{2, 3})); file.force(true);
+        }
+        check(Arrays.equals(Files.readAllBytes(target), new byte[]{1}), "synced staging does not alter old target");
+        Files.move(staged, target, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        check(Arrays.equals(Files.readAllBytes(target), new byte[]{2, 3}) && !Files.exists(staged),
+            "actual atomic replace publishes complete synced staging");
+        try (java.nio.channels.FileChannel directory = java.nio.channels.FileChannel.open(dir,
+                java.nio.file.StandardOpenOption.READ)) {
+            directory.force(true);
+            System.out.println("DIRECTORY_SYNC_OBSERVATION SYNCED " + System.getProperty("os.name"));
+        } catch (IOException | UnsupportedOperationException unsupported) {
+            System.out.println("DIRECTORY_SYNC_OBSERVATION UNCONFIRMED " + System.getProperty("os.name"));
+        }
+        check(Files.isRegularFile(target), "directory sync observation retains complete marker");
     }
     private static void childCheck(String mode, File source, String value, String name) throws Exception {
         String java = new File(new File(System.getProperty("java.home"), "bin"),

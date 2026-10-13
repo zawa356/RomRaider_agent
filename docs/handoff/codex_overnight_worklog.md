@@ -76,3 +76,17 @@
 - dir force Linux SYNCEDを観測、Windows未実施。電源断保証、永続previous highwater、同一JVMreader/運用配線なし。
 - Server PR39 merged 50ff71ce3ba719d86b14b99db8ba4e1c162e8473; main CI確認待ち。
 - Next exact: bash scripts/test-ingress-journal-prototype.sh → VPS同script/SQLite→PR両OSCI。
+
+## 2026-10-13 23:02 JST / 14:02 UTC — 4b-2d-2b-2 / FAIL→diagnosis
+
+- Windows journal push CI38409471808 job115337677147失敗。default Java17のBasicFileAttributes.fileKeyがnull、constructorの新規必須条件で旧lock-only回帰も止まった。
+- 修正方針: lock-only PoCのfileKeyは任意として前Phase互換維持。watermark自体はnon-null必須を維持し、default Windowsには3件のfail-closed/PRESERVED試験とBLOCKED表示。成功56件とは扱わない。
+- OpenJDK公式実装 https://github.com/openjdk/jdk17u/blob/master/src/java.base/windows/classes/sun/nio/fs/WindowsFileAttributes.java のget()はdefault高速経路でindex値を省略、内部sun.nio.fs.ensureAccurateMetadataを確認。独立Windows test JVMのみtrueを比較、子JVMへ明示伝達。製品/既存writer起動設定は変更しない。
+- 現在ローカル/VPS Linuxは194+344=538チェックPASS (code0bef713)。新修正はNOT VERIFIED、次は同script再実行→commit/push→最新Windows実ログ/dir force観測。2b-3結合はdefaultWindows前提未成立のためBLOCKED候補。
+- 追加レビュー: watermark非regular file拒否、最終読取後source縮小検査を追加。
+
+### 2026-10-13 23:05 JST / 14:05 UTC — fileKey blockerの確定/前節の推測訂正
+
+- OpenJDK公式WindowsFileAttributes.fileKey()は常にnullを返す (同source lines391–394)。ensureAccurateMetadataは内部nativeindexを取得してもpublic fileKeyを公開しない。前節の「高速経路が原因/設定で解消」の推測は撤回、独立設定比較の未実行コードも除去。製品設定変更なし。
+- Windows水準: lock-only PoCは成立、watermark候補はfileKey取得不可でBLOCKED。key条件を弱めず3件の拒否/原本保全を検証。atomic move/dir forceは別の合成primitive試験として両OSで観測し、full watermark56件をWindows PASSと呼ばない。
+- 2b-3のwriter/reader/SQLite結合は両OS成立ゲート未達のためBLOCKED。安全な代替: marker故障注入/OS primitive/設計・rotation境界記録を継続。
