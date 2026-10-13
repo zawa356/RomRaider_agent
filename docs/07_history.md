@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-10-13：Phase 2.1-D2b-2c-4a（独立した前段journalの安全性検証）
+
+- `prototype.ingress.IngressJournalPrototype` を独立試作として追加。既存PoCのTSV writerやLogger callbackへ組み込まず、length/sequence/CRC付きUTF-8フレームを同期fsyncで保存。
+- 意図的に別JVMを異常終了させてfsync済み原文が再読込できること、tail破損やquota制限に対してfail closedで原本を自動削除しないことを検証。CloudPC Java8互換34チェック、Windows/Linux GitHub Actions両ジョブPASS。
+- 直接ECU callbackでfsyncするとデータ取得性能と安全性を損なう可能性があるため禁止。実車の電源断試験、X270 32bit、最新Agent real Server E2E、本番配備は未実施。既存outboxとの統合は次工程に残す。
+- [独立PoC詳細](phase_2_1_d2b_2c_4a_ingress_journal_prototype.md)。
+
 ## 2026-10-13：Phase 2.1-D2b-2c-3（writer障害の観測・飽和復旧試験）
 
 - writerがfsyncしていない行を`writerPendingLines`として可視化し、`queue`との合計`memoryBufferedLines`、失敗回数、最終fsync／失敗時刻、劣化フラグをPoC status JSONに追加。インターフェース文書C4.1を更新。
