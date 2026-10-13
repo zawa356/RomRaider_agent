@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# D2b-2c-4a prototype ONLY. No RomRaider.jar, ECU, Server or actual disk-fill.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+mkdir -p build/ingress-journal-prototype
+javac --release 8 -encoding UTF-8 -d build/ingress-journal-prototype \
+  src/main/java/net/neristal/rrbridge/prototype/ingress/IngressJournalPrototype.java \
+  src/test/java/net/neristal/rrbridge/prototype/ingress/IngressJournalPrototypeTest.java
+java -cp build/ingress-journal-prototype \
+  net.neristal.rrbridge.prototype.ingress.IngressJournalPrototypeTest
