@@ -16,11 +16,36 @@
 | --- | --- | --- | --- |
 | 2.1-A | Java 8対応SQLite durable spool、原本・定義とACK台帳 | **CI合格・PR #3** | [PR #3](https://github.com/zawa356/RomRaider_agent/pull/3)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-B | Server v1プロファイル／バッチのHTTP送信・ACK厳密検証（契約モックCI） | **合成CI完了・PR #4** | [PR #4](https://github.com/zawa356/RomRaider_agent/pull/4)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
-| 2.1-C | 既存RRBridgeから製品spoolへ取り込み（合成PoC first） | 未着手 | Issue #7 |
+| 2.1-C1 | 既存RRBridge TSV→製品v1 SQLiteの非破壊取込・合成CI | **実装済み・CI検証中** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
+| 2.1-C2 | Agent→実FastAPI→PostgreSQL E2Eと常駐取り込み接続 | **E2Eワークフロー実装済み／別Private Repo認証未設定で未実行** | [E2E run](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160) |
 | 2.1-D | Windows再起動／通信断／ディスク不足／実機での耐久検証 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
 ## 変更履歴
+
+### 2026-10-13 — Phase 2.1-C1：RRBridge PoC TSV→製品SQLite取り込み（合成CI）
+
+**追加**
+
+- `LegacyTsvBridge.java`：既存RRBridge v0.5のM/S/E TSVを読み取り、ProfileRevision・Sample・Eventの正式v1 JSONを作りSQLiteに永続登録。TSV本体は読み取り専用。既存Logger callbackとPoC送信・安全制御は変更しない
+- IDはdevice ID・旧session・segment・元sample sequence／行位置から**決定論的に生成**。再読み込み・再起動後も変わらず、二重登録は原本UUIDで抑制
+- 元TSVのUTF-8/LF終端済み行だけ処理。書込み途中の行は保留し、不正データは黙って補完・読み飛ばししない
+- TEST_パラメーターだけの観測は`synthetic`、それ以外は`ecu`。旧RRBridgeイベントは`source_kind=agent`で構造化登録
+- `ProductBridgeOnce.java`で、明示的に指定したTSVファイルから一度だけSQLiteに取り込み、最大1 HTTP交換するCLIを追加。トークンは環境変数、**車載へ自動組込／自動起動しない**
+- Windows/LinuxのSQLite実DBテストに`LegacyTsvBridgeTest`を追加。再読込・不完全行・イベント・profile定義の保護を確認
+
+**実Server接続試験の状態**
+
+- `ProductServerE2E.java`と`scripts/test-product-v1-real-server.sh`で、独立したJava Agent→FastAPI→PostgreSQLの合成2件送信と重複再送を検証する試験を準備
+- **GitHubの両リポジトリがPrivate**。Agentの標準`GITHUB_TOKEN`にはServerリポジトリの読取権限が無いため、専用の`ROMLOGGER_SERVER_READ_TOKEN`が設定されない場合に試験を**NOT RUN**と明示するCIゲートを設置
+- [最初のE2E CI](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160)は**認証情報未設定のため未実行**。スキップしたジョブをE2E成功と呼ばない
+
+**未解決**
+
+- Serverとの実E2E、X270実機、Java8 32bit、常駐取込・バックオフ、レガシーキューあふれ、TSVローテーション／削除、disk-full、409/422隔離
+- 元PoCのQueueOverflowやTSV writer失敗を検出・保全する仕組みは未実装。今回の変換層だけでECU→DBの完全無欠損を保証しない
+- 毎回全TSVファイルを先頭から走査する**検証用実装**。大容量ログでの効率化・永続オフセットは後続工程
+- Agent側に実際のK-Line、Supervisor、romraider profile操作を組み込んでいない
 
 ### 2026-10-13 — Phase 2.1-B（Windows/Linux合成CI合格）
 
