@@ -247,7 +247,7 @@ public final class IncrementalTsvBridge {
            Files.isSymbolicLink(source.toPath())||maxLines<1||maxLines>10000)
             throw new IllegalArgumentException("Invalid journal source or limit");
         String path=source.getCanonicalPath();
-        JournalIdentityPrototype identity=JournalIdentityPrototype.open(source);
+        JournalIdentityPrototype identity=JournalIdentityPrototype.readExisting(source);
         String sourceUuid=identity.sourceUuid();
         try(IngressJournalPrototype reader=new IngressJournalPrototype(
                 source,IngressJournalPrototype.MAX_JOURNAL_BYTES)){

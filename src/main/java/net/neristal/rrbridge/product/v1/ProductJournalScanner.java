@@ -82,7 +82,7 @@ public final class ProductJournalScanner {
             File identity=new File(source.getAbsolutePath()+".identity");
             if(!identity.isFile()||Files.isSymbolicLink(identity.toPath()))
                 throw new IllegalStateException("Missing or unsafe journal identity");
-            String uuid=JournalIdentityPrototype.open(source).sourceUuid();
+            String uuid=JournalIdentityPrototype.readExisting(source).sourceUuid();
             String prior=sourceIds.put(uuid,source.getCanonicalPath());
             if(prior!=null)
                 throw new IllegalStateException("Duplicate source UUID");

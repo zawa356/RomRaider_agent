@@ -89,7 +89,7 @@ public final class LiveJournalReadProbe {
         File sidecar=new File(journal.getAbsolutePath()+".identity");
         if(!sidecar.isFile()||Files.isSymbolicLink(sidecar.toPath()))
             throw new IOException("Journal identity required");
-        JournalIdentityPrototype.open(journal);
+        String identity=JournalIdentityPrototype.readExisting(journal).sourceUuid();
         BasicFileAttributes start=attributes(journal);
         long size=start.size();
         if(size>IngressJournalPrototype.MAX_JOURNAL_BYTES)
@@ -134,7 +134,8 @@ public final class LiveJournalReadProbe {
         if(changed(start,end,size,end.size()))
             return new Result(Status.CHANGING,count,pos,size);
         // Re-check identity but NEVER create or update a sidecar.
-        JournalIdentityPrototype.open(journal);
+        if(!identity.equals(JournalIdentityPrototype.readExisting(journal).sourceUuid()))
+            throw new IOException("Journal source identity changed during probe");
         if(fault!=null)throw fault;
         return new Result(partial?Status.INCOMPLETE_TAIL:Status.COMPLETE,count,pos,size);
     }

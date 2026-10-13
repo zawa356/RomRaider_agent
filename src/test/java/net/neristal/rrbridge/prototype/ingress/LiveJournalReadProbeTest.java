@@ -126,6 +126,13 @@ public final class LiveJournalReadProbeTest {
         });
         ok("no unexpected identity sidecar created",
             !new File(identityMissing.getPath()+".identity").exists());
+        rejects("readExisting never generates identity on zero-length source",new Work(){
+            public void run()throws Exception{
+                JournalIdentityPrototype.readExisting(identityMissing);
+            }
+        });
+        ok("readExisting missing sidecar remains strictly read-only",
+            !new File(identityMissing.getPath()+".identity").exists());
         final File quota=source(root,"quota");
         try(RandomAccessFile f=new RandomAccessFile(quota,"rw")){
             f.setLength(IngressJournalPrototype.MAX_JOURNAL_BYTES+1);
