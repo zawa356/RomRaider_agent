@@ -275,3 +275,11 @@
 
 - 新SplitLockJournalPrototypeと別JVMの旧→新/新→旧/新→新/旧→旧、旧/純粋別lock両方向の反例を追加。quota外guardでデータ範囲をreaderへ開放。既存writerと製品配線は変更しない。
 - WSL Linux Java17 --release8: 39新規＋99既存=138 PASS。初回POSIX closeでのlock喪失FAILはD-039に記録し修正。VPS新規、Windows、SQLite回帰は確認中。
+
+### 2026-10-13 22:47 JST — 4b-2d-2b-1 実検証結果 / PASS (PoCのみ)
+
+- PR https://github.com/zawa356/RomRaider_agent/pull/27; code 36bd679 / docs a1a6fa9。
+- WSL/VPS1 codex Linux OpenJDK17.0.20.1 --release8: journal138 + SQLite/receipt344 = 482チェックPASS。VPSにrgなし→grepへ切替、journal試験自体は最初から成功。
+- GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
+- 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
+- Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。

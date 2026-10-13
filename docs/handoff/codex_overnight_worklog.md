@@ -53,3 +53,11 @@
 - 74d6269 REDのPOSIX close問題を所有handle検証へ修正。WSL Linuxのjournal計138チェックPASS（新39）。
 - Next: python3 /tmp/romlogger-sync.py ...でVPS専用clone更新、journal/SQLite実試験→PR→両OS最新SHA CI確認。SQLiteローカルは実行中。
 - 本番配線は未変更。readerは別JVM限定。同一JVM別handle closeがguardを消す制約は運用承認ゲート。
+
+### 2026-10-13 22:47 JST — 4b-2d-2b-1 実検証結果 / PASS (PoCのみ)
+
+- PR https://github.com/zawa356/RomRaider_agent/pull/27; code 36bd679 / docs a1a6fa9。
+- WSL/VPS1 codex Linux OpenJDK17.0.20.1 --release8: journal138 + SQLite/receipt344 = 482チェックPASS。VPSにrgなし→grepへ切替、journal試験自体は最初から成功。
+- GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
+- 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
+- Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。
