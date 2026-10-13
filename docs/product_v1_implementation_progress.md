@@ -29,6 +29,12 @@
 
 ## 変更履歴
 
+### 2026-10-13 — チャット上限に伴う開発引継ぎ
+
+- [Agent固有の状況・再開手順](handoff/2026-10-13_chat_handoff.md)と[Server全体引継ぎ](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-13_chat_handoff.md)を追加。
+- E2Eの緑色ワークフローでもPrivate checkout・実結合のstepがskippedである場合は**NOT RUN**と区別。
+- 本更新は文書のみ。実ECU・X270・車載安全判定・本番操作を実行したことを意味しない。
+
 ### 2026-10-13 — Phase 2.1-D2b-2b：滞留／新規データの公平配送（Windows/Linux合成CI合格）
 
 - `DurableSpool.nextRecentBatch()`で最後に生成されたrunの**最も古い未ACKレコードから**同一runバッチを構築。runを混ぜず、個々のrun内の順序を保つ
