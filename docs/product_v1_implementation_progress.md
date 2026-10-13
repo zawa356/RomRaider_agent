@@ -24,10 +24,22 @@
 | 2.1-D2b-1 | 明示起動の独立Worker、SQLite永続backoff／要調査ゲート、旧TSV監視 | **Windows/Linux各208件PASS・PR #11** | [PR #11](https://github.com/zawa356/RomRaider_agent/pull/11)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-D2b-2a | 旧PoC writer復旧・queue欠損イベント・TSV削除禁止 | **合成CI成功・PR #12** | [Agent PR #12](https://github.com/zawa356/RomRaider_agent/pull/12)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-D2b-2b | fresh/backlog公平配送（原本ACKベースの3:1） | **合成CI合格・PR #13** | [PR #13](https://github.com/zawa356/RomRaider_agent/pull/13) |
+| 2.1-D2b-2c-1 | S行が全キューを占有しないようM/E用に4096枠予約 | **合成CI合格・PR #15** | [PR #15](https://github.com/zawa356/RomRaider_agent/pull/15) |
+| 2.1-D2b-2c-2 | 旧TSV writerの64KiB分割書込／障害時巻戻しテスト | **Linux/Windows合成CI合格・PR準備中** | [CI #38369405259](https://github.com/zawa356/RomRaider_agent/actions/runs/38369405259) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
-## Phase 2.1-D2b-2c-1 — bounded queueのサンプル優先制限（合成試験中）
+## Phase 2.1-D2b-2c-2 — 旧TSV writerのバッチ化・部分書込rollback検証
+
+- `Stream.flushPending()`の既存5,000行単位の書き込みを、固定64KiBバッファを用いる`writeRowsBatched()`へ置換。行末LF、UTF-8、列順・原本値は変更しない。巨大単一行は二重コピーせず直接書く。
+- `appendDurably()`にファイル尾のLF検査→元長さの記録→分割書込→fsyncをまとめ、IOExceptionに加えRuntimeExceptionでも可能な限り元長さへ戻す。失敗時は呼び出し元の`pending`と欠損イベントが残り、次回に同じ原本を再試行する。
+- テストでは最初の書込が済んだ後に2回目でIOExceptionを合成発生させ、既存TSVの長さと内容が復元すること、再試行で全バイトが一度だけ追記されることを確認。途中で不正なnull行が出た場合も元に戻す。
+- 2,400行の日本語UTF-8サンプル、64KiBを超える単独行、混在M/E行、既存queue overflow／writer失敗／元TSV保持の全試験を継続。標準JDKの`--release 8`でCloudPC Linux **31チェックPASS**、GitHub Actions [CI #38369405259](https://github.com/zawa356/RomRaider_agent/actions/runs/38369405259)でLinux/Windows両ジョブPASS。時間ベンチマークによる性能保証は行わない。
+- **失敗と修正記録**：[初回CI #38369266614](https://github.com/zawa356/RomRaider_agent/actions/runs/38369266614)は追加したLF文字リテラルのエスケープ誤りでコンパイル失敗。commit `ebf1f4c`で修正し、合成試験追加後commit `9c90e02`に対するCIが通過した。失敗履歴を消さない。
+- **残る重大制約**：writer停止中にメモリキューが上限に達するとS行を失う。通常の電源断・OSクラッシュ時に未fsyncのキュー／writer待機バッファを復旧する機能はない。rollback自体が失敗した場合はTSV尾の手動確認が必要。X270／Zulu8 32bit／disk-full／実ECU未検証。
+- `handleDataUpdate()`の非ブロッキング性、安全ガード、旧PoC/製品v1の通信契約、元TSV自動削除禁止、本番配備状態を変更しない。**D2b-2c全体を完了扱いにしない**。
+
+## Phase 2.1-D2b-2c-1 — bounded queueのサンプル優先制限（合成CI合格）
 
 - 既存の200,000行上限は維持。S行のみ深さが`QUEUE_CAPACITY - 4096 = 195904`行以上の深さで新たなS行を非ブロッキングで拒否する。
 - M/E行には4,096枠の予約余地を確保する。ただしM/E行の大量生成、競合、writer停止が続けば全体上限に到達し得る。**メタデータ完全保全・欠損ゼロの保証ではない**。
