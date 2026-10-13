@@ -20,11 +20,20 @@
 | 2.1-C2a | Agent固定版（JavaソースSHA照合）→実FastAPI/Postgresの合成E2E | **PASS（Server CI、Agent commit 6dd46835固定）** | [Server PR #22](https://github.com/zawa356/RomRaiderServer/pull/22)／[E2E CI](https://github.com/zawa356/RomRaiderServer/actions/runs/38346271102) |
 | 2.1-C2b | Agent最新main自動同期E2E／常駐取り込み接続 | **未実装**（本Agent repoのPrivate checkout専用E2EはtokenなしでNOT RUN） | [E2E run](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160) |
 | 2.1-D1 | TSV増分取り込み、SQLite永続offset＋安全再開・障害注入 | **CI合格・Agent PR #8** | [PR #8](https://github.com/zawa356/RomRaider_agent/pull/8) |
-| 2.1-D2 | Agent新版E2E再pin・常駐送信／バックオフ・障害検知 | 未着手 | Issue #7 |
+| 2.1-D2a | Agent増分取り込み版の実Server E2E再pin・再起動試験 | **Agentテスト更新中／Server pin・CI待ち** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
+| 2.1-D2b | 常駐送信・バックオフ・上流データ欠損検知 | 未着手 | Issue #7 |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
 ## 変更履歴
+
+### 2026-10-13 — Phase 2.1-D2a：実Server E2Eの最新増分取り込み対応（テストコード）
+
+- `ProductServerE2E.java`を従来の全件`LegacyTsvBridge`から、**`IncrementalTsvBridge`と永続offset**を使用する実Serverテストへ更新
+- 合成TSVを初回1定義行だけ読み、**プロセス再起動→残り定義＋観測1件→未完結TSV行保留→追記→再起動して合計3件**をSQLiteへ保存する手順へ変更
+- FastAPIへ定義PUT→3件のPOST→完全ACKを受け、**新しい別SQLite**で同一TSVを2/2/1行の増分チャンクで読み直し、同一原本IDを再送して重複のみのACKが成立するか検証
+- 使い捨てPostgreSQLの直接照合を観測**3件**・ProfileRevision**1件**に変更。実ServerへのE2EはServer側固定ソースを更新してCIが通るまでは未検証
+- 既存RRBridgeのLogger callback、操作系、実車、自動スケジューラは対象外。Server側のpinは本変更を反映するまで旧版のまま
 
 ### 2026-10-13 — Phase 2.1-D1：TSV増分取り込み／SQLite永続カーソル（Windows/Linux CI合格）
 

@@ -45,7 +45,7 @@ if [[ "$ready" != "1" ]]; then
 fi
 java -cp "build/product-v1-test:lib/sqlite-jdbc.jar:lib/slf4j-api.jar:lib/slf4j-nop.jar" \
   net.neristal.rrbridge.product.v1.ProductServerE2E
-# The second Java delivery replay MUST NOT have created more than two records.
+# Duplicate-only replay MUST NOT create more than three observations.
 (cd "$SERVER_ROOT" && python -c '
 import os
 import psycopg
@@ -56,7 +56,7 @@ with psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row) as db:
                  (os.environ["ROMLOGGER_E2E_DEVICE_ID"],)).fetchone()
     p=db.execute("""SELECT COUNT(*) AS n FROM v1_profile_revisions
                     WHERE device_id=%s""",(os.environ["ROMLOGGER_E2E_DEVICE_ID"],)).fetchone()
-    assert r["n"]==2 and r["source"]=="synthetic", r
+    assert r["n"]==3 and r["source"]=="synthetic", r
     assert p["n"]==1, p
-print("REAL PostgreSQL verification: PASS (2 records, 1 profile, synthetic provenance)")
+print("REAL PostgreSQL verification: PASS (3 records, 1 profile, synthetic provenance)")
 ')
