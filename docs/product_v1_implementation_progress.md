@@ -20,7 +20,7 @@
 | 2.1-C2a | Agent固定版（JavaソースSHA照合）→実FastAPI/Postgresの合成E2E | **PASS（Server CI、Agent commit 6dd46835固定）** | [Server PR #22](https://github.com/zawa356/RomRaiderServer/pull/22)／[E2E CI](https://github.com/zawa356/RomRaiderServer/actions/runs/38346271102) |
 | 2.1-C2b | Agent最新main自動同期E2E／常駐取り込み接続 | **未実装**（本Agent repoのPrivate checkout専用E2EはtokenなしでNOT RUN） | [E2E run](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160) |
 | 2.1-D1 | TSV増分取り込み、SQLite永続offset＋安全再開・障害注入 | **CI合格・Agent PR #8** | [PR #8](https://github.com/zawa356/RomRaider_agent/pull/8) |
-| 2.1-D2a | Agent増分取り込み版の実Server E2E再pin・再起動試験 | **Agentテスト更新中／Server pin・CI待ち** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
+| 2.1-D2a | Agent増分取り込み版の実Server E2E再pin・再起動試験 | **実FastAPI/PostgreSQL E2E PASS・Server PR #24** | [Server PR #24](https://github.com/zawa356/RomRaiderServer/pull/24)／[E2E CI](https://github.com/zawa356/RomRaiderServer/actions/runs/38350030034) |
 | 2.1-D2b | 常駐送信・バックオフ・上流データ欠損検知 | 未着手 | Issue #7 |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
@@ -32,8 +32,9 @@
 - `ProductServerE2E.java`を従来の全件`LegacyTsvBridge`から、**`IncrementalTsvBridge`と永続offset**を使用する実Serverテストへ更新
 - 合成TSVを初回1定義行だけ読み、**プロセス再起動→残り定義＋観測1件→未完結TSV行保留→追記→再起動して合計3件**をSQLiteへ保存する手順へ変更
 - FastAPIへ定義PUT→3件のPOST→完全ACKを受け、**新しい別SQLite**で同一TSVを2/2/1行の増分チャンクで読み直し、同一原本IDを再送して重複のみのACKが成立するか検証
-- 使い捨てPostgreSQLの直接照合を観測**3件**・ProfileRevision**1件**に変更。実ServerへのE2EはServer側固定ソースを更新してCIが通るまでは未検証
-- 既存RRBridgeのLogger callback、操作系、実車、自動スケジューラは対象外。Server側のpinは本変更を反映するまで旧版のまま
+- 使い捨てPostgreSQLの直接照合を観測**3件**・ProfileRevision**1件**に変更。[Server PR #24](https://github.com/zawa356/RomRaiderServer/pull/24)でAgent main commit `668ad5230e7e3db4fc592311c857906f43802ad3` の7ソースファイルを原本Git blob SHA一致で固定し、[実E2E CI #38350030034](https://github.com/zawa356/RomRaiderServer/actions/runs/38350030034)がPASS
+- [Server製品版契約CI #38350030080](https://github.com/zawa356/RomRaiderServer/actions/runs/38350030080)と[PoC回帰CI #38350030122](https://github.com/zawa356/RomRaiderServer/actions/runs/38350030122)も全ジョブPASS
+- 既存RRBridgeのLogger callback、操作系、実車、自動スケジューラは対象外。Agent main変更のたびにServer CIが自動同期する構造ではなく、次の変更では再pin／差分確認が必要
 
 ### 2026-10-13 — Phase 2.1-D1：TSV増分取り込み／SQLite永続カーソル（Windows/Linux CI合格）
 
