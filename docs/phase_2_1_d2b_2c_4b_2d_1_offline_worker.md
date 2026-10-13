@@ -37,6 +37,7 @@ Journalソースのディレクトリは専用で、`[A-Za-z0-9_-]{1,96}.rlj`と
 - Workerテストは**別JVM起動**でopt-inなし拒否・未サポートforeground拒否・synthetic HTTPのprofile先行ACKとbatch ACK、SQLiteに残る未ACK原本、原本CRC破損時のコード5、SQLite要レビュー持続、旧TSV Workerによる抜け道を拒否することを確認。
 - 読取専用Statusは**別JVMで12件PASS**。DBが存在しない場合は作成せず、状態保持、壊れたSQLiteや未知コードではHealthy扱いしない。Windows CIではsymlink作成権限がなければ該当試験を`SKIP`として計上し、実行済みとして扱わない。
 - CloudPCの専用PostgreSQL16（127.0.0.1:25432）と使い捨てDB`romlogger_4b2d_worker_e2e`で、旧TSV3件＋直接journal3件＋**新しい--journal-once別JVMからの1件**、合計**実Postgres合成レコード7件、profile3件、UUID重複0件**。新Workerの2回呼び出しでprofile→batch ACKを得た後、別の空SQLiteから同じJournalを再投入して重複ACKも確認。実サーバーE2E PASS。
+- [Agent PR #24製品SQLite CI #38391573311](https://github.com/zawa356/RomRaider_agent/actions/runs/38391573311) はWindows/Linux両ジョブでJava8コンパイル＋SQLite試験PASS。[GitHub E2Eゲート #38391572993](https://github.com/zawa356/RomRaider_agent/actions/runs/38391572993)ではDB安全ゲート6件の試験ステップ成功、実Server E2Eステップは**SKIPPED**。CloudPC実PostgreSQL E2EのPASSとは区別する。
 - GitHub Actionsがprivate Server repoを取得するための`ROMLOGGER_SERVER_READ_TOKEN`を持たない場合、**実Server接続ステップはSKIPPEDのまま**。成功表示だけを実Server PASSに読み替えない。
 
 ## 追加で必要な作業
