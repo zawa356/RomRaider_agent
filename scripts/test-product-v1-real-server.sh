@@ -98,3 +98,20 @@ with psycopg.connect(os.environ["DATABASE_URL"]) as db:
     assert (n,profiles,distinct,untrusted)==(6,2,6,0),(n,profiles,distinct,untrusted)
 print("REAL PostgreSQL verification: PASS (TSV 3 + journal 3, two profiles, no duplicates)")
 ')
+
+# Phase D2b-2c-4b-2d-1: run the REAL separate-JVM offline Worker CLI.
+# It must never auto-select journal when called with legacy --once.
+java -cp "build/product-v1-test:lib/sqlite-jdbc.jar:lib/slf4j-api.jar:lib/slf4j-nop.jar" \
+  net.neristal.rrbridge.product.v1.JournalWorkerServerE2E
+(cd "$SERVER_ROOT" && python -c '
+import os
+import psycopg
+with psycopg.connect(os.environ["DATABASE_URL"]) as db:
+    device=os.environ["ROMLOGGER_E2E_DEVICE_ID"]
+    n=db.execute("SELECT count(*) FROM v1_records WHERE device_id=%s",(device,)).fetchone()[0]
+    p=db.execute("SELECT count(*) FROM v1_profile_revisions WHERE device_id=%s",(device,)).fetchone()[0]
+    uuids=db.execute("SELECT count(DISTINCT record_id) FROM v1_records WHERE device_id=%s",(device,)).fetchone()[0]
+    source=db.execute("SELECT count(*) FROM v1_records WHERE device_id=%s AND source_kind=%s",(device,"synthetic")).fetchone()[0]
+    assert (n,p,uuids,source)==(7,3,7,7),(n,p,uuids,source)
+print("REAL PostgreSQL Worker verification: PASS (TSV 3 + journal 3 + CLI Worker 1, three profiles, no duplicates)")
+')
