@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-10-13：製品版 Phase 2.1-D1 増分TSVと故障復旧
+
+- 旧TSVの全行再走査を廃止するため、永続offset・行番号・定義snapshotのSQLite CAS台帳を追加。完結済み行だけ進める。
+- 保存直後／cursor更新前クラッシュを合成注入し、レコード再処理でデータ重複も欠落も無いことをWindows/Linux実SQLiteで検証。失敗CIの試験fixture修正も作業台帳に残す。
+- [増分取り込み詳細](product_v1_incremental_import.md)と[Phase進捗](product_v1_implementation_progress.md)を参照。
+- 実車自動有効化、旧PoC安全ガード変更は行わない。
+
+---
+
 ## 2026-10-13：Windows main CI Maven 403への修正
 
 - [main CI #38339774312](https://github.com/zawa356/RomRaider_agent/actions/runs/38339774312)はWindows runnerがテスト用SQLite JDBC JARのHTTP取得中に403を受けて失敗（テストは未実行）。Linuxは成功。
