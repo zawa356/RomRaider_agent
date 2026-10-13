@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-10-13：Phase 2.1-D2b-2a 旧TSV原本の書き込み・保持安全化
+
+- 旧PoC writerがQueueから取り出した後にIOExceptionで原文を失う問題を、fsync成功まで同じバッチを保持・再試行する方式へ修正
+- 旧Receiverの`.sent`のみを根拠に削除する処理を停止。製品Server ACKは独立しており、元TSVの未取込削除は禁じる
+- キュー満杯時の観測欠損は復元不能。後続`queue_overflow`イベントと`linesDropped`で**検知した数を明示**
+- RomRaiderコンパイル用テスト専用stubを作り、Windows/Linuxで`Stream.java`本体の障害注入試験を実行（各19件PASS）
+- 実車の電源断・Zulu 8 32bit・新旧send並走・fresh/backlog公平性と容量逼迫は未検証。詳細は[Phase台帳](product_v1_implementation_progress.md)
+
+---
+
 ## 2026-10-13：製品版 Phase 2.1-D2b-1（永続送信backoff／旧TSV監視）
 
 - SQLiteにretry期限／回数／要調査停止を永続化し、認証・契約エラーの自動再送を禁止。明示起動の別JVM Workerに限り読み取り専用旧TSV監視とServerへのHTTP送信を実行
