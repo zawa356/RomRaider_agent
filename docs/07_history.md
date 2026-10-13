@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-10-13：製品版Phase 2.1-B HTTP送信クライアント（実装中）
+
+- Phase 2.1-AのSQLite outboxに、Java8単体のHTTPS／JSON送信クライアントとServer v1の完全ACK照合を追加。
+- ローカルHTTPモックで実SQLiteからProfile先行PUT→計測POST、接続失敗／401／503、偽ACK、commit後ACK喪失の再送を再現。
+- 既存PoCのLogger/Streamを変更せず、今回のCIを本物のPostgreSQLに対するE2E成功と混同しない。
+- 参照：[製品HTTP通信実装の範囲](product_v1_http_transport.md)、[Phase実装履歴](product_v1_implementation_progress.md)。
+
+---
+
 ## 2026-10-13：製品版Phase 2.1-A SQLiteスプール（実装中）
 
 - RomRaiderServerのPhase 1.2-A/Bで受信側のPostgreSQL原子的ACK・通信契約CIが通過したことを前提に、Agent側のdurable spoolに着手。

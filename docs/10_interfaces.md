@@ -8,7 +8,7 @@
 
 ---
 
-> **2026-10-13 製品版v1実装に関する注記:** ここに記述されたTSV転送、C8/C9などは**引き続きPoC専用**。製品版Phase 2.1-Aで独立したSQLite ACKスプールが追加されたが、PoCの既存転送APIを変更していない。新しいServer–Agent v1の正本は[別リポジトリの通信契約](https://github.com/zawa356/RomRaiderServer/blob/main/docs/interfaces/server_agent_wire_v1.md)。製品実装の進捗は[`product_v1_implementation_progress.md`](product_v1_implementation_progress.md)を参照。
+> **2026-10-13 製品版v1実装に関する注記:** ここに記述されたTSV転送、C8/C9などは**引き続きPoC専用**。製品版Phase 2.1-Aで独立したSQLite ACKスプール、Phase 2.1-BでHTTPS/JSON送信クライアントが追加されたが、**PoCの既存転送APIは変更していない**。製品SenderはまだRRBridgeから自動起動されず、実ServerとのE2Eも未検証。新しいServer–Agent v1の正本は[別リポジトリの通信契約](https://github.com/zawa356/RomRaiderServer/blob/main/docs/interfaces/server_agent_wire_v1.md)。製品実装の進捗は[`product_v1_implementation_progress.md`](product_v1_implementation_progress.md)を参照。
 
 ## 0. 全体図と接続口の一覧
 

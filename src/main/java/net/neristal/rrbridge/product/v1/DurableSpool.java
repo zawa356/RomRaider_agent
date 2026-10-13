@@ -38,6 +38,14 @@ public final class DurableSpool {
         }
     }
 
+    public static final class PendingProfile {
+        public final String profileId, json;
+        PendingProfile(String profileId, String json) {
+            this.profileId=profileId;
+            this.json=json;
+        }
+    }
+
     public static final class Batch {
         public final String batchId, runId;
         public final List<PendingRecord> records;
@@ -177,6 +185,17 @@ public final class DurableSpool {
             while(r.next()) result.add(r.getString(1));
         }
         return result;
+    }
+
+    /** Read the exact persisted profile UUID/body; don't infer identity from JSON regex. */
+    public synchronized List<PendingProfile> pendingProfileEntries() throws SQLException {
+        List<PendingProfile> items=new ArrayList<PendingProfile>();
+        try(Connection db=open(); PreparedStatement p=db.prepareStatement(
+            "SELECT profile_id,body_json FROM v1_profiles WHERE acked=0 ORDER BY rowid");
+            ResultSet r=p.executeQuery()) {
+            while(r.next()) items.add(new PendingProfile(r.getString(1),r.getString(2)));
+        }
+        return items;
     }
 
     /**

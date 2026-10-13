@@ -162,3 +162,11 @@
 - 影響: Java8 SQLite JDBCのネイティブライブラリとWindows x86同梱を実機で確認する必要がある。現段階はspool単体で、JSON構築・HTTP送受信・RRBridge統合はPhase 2.1-B/C。Agent上の安全判定は独立して必要。
 - 検証区分: Windows／Linux CIのSQLite実DB単体試験。**X270実機、Zulu 8 32bit、実ECU、停車/走行中動作は未検証**。
 - 状態: 有効（Phase 2.1-Aで限定実装）。
+
+## D-025 製品v1の送信は厳密なACK検証とHTTPS限定を優先する（2026-10-13、Phase 2.1-B）
+
+- 背景: PoCの「HTTP 2xxなら送信済み」ではServerの一部失敗・commit不明・別batchのレスポンスを取り違える恐れがある。Java 8 32bit環境で常駐LLMや追加のJSON/HTTP依存を増やしたくない。
+- 決定: ProductSenderを既存Agentから独立した同期1ステップの送信器として実装し、HTTP 200/201の本文を検証して**定義版／バッチ全件保存確定のときのみSQLiteをACK**。外部接続はHTTPS、HTTPはloopbackのみ、3xxは追わない。
+- 理由: 未ACKデータ保全を最優先し、障害時に本体から勝手に消さない。誤応答・不正形式は`NEEDS_REVIEW`、一時接続障害は`RETRY_LATER`へ分岐して将来の送信スケジューラが判断する。
+- 影響: 現段階では接続先FastAPI/PostgreSQLとの実結合はまだ検証しておらず、ローカルHTTP契約モックだけがCI対象。ACK失敗時の不良レコード隔離やRetry-After制御は次工程。Java AgentのLogger処理・実車操作は変更しない。
+- 状態: Phase 2.1-Bの限定実装。追加検証が必要。
