@@ -37,9 +37,15 @@ public final class ProductBridgeOnce {
         // decides when to retry; 409/422/401 must NOT be retried aggressively.
         ProductSender sender=new ProductSender(spool,args[2],token,device,vehicle,
                                                3000,64,200000);
-        ProductSender.Outcome outcome=sender.pumpOnce();
+        // Even the old explicit one-shot CLI must honor persistent review
+        // holds and retry deadlines; bypassing the worker must not spin POSTs.
+        ProductDeliveryCoordinator coordinator=
+            ProductDeliveryCoordinator.forSender(spool,sender);
+        ProductDeliveryCoordinator.Result outcome=
+            coordinator.tick(System.currentTimeMillis());
         System.out.println("Delivery outcome="+outcome+" unacked="+spool.countPending());
-        if(outcome==ProductSender.Outcome.NEEDS_REVIEW)System.exit(3);
-        if(outcome==ProductSender.Outcome.RETRY_LATER)System.exit(4);
+        if(outcome==ProductDeliveryCoordinator.Result.REVIEW_REQUIRED)System.exit(3);
+        if(outcome==ProductDeliveryCoordinator.Result.BACKOFF ||
+           outcome==ProductDeliveryCoordinator.Result.WAITING)System.exit(4);
     }
 }
