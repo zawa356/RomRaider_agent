@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** GUI-free synthetic handoff tests. Nothing is attached to an ECU. */
@@ -89,7 +90,8 @@ public final class IngressHandoffPrototypeTest {
             }
         }, "synthetic-prototype-worker");
         worker.start();
-        entered.await();
+        ok("worker enters blocking synthetic writer before pressure test",
+            entered.await(10, TimeUnit.SECONDS));
         ok("producer still accepts within bounded queue while writer is blocked",
             pump.offer("E\ttest\t1\t1001\thealth")
                 == IngressHandoffPrototype.OfferResult.ACCEPTED_VOLATILE);
@@ -103,7 +105,8 @@ public final class IngressHandoffPrototypeTest {
             && pump.status().rejectedFull == 1);
         ok("blocked writer has not fsynced any row", j.replay().isEmpty());
         release.countDown();
-        worker.join();
+        worker.join(10000);
+        ok("worker exits after fault release", !worker.isAlive());
         ok("writer IO exception is visible after controlled release",
             workerOutcome.get() instanceof IOException
             && pump.status().writerFailures == 1 && pump.status().halted);
