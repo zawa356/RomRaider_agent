@@ -45,7 +45,7 @@ public final class ProductSender {
                 if(result.status==200||result.status==201) {
                     // 2xx does NOT imply confirmation without full response matching.
                     boolean confirmed;
-                    try {confirmed=AgentWire.profileConfirmed(result.body,pending.profileId);}
+                    try {confirmed=AgentWire.profileConfirmed(result.body,pending.profileId,result.status);}
                     catch(IllegalArgumentException invalidResponse) {return Outcome.NEEDS_REVIEW;}
                     if(!confirmed)return Outcome.NEEDS_REVIEW;
                     spool.markProfileAcked(pending.profileId,true);
