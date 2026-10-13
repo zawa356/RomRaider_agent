@@ -39,6 +39,8 @@ case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) sep=";";; esac
 cp="lib/sqlite-jdbc.jar${sep}lib/slf4j-api.jar${sep}lib/slf4j-nop.jar"
 javac --release 8 -encoding UTF-8 -d build/product-v1-test \
   src/main/java/net/neristal/rrbridge/product/v1/*.java \
+  src/main/java/net/neristal/rrbridge/prototype/ingress/IngressJournalPrototype.java \
+  src/main/java/net/neristal/rrbridge/prototype/ingress/JournalIdentityPrototype.java \
   src/test/java/net/neristal/rrbridge/product/v1/*.java
 java -cp "build/product-v1-test${sep}${cp}" \
   net.neristal.rrbridge.product.v1.DurableSpoolTest
@@ -48,6 +50,8 @@ java -cp "build/product-v1-test${sep}${cp}" \
   net.neristal.rrbridge.product.v1.LegacyTsvBridgeTest
 java -cp "build/product-v1-test${sep}${cp}" \
   net.neristal.rrbridge.product.v1.IncrementalTsvBridgeTest
+java -cp "build/product-v1-test${sep}${cp}" \
+  net.neristal.rrbridge.product.v1.JournalProductBridgeTest
 java -cp "build/product-v1-test${sep}${cp}" \
   net.neristal.rrbridge.product.v1.ProductDeliveryCoordinatorTest
 java -cp "build/product-v1-test${sep}${cp}" \

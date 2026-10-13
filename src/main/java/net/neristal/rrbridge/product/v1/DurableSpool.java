@@ -112,6 +112,16 @@ public final class DurableSpool {
                 "line_number INTEGER NOT NULL CHECK (line_number>=0)," +
                 "head_bytes INTEGER NOT NULL, head_sha256 TEXT NOT NULL," +
                 "tail_sha256 TEXT NOT NULL, segment_snapshot TEXT NOT NULL)");
+            sql.execute("CREATE TABLE IF NOT EXISTS v1_source_claims (" +
+                "device_id TEXT NOT NULL, vehicle_id TEXT NOT NULL," +
+                "session_id TEXT NOT NULL, source_kind TEXT NOT NULL," +
+                "source_key TEXT NOT NULL, PRIMARY KEY(device_id,vehicle_id,session_id))");
+            sql.execute("CREATE TABLE IF NOT EXISTS v1_journal_import_cursors (" +
+                "source_uuid TEXT PRIMARY KEY, source_path TEXT NOT NULL," +
+                "device_id TEXT NOT NULL, vehicle_id TEXT NOT NULL," +
+                "session_id TEXT NOT NULL, sequence INTEGER NOT NULL CHECK(sequence>=1)," +
+                "first_sha256 TEXT NOT NULL, chain_sha256 TEXT NOT NULL," +
+                "segment_snapshot TEXT NOT NULL)");
 
         }
     }
@@ -216,6 +226,167 @@ public final class DurableSpool {
             while(r.next())paths.add(r.getString(1));
         }
         return paths;
+    }
+
+    /**
+     * Exactly one source lane per (device,vehicle,session).
+     * Legacy cursors predate v1_source_claims: check them before assigning a
+     * new journal lane. Locks are SQLite transactions, never callback locks.
+     */
+    public synchronized void claimSourceSession(String device,String vehicle,
+            String session,String kind,String key) throws Exception {
+        if(session==null||session.isEmpty()||session.indexOf('/')>=0||
+           session.indexOf('\\')>=0||session.indexOf('\n')>=0||
+           (!"legacy".equals(kind)&&!"journal".equals(kind))||
+           key==null||key.isEmpty())
+            throw new IllegalArgumentException("Invalid source claim");
+        try(Connection db=open()){
+            db.setAutoCommit(false);
+            try{
+                try(PreparedStatement p=db.prepareStatement(
+                        "SELECT source_path FROM v1_import_cursors " +
+                        "WHERE device_id=? AND vehicle_id=?")){
+                    p.setString(1,device);p.setString(2,vehicle);
+                    try(ResultSet r=p.executeQuery()){
+                        String filename="rr_"+session+".tsv";
+                        while(r.next()){
+                            String old=r.getString(1);
+                            if((old.endsWith("/"+filename)||old.endsWith("\\"+filename)||
+                                old.equals(filename))&&
+                               (!"legacy".equals(kind)||!old.equals(key)))
+                                throw new IllegalStateException("Legacy TSV already owns session");
+                        }
+                    }
+                }
+                try(PreparedStatement p=db.prepareStatement(
+                        "SELECT source_uuid FROM v1_journal_import_cursors " +
+                        "WHERE device_id=? AND vehicle_id=? AND session_id=?")){
+                    p.setString(1,device);p.setString(2,vehicle);p.setString(3,session);
+                    try(ResultSet r=p.executeQuery()){
+                        while(r.next()){
+                            String old=r.getString(1);
+                            if(!"journal".equals(kind)||!old.equals(key))
+                                throw new IllegalStateException("Journal already owns session");
+                        }
+                    }
+                }
+                // Pre-upgrade full TSV imports may have records but neither
+                // a cursor nor a claim. Do not let an opt-in journal silently
+                // take ownership of that historical logical run.
+                if("journal".equals(kind)){
+                    boolean ownClaim=false;
+                    try(PreparedStatement p=db.prepareStatement(
+                            "SELECT source_kind,source_key FROM v1_source_claims " +
+                            "WHERE device_id=? AND vehicle_id=? AND session_id=?")){
+                        p.setString(1,device);p.setString(2,vehicle);p.setString(3,session);
+                        try(ResultSet r=p.executeQuery()){
+                            ownClaim=r.next()&&"journal".equals(r.getString(1))&&
+                                key.equals(r.getString(2));
+                        }
+                    }
+                    if(!ownClaim){
+                        String run=UUID.nameUUIDFromBytes(
+                            ("RomLogger-v1|"+device+"|run|"+session+"||")
+                            .getBytes(StandardCharsets.UTF_8)).toString();
+                        try(PreparedStatement p=db.prepareStatement(
+                                "SELECT 1 FROM v1_records WHERE run_id=? LIMIT 1")){
+                            p.setString(1,run);
+                            try(ResultSet r=p.executeQuery()){
+                                if(r.next())
+                                    throw new IllegalStateException(
+                                        "Preexisting run has no journal provenance");
+                            }
+                        }
+                    }
+                }
+                try(PreparedStatement p=db.prepareStatement(
+                        "INSERT OR IGNORE INTO v1_source_claims("+
+                        "device_id,vehicle_id,session_id,source_kind,source_key)"+
+                        " VALUES(?,?,?,?,?)")){
+                    p.setString(1,device);p.setString(2,vehicle);p.setString(3,session);
+                    p.setString(4,kind);p.setString(5,key);p.executeUpdate();
+                }
+                try(PreparedStatement p=db.prepareStatement(
+                        "SELECT source_kind,source_key FROM v1_source_claims " +
+                        "WHERE device_id=? AND vehicle_id=? AND session_id=?")){
+                    p.setString(1,device);p.setString(2,vehicle);p.setString(3,session);
+                    try(ResultSet r=p.executeQuery()){
+                        if(!r.next()||!kind.equals(r.getString(1))||!key.equals(r.getString(2)))
+                            throw new IllegalStateException("Conflicting source lane");
+                    }
+                }
+                db.commit();
+            }catch(Exception ex){db.rollback();throw ex;}
+        }
+    }
+
+    public static final class JournalImportCursor {
+        public final String uuid,path,device,vehicle,session,firstHash,chainHash,snapshot;
+        public final long sequence;
+        public JournalImportCursor(String uuid,String path,String device,String vehicle,
+                String session,long sequence,String firstHash,String chainHash,String snapshot){
+            this.uuid=uuid;this.path=path;this.device=device;this.vehicle=vehicle;
+            this.session=session;this.sequence=sequence;this.firstHash=firstHash;
+            this.chainHash=chainHash;this.snapshot=snapshot;
+        }
+    }
+    public synchronized JournalImportCursor loadJournalCursor(String uuid) throws Exception {
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+                "SELECT * FROM v1_journal_import_cursors WHERE source_uuid=?")){
+            p.setString(1,uuid);
+            try(ResultSet r=p.executeQuery()){
+                if(!r.next())return null;
+                return new JournalImportCursor(r.getString("source_uuid"),
+                    r.getString("source_path"),r.getString("device_id"),
+                    r.getString("vehicle_id"),r.getString("session_id"),
+                    r.getLong("sequence"),r.getString("first_sha256"),
+                    r.getString("chain_sha256"),r.getString("segment_snapshot"));
+            }
+        }
+    }
+    /** Cursor CAS happens after apply(), NOT after Server ACK. */
+    public synchronized void saveJournalCursor(JournalImportCursor before,
+                                               JournalImportCursor after) throws Exception {
+        if(after==null||after.sequence<1||after.snapshot==null||
+           (before!=null&&(after.sequence!=before.sequence+1||
+            !after.uuid.equals(before.uuid)||!after.path.equals(before.path)||
+            !after.device.equals(before.device)||!after.vehicle.equals(before.vehicle)||
+            !after.session.equals(before.session))))
+            throw new IllegalArgumentException("Invalid journal cursor transition");
+        try(Connection db=open()){
+            db.setAutoCommit(false);
+            try{
+                int changed;
+                if(before==null){
+                    try(PreparedStatement p=db.prepareStatement(
+                            "INSERT INTO v1_journal_import_cursors("+
+                            "source_uuid,source_path,device_id,vehicle_id,session_id,"+
+                            "sequence,first_sha256,chain_sha256,segment_snapshot)"+
+                            " VALUES(?,?,?,?,?,?,?,?,?)")){
+                        p.setString(1,after.uuid);p.setString(2,after.path);
+                        p.setString(3,after.device);p.setString(4,after.vehicle);
+                        p.setString(5,after.session);p.setLong(6,after.sequence);
+                        p.setString(7,after.firstHash);p.setString(8,after.chainHash);
+                        p.setString(9,after.snapshot);changed=p.executeUpdate();
+                    }
+                }else{
+                    try(PreparedStatement p=db.prepareStatement(
+                            "UPDATE v1_journal_import_cursors SET sequence=?,"+
+                            "first_sha256=?,chain_sha256=?,segment_snapshot=?"+
+                            " WHERE source_uuid=? AND source_path=? AND device_id=? AND vehicle_id=?"+
+                            " AND session_id=? AND sequence=? AND chain_sha256=?")){
+                        p.setLong(1,after.sequence);p.setString(2,after.firstHash);
+                        p.setString(3,after.chainHash);p.setString(4,after.snapshot);
+                        p.setString(5,before.uuid);p.setString(6,before.path);
+                        p.setString(7,before.device);p.setString(8,before.vehicle);
+                        p.setString(9,before.session);p.setLong(10,before.sequence);
+                        p.setString(11,before.chainHash);changed=p.executeUpdate();
+                    }
+                }
+                if(changed!=1)throw new IllegalStateException("Journal cursor moved concurrently");
+                db.commit();
+            }catch(Exception ex){db.rollback();throw ex;}
+        }
     }
 
     /** Local delivery scheduling state. Does NOT imply Server ACK. */
