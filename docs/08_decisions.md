@@ -274,3 +274,14 @@
 - **制限**：現時点では実行Workerに自動接続しない。実ECU制御・OS電源断・32bit/JVM圧力・本番Server E2Eを試験していない。entryジャーナルの元queueが耐電源断になったわけではなく、無欠損・exactly-onceは保証しない。
 - 次のゲート：隔離実Server/Postgresで最新Agentのprofile/record/ACK通過試験、CPU/ディスク容量上限、ファイルローテーション・メンテナンス手順、運用者レビューを設計。安全検証終了まで本番配備しない。
 - 状態：限定的な**製品v1の明示的取込経路**として合成試験完了。Runtime経路の切替は保留。
+
+
+## D-036 最新AgentのServer ACK検証はCloudPCの使い捨てPostgreSQLで実施し運用経路は切り替えない（2026-10-13、D2b-2c-4b-2c）
+
+- 背景：4b-2bまで製品v1 SQLiteへのjournal保存は実証済みだが、最新Agentで実FastAPI/PostgreSQLへ到達するか未検証だった。旧Server CIは古いAgent sourceをpinしているため代替にはならない。
+- 決定：`JournalServerE2E`を明示呼び出しで増設し、従来`ProductServerE2E`と同じServer・専用DBで実HTTP登録、完全なprofile/バッチACK、duplicate-only replay、実DBレコード件数を検証。製品本体の既存Sender/HTTP契約は変更しない。
+- 安全制約：使い捨てDBのみに限定し、スクリプト開始時に`ROMLOGGER_E2E_DISPOSABLE=1`、127.0.0.1/localhost、`romlogger_*_e2e`のDB名、URLクエリなしを確認してからmigrationを実行。サーバー認証情報をログに表示せず、Caddy/MCP/本番DBに向けない。
+- 検証：CloudPC Postgres16の合成E2E（TSV3行＋journal3行の本物の観測記録/2profile/Server ACK/replay）PASS、誤接続6件拒否PASS、SQLite/journal従来359チェックPASS。
+- GitHub Actions：cross-private-repoのread-only secretがない環境のE2Eジョブがsuccessでも実Server部分はSKIPPED。E2E実施済みの表示は実ステップの成功確認がある時に限る。
+- 未解決：自動Worker/Loggerへの配線は承認なしに進めない。電源断・容量逼迫・実車環境をこの合成E2Eと混同しない。
+- 状態：**隔離CloudPCでの最新AgentリアルServer E2EをPASS。製品ランタイムへの導入は保留。**

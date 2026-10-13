@@ -7,6 +7,7 @@ on:
       - 'src/main/java/net/neristal/rrbridge/product/v1/**'
       - 'src/test/java/net/neristal/rrbridge/product/v1/**'
       - 'scripts/test-product-v1-real-server.sh'
+      - 'scripts/test-product-v1-real-server-guard.sh'
       - 'scripts/test-product-v1-spool.sh'
       - '.github/workflows/product-v1-real-server-e2e.yml'
   push:
@@ -15,6 +16,7 @@ on:
       - 'src/main/java/net/neristal/rrbridge/product/v1/**'
       - 'src/test/java/net/neristal/rrbridge/product/v1/**'
       - 'scripts/test-product-v1-real-server.sh'
+      - 'scripts/test-product-v1-real-server-guard.sh'
       - '.github/workflows/product-v1-real-server-e2e.yml'
 
 permissions:
@@ -45,6 +47,8 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+      - name: Reject unsafe real-Server E2E destinations
+        run: bash scripts/test-product-v1-real-server-guard.sh
       - name: Declare gated state (do not claim E2E PASS without Server checkout)
         if: env.SERVER_READ_TOKEN == ''
         run: |
@@ -76,6 +80,7 @@ jobs:
         if: env.SERVER_READ_TOKEN != ''
         env:
           ROMLOGGER_SERVER_PATH: .real-server-source
+          ROMLOGGER_E2E_DISPOSABLE: '1'
         run: |
           bash scripts/test-product-v1-real-server.sh
           echo "### Real Server E2E: PASS (disposable synthetic DB)" >> "$GITHUB_STEP_SUMMARY"
