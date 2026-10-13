@@ -32,8 +32,19 @@
 | 2.1-D2b-2c-4b-2a | 永続source UUID sidecar＋実SQLiteの原本receipt/cursor原子的commit | **CloudPC実SQLite22項目＋旧PoC75項目PASS・PR/main CI両OS PASS、製品v1変換未接続** | [Agent PR #20](https://github.com/zawa356/RomRaider_agent/pull/20)／[main CI #38381208274](https://github.com/zawa356/RomRaider_agent/actions/runs/38381208274)／[設計・試験](phase_2_1_d2b_2c_4b_2a_sqlite_receipts.md) |
 | 2.1-D2b-2c-4b-2b | journal M/S/E→既存製品v1変換＋SQLite cursor/レーン排他 | **CloudPC合成359チェック・PR Windows/Linux製品v1 CI PASS、実車/実Server未接続** | [Agent PR #22](https://github.com/zawa356/RomRaider_agent/pull/22)／[CI #38384353160](https://github.com/zawa356/RomRaider_agent/actions/runs/38384353160)／[設計・故障試験](phase_2_1_d2b_2c_4b_2b_journal_to_product.md) |
 | 2.1-D2b-2c-4b-2c | 最新Agent journal/TSV→製品SQLite→FastAPI→実PostgreSQL16 E2E・安全DBガード | **CloudPC REAL E2E・6件/2プロフィール/重複ACK PASS、PR CI Windows/Linux＋DBガード6件PASS。GitHub実ServerステップはSKIPPED** | [PR #23](https://github.com/zawa356/RomRaider_agent/pull/23)／[CI #38387493290](https://github.com/zawa356/RomRaider_agent/actions/runs/38387493290)／[検証記録](phase_2_1_d2b_2c_4b_2c_real_postgres_e2e.md) |
+| 2.1-D2b-2c-4b-2d-1 | オフライン限定の明示Worker選択、SQLite持続停止、状態確認CLI | **CloudPC419チェック＋実PostgreSQL E2E合成7件/3profiles PASS、PR Windows/Linux CI PASS。GitHub実ServerステップSKIPPED** | [PR #24](https://github.com/zawa356/RomRaider_agent/pull/24)／[CI #38391573311](https://github.com/zawa356/RomRaider_agent/actions/runs/38391573311)／[設計/試験](phase_2_1_d2b_2c_4b_2d_1_offline_worker.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
+
+## Phase 2.1-D2b-2c-4b-2d-1 — Journal Workerのオフライン・明示実行、安全停止、監視参照
+
+- `ProductBridgeWorker --journal-once`を追加。明示フラグ`ROMLOGGER_JOURNAL_WORKER_ENABLE=1`が必須。旧`--once`／`--foreground`はTSVのみ。writer同時稼働に対してはjournal排他ロックがあるため`--journal-foreground`は実装せず拒否する。
+- `ProductJournalScanner`で専用ディレクトリ／sidecar／UUID／元パス／8MiB・16本上限／writerロック・原本継続性を検証。任意の旧TSV混在やsidecar欠落時は原本を改変せずfail closed。
+- `DurableSpool`に永続`v1_ingress_review_state`。不正入力で終了コード5、定型`INGRESS_REVIEW_REQUIRED`を出し、HTTP送信を実行せず、次回再起動後も旧TSV Workerを含め自動復旧しない。初回原因の固定コードのみ保存。解除APIなし。
+- 読み取り専用`ProductIngressStatus`でSupervisor等が状態を確認可能（exit 0=no review latch、5=review、6=unknown、2=invalid argument）。**Supervisor本体との連携は未実装**。
+- CloudPC：実SQLite＋receipt計**344チェックPASS**、journal/handoff**75チェックPASS**、計**419チェックPASS**。新規Scanner25、Worker別JVM23、Status別JVM12の60チェックを追加。
+- CloudPC別置Postgres16の実FastAPI E2Eで既存TSV3＋従来journal3＋`--journal-once` Worker1＝**合成7 record・3 profile・重複0・profile/batch/重複ACK PASS**。実車、Windows32bit、電源断、同時writer、常駐Workerの並行journal監視は未実施。
+- [4b-2d-1設計/故障試験](phase_2_1_d2b_2c_4b_2d_1_offline_worker.md)。
 
 ## Phase 2.1-D2b-2c-4b-2c — CloudPC専用PostgreSQL16の実Server E2E
 

@@ -122,6 +122,9 @@ public final class DurableSpool {
                 "session_id TEXT NOT NULL, sequence INTEGER NOT NULL CHECK(sequence>=1)," +
                 "first_sha256 TEXT NOT NULL, chain_sha256 TEXT NOT NULL," +
                 "segment_snapshot TEXT NOT NULL)");
+            sql.execute("CREATE TABLE IF NOT EXISTS v1_ingress_review_state (" +
+                "singleton INTEGER PRIMARY KEY CHECK(singleton=1)," +
+                "reason_code TEXT NOT NULL, created_at_ms INTEGER NOT NULL)");
 
         }
     }
@@ -344,6 +347,48 @@ public final class DurableSpool {
             }
         }
     }
+    /** Journal originals with a committed cursor must remain visible forever.
+     * No automatic rotation/retention/deletion is performed by this worker. */
+    public synchronized java.util.List<JournalImportCursor> journalImportedSources()
+            throws SQLException {
+        java.util.List<JournalImportCursor> rows=new java.util.ArrayList<JournalImportCursor>();
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+                "SELECT * FROM v1_journal_import_cursors ORDER BY source_path");
+            ResultSet r=p.executeQuery()){
+            while(r.next())
+                rows.add(new JournalImportCursor(r.getString("source_uuid"),
+                    r.getString("source_path"),r.getString("device_id"),
+                    r.getString("vehicle_id"),r.getString("session_id"),
+                    r.getLong("sequence"),r.getString("first_sha256"),
+                    r.getString("chain_sha256"),r.getString("segment_snapshot")));
+        }
+        return rows;
+    }
+
+    /** Sticky local ingress review latch. NEVER automatically clear this.
+     * Only a controlled, separately designed human recovery can unlock it. */
+    public synchronized String ingressReviewReason() throws SQLException {
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+                "SELECT reason_code FROM v1_ingress_review_state WHERE singleton=1");
+            ResultSet r=p.executeQuery()){
+            return r.next()?r.getString(1):null;
+        }
+    }
+    /** Persist a category ONLY: no original TSV/Journal lines or credentials. */
+    public synchronized void requireIngressReview(String reason) throws SQLException {
+        if(!("JOURNAL_PREFLIGHT".equals(reason)||
+             "JOURNAL_IMPORT".equals(reason)||
+             "JOURNAL_SOURCE_MISSING".equals(reason)))
+            throw new IllegalArgumentException("Invalid review reason code");
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+                "INSERT OR IGNORE INTO v1_ingress_review_state" +
+                "(singleton,reason_code,created_at_ms) VALUES(1,?,?)")){
+            p.setString(1,reason);
+            p.setLong(2,System.currentTimeMillis());
+            p.executeUpdate();
+        }
+    }
+
     /** Cursor CAS happens after apply(), NOT after Server ACK. */
     public synchronized void saveJournalCursor(JournalImportCursor before,
                                                JournalImportCursor after) throws Exception {
