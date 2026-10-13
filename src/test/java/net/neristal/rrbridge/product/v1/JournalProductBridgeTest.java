@@ -67,6 +67,15 @@ public final class JournalProductBridgeTest {
         }
     }
     public static void main(String[] args)throws Exception{
+        if(args.length==5 && "halt-after-record".equals(args[0])){
+            DurableSpool child=new DurableSpool(new File(args[2]));
+            IncrementalTsvBridge bridge=new IncrementalTsvBridge(
+                child,args[3],args[4],new Runnable(){
+                    public void run(){Runtime.getRuntime().halt(79);}
+                });
+            bridge.importJournal(new File(args[1]),10);
+            throw new AssertionError("child JVM did not halt at the checkpoint failpoint");
+        }
         File folder=Files.createTempDirectory("romlogger-journal-product-only").toFile();
         String device=id(),vehicle=id();
         final File db=new File(folder,"product.db");
@@ -186,6 +195,34 @@ public final class JournalProductBridgeTest {
             spool.countPending()==3&&spool.loadJournalCursor(crashUuid).sequence==2);
         ok("no local import is Server acknowledgement",spool.countAcked()==0);
 
+        // Actual independent JVM terminates immediately after committing a
+        // product v1 observation, before advancing journal cursor.
+        final String haltSession="20261013_193000";
+        final File haltSource=journalFile(folder,"halt-source");
+        String haltUuid=JournalIdentityPrototype.open(haltSource).sourceUuid();
+        write(haltSource,m(haltSession));
+        new IncrementalTsvBridge(spool,device,vehicle).importJournal(haltSource,10);
+        write(haltSource,s(haltSession,0));
+        long beforeHalt=spool.countPending();
+        String executable=System.getProperty("os.name").toLowerCase().contains("win")
+            ?"java.exe":"java";
+        String javaBin=new File(new File(System.getProperty("java.home"),"bin"),
+            executable).getAbsolutePath();
+        Process child=new ProcessBuilder(javaBin,"-cp",System.getProperty("java.class.path"),
+            JournalProductBridgeTest.class.getName(),"halt-after-record",
+            haltSource.getAbsolutePath(),db.getAbsolutePath(),device,vehicle)
+            .redirectErrorStream(true).start();
+        ok("separate worker JVM halts after v1 record commit",
+            child.waitFor(20,java.util.concurrent.TimeUnit.SECONDS) && child.exitValue()==79);
+        ok("JVM halt leaves real v1 record but old journal cursor",
+            spool.countPending()==beforeHalt+1 &&
+            spool.loadJournalCursor(haltUuid).sequence==1);
+        ok("second JVM importer commits cursor without multiplying v1 records",
+            new IncrementalTsvBridge(new DurableSpool(db),device,vehicle)
+                .importJournal(haltSource,10).observations==1 &&
+            spool.countPending()==beforeHalt+1 &&
+            spool.loadJournalCursor(haltUuid).sequence==2);
+
         // Journal corruption with matching recomputed CRC: saved SHA chain must
         // detect edited immutable prefix rather than relying on CRC32 alone.
         try(RandomAccessFile f=new RandomAccessFile(source,"rw")){
@@ -202,7 +239,7 @@ public final class JournalProductBridgeTest {
             public void run()throws Exception{bridge.importJournal(source,10);}
         });
         ok("mutated journal leaves all product rows and ACK untouched",
-            spool.countPending()==3&&spool.countAcked()==0);
+            spool.countPending()==beforeHalt+1&&spool.countAcked()==0);
         ok("no accidental real ECU or product Server access",folder.isDirectory());
         System.out.println("JournalProductBridgeTest passed "+checks+" checks (product v1 SQLite, no ECU)");
     }
