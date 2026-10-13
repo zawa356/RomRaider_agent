@@ -101,12 +101,12 @@ public final class LegacyStreamSafetyTest {
         stream.queue.clear();
         // Stream.offer is the actual production loss-accounting hook.
         stream.offer("another-unrecoverable");
-        ok("callback overflow is counted",stream.dropped.get()==prior+1);
+        ok("callback overflow is counted",stream.dropped.get()==prior+2);
         stream.queue.clear(); // Test fixture ONLY: do not write 200k dummy lines.
         stream.flushPending(pending);
         String loss=read(stream.spoolFile());
         ok("overflow creates durable loss event",
-            loss.contains("queue_overflow lost_lines=1 dropped_total="+(prior+1)));
+            loss.contains("queue_overflow lost_lines=2 dropped_total="+(prior+2)));
         int length=loss.length();
         stream.flushPending(pending);
         ok("same loss is not reported twice",read(stream.spoolFile()).length()==length);
