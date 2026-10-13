@@ -207,3 +207,14 @@
 - 試験：RomRaider.jar不要のStubを用いて実`Stream.java`を`--release 8`でコンパイルし、Windows/Linux上で書込失敗・復帰・尾破損・drop marker・削除無効化を検証。K-Line/実車・電源断は未検証。
 - 残：高負荷時のqueue dropを根絶する構造、fairness、長時間運用・ディスク制限・X270実機は後続Phaseで確認。
 - 状態：D2b-2aとして採用。
+
+
+## D-030 旧PoC TSV writerのI/O回数を減らし、バッチ単位の追記失敗はrollbackする（2026-10-13、D2b-2c-2）
+
+- 背景: `Stream.writerLoop()`は最大約5,000行をメモリ上で保持し、その各行について本文とLFを別々に`RandomAccessFile.write()`していた。通常のI/O停滞が長引けば有限queueが飽和してサンプル欠損に至る。
+- 選択肢: （A）callbackから直接ディスクへ同期書き込み（採らない、RomRaider/ECUに遅延を持ち込む）、（B）巨大なメモリqueueへ変更（採らない、32bit JVM圧迫と電源断前の未保存増大）、（C）writer側だけで64KiB単位に書込み集約（今回採用）、（D）別永続journalに投入する大幅な変更（後続設計として検討）。
+- 決定: `Stream.writeRowsBatched()`を固定64KiBバッファで実装し、元のUTF-8/LF形式を保持。ファイル末尾を検証してから旧長を記録し、書込完了後はfsync。書込途中のIOException／RuntimeExceptionに対しては旧長への短縮と再fsyncを試みる。成功までは未書込行を破棄しない。
+- 理由: 通信契約・安全ガード・非ブロッキングLogger callbackを一切変更せず、一般的な小行の書込呼出回数を大幅に減らせる。途中故障後に不完全な行を製品取り込み対象にしないことを最優先とする。
+- 安全上の限界: fsync自体やrollbackが失敗し得る。電源断時の非永続キューは救えず、queue上限時はS行を失う。時間ベンチマークでの帯域保証、X270 Zulu8 32bitや実ECUの保証はない。**D2b-2cの根本的な無欠損保証は未達**。
+- 合成検証: Linux/Windowsの`Stream.java`スタブ試験で複数チャンク途中の強制IOExceptionと復旧、RuntimeException rollback、UTF-8／長大行、旧writer回帰を確認。[GitHub Actions #38369405259](https://github.com/zawa356/RomRaider_agent/actions/runs/38369405259)。
+- 状態: D2b-2c-2の限定対策として採用。実車・本番に自動展開しない。
