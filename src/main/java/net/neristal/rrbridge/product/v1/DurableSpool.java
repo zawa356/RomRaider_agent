@@ -100,7 +100,105 @@ public final class DurableSpool {
                 "batch_id TEXT PRIMARY KEY, record_count INTEGER NOT NULL," +
                 "inserted_count INTEGER NOT NULL, duplicate_count INTEGER NOT NULL," +
                 "acked_at TEXT NOT NULL)");
+            sql.execute("CREATE TABLE IF NOT EXISTS v1_import_cursors (" +
+                "source_path TEXT PRIMARY KEY, device_id TEXT NOT NULL, vehicle_id TEXT NOT NULL," +
+                "file_key TEXT NOT NULL, offset_bytes INTEGER NOT NULL CHECK (offset_bytes>=0)," +
+                "line_number INTEGER NOT NULL CHECK (line_number>=0)," +
+                "head_bytes INTEGER NOT NULL, head_sha256 TEXT NOT NULL," +
+                "tail_sha256 TEXT NOT NULL, segment_snapshot TEXT NOT NULL)");
+
         }
+    }
+
+
+    /**
+     * Durable source progress (not Server ACK). Cursor advances only AFTER
+     * all records for a completed TSV line have been committed. A crash
+     * between record commit and cursor commit replays the line idempotently.
+     */
+    public static final class ImportCursor {
+        public final String sourcePath, deviceId, vehicleId, fileKey;
+        public final long offsetBytes, lineNumber;
+        public final int headBytes;
+        public final String headSha256, tailSha256, snapshot;
+        public ImportCursor(String sourcePath, String deviceId, String vehicleId, String fileKey,
+                long offsetBytes, long lineNumber, int headBytes, String headSha256,
+                String tailSha256, String snapshot) {
+            this.sourcePath=sourcePath; this.deviceId=deviceId;this.vehicleId=vehicleId;
+            this.fileKey=fileKey; this.offsetBytes=offsetBytes;this.lineNumber=lineNumber;
+            this.headBytes=headBytes;this.headSha256=headSha256;
+            this.tailSha256=tailSha256;this.snapshot=snapshot;
+        }
+    }
+
+    public synchronized ImportCursor loadImportCursor(String sourcePath) throws SQLException {
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+            "SELECT * FROM v1_import_cursors WHERE source_path=?")) {
+            p.setString(1,sourcePath);
+            try(ResultSet r=p.executeQuery()){
+                if(!r.next())return null;
+                return new ImportCursor(r.getString("source_path"),r.getString("device_id"),
+                    r.getString("vehicle_id"),r.getString("file_key"),
+                    r.getLong("offset_bytes"),r.getLong("line_number"),
+                    r.getInt("head_bytes"),r.getString("head_sha256"),
+                    r.getString("tail_sha256"),r.getString("segment_snapshot"));
+            }
+        }
+    }
+
+    /**
+     * Optimistic CAS prevents a stale importer from rewinding a concurrent
+     * importer. This checkpoint is intentionally AFTER appendRecord/profile.
+     */
+    public synchronized void saveImportCursor(ImportCursor before, ImportCursor after)
+            throws SQLException {
+        if(after==null||after.sourcePath==null||after.snapshot==null||
+           after.offsetBytes<=0||after.lineNumber<=0||
+           (before!=null&&(after.offsetBytes<=before.offsetBytes||
+              after.lineNumber!=before.lineNumber+1||
+              !after.sourcePath.equals(before.sourcePath)||
+              !after.deviceId.equals(before.deviceId)||
+              !after.vehicleId.equals(before.vehicleId)||
+              !after.fileKey.equals(before.fileKey))))
+            throw new IllegalArgumentException("Invalid import cursor transition");
+        try(Connection db=open()){
+            db.setAutoCommit(false);
+            try{
+                int changed;
+                if(before==null){
+                    try(PreparedStatement p=db.prepareStatement(
+                        "INSERT INTO v1_import_cursors(source_path,device_id,vehicle_id,file_key,"+
+                        "offset_bytes,line_number,head_bytes,head_sha256,tail_sha256,segment_snapshot)"+
+                        " VALUES(?,?,?,?,?,?,?,?,?,?)")){
+                        writeCursor(p,after,1);changed=p.executeUpdate();
+                    }
+                }else{
+                    try(PreparedStatement p=db.prepareStatement(
+                        "UPDATE v1_import_cursors SET offset_bytes=?,line_number=?,"+
+                        "head_bytes=?,head_sha256=?,tail_sha256=?,segment_snapshot=?"+
+                        " WHERE source_path=? AND offset_bytes=? AND line_number=?"+
+                        " AND tail_sha256=? AND device_id=? AND vehicle_id=? AND file_key=?")){
+                        p.setLong(1,after.offsetBytes);p.setLong(2,after.lineNumber);
+                        p.setInt(3,after.headBytes);p.setString(4,after.headSha256);
+                        p.setString(5,after.tailSha256);p.setString(6,after.snapshot);
+                        p.setString(7,before.sourcePath);p.setLong(8,before.offsetBytes);
+                        p.setLong(9,before.lineNumber);p.setString(10,before.tailSha256);
+                        p.setString(11,before.deviceId);p.setString(12,before.vehicleId);
+                        p.setString(13,before.fileKey);changed=p.executeUpdate();
+                    }
+                }
+                if(changed!=1)throw new IllegalStateException("Import cursor moved concurrently");
+                db.commit();
+            }catch(Exception ex){db.rollback();throw ex;}
+        }
+    }
+    private static void writeCursor(PreparedStatement p,ImportCursor c,int start)
+            throws SQLException {
+        p.setString(start,c.sourcePath);p.setString(start+1,c.deviceId);
+        p.setString(start+2,c.vehicleId);p.setString(start+3,c.fileKey);
+        p.setLong(start+4,c.offsetBytes);p.setLong(start+5,c.lineNumber);
+        p.setInt(start+6,c.headBytes);p.setString(start+7,c.headSha256);
+        p.setString(start+8,c.tailSha256);p.setString(start+9,c.snapshot);
     }
 
     private Connection open() throws SQLException {

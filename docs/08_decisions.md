@@ -179,3 +179,12 @@
 - 制約: 現時点の取込は**明示実行・先頭再走査**であり、長期運用の効率・複数同時writer・ファイル削除とqueue drop時のデータ欠損問題を解消していない。安全な常駐化・障害通知は次工程。
 - 実Server E2E: Agent/Server両方Privateのため、別リポジトリへの読取専用認証情報が設定されるまでCIを`NOT RUN`表示。モックを実Server成功と扱わない。
 - 状態: C1の限定実装。実車での有効化は未承認／未実行。
+
+## D-027 永続offsetは各完結TSV行をSQLiteへ保存した後にのみ進める（2026-10-13、Phase 2.1-D1）
+
+- 背景：Phase 2.1-C1の全行再走査は長距離走行で非効率。単に読取り位置を保存すると「offsetだけ進みレコード未保存」の電源断時に欠落する。
+- 決定：`IncrementalTsvBridge`は`RandomAccessFile.seek(offset)`から開始。完成LF行を検証し原本`v1_records`/`v1_profiles`へcommitした**後に**`v1_import_cursors`へCASでoffset・メタデータsnapshot・境界fingerprintを保存。読取り元TSVは一切変更しない。
+- トレードオフ：原本commit後のクラッシュは同じ行を再送するが、原本ID不変・SQLite重複抑制で冪等になる。複数独立DB commitとcursor commitは原子的単一トランザクションではないが、**順序と再処理**で欠落側を防ぐ。
+- 安全上の制限：元ファイル短縮・OS fileKey差・既読境界fingerprint異常では自動resetせず停止。fileKeyをOSが提供しない環境、追記以外のファイル書き換え・queue欠落の検知は別検証が必要。
+- スコープ：ProductBridgeOnceの明示操作に限定。Server ACKは別台帳、常駐スケジューラ・Loggerコールバック・ECU操作の切替は未実装。
+- 証跡：[詳細](product_v1_incremental_import.md)、[Phase台帳](product_v1_implementation_progress.md)。

@@ -19,10 +19,23 @@
 | 2.1-C1 | 既存RRBridge TSV→製品v1 SQLiteの非破壊取込・合成CI | **CI合格、PR #5** | [PR #5](https://github.com/zawa356/RomRaider_agent/pull/5)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-C2a | Agent固定版（JavaソースSHA照合）→実FastAPI/Postgresの合成E2E | **PASS（Server CI、Agent commit 6dd46835固定）** | [Server PR #22](https://github.com/zawa356/RomRaiderServer/pull/22)／[E2E CI](https://github.com/zawa356/RomRaiderServer/actions/runs/38346271102) |
 | 2.1-C2b | Agent最新main自動同期E2E／常駐取り込み接続 | **未実装**（本Agent repoのPrivate checkout専用E2EはtokenなしでNOT RUN） | [E2E run](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160) |
-| 2.1-D | Windows再起動／通信断／ディスク不足／実機での耐久検証 | 未着手 | Issue #7 |
+| 2.1-D1 | TSV増分取り込み、SQLite永続offset＋安全再開・障害注入 | **CI合格・Agent PR #8** | [PR #8](https://github.com/zawa356/RomRaider_agent/pull/8) |
+| 2.1-D2 | Agent新版E2E再pin・常駐送信／バックオフ・障害検知 | 未着手 | Issue #7 |
+| 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
 ## 変更履歴
+
+### 2026-10-13 — Phase 2.1-D1：TSV増分取り込み／SQLite永続カーソル（Windows/Linux CI合格）
+
+- `IncrementalTsvBridge.java`：旧TSVの読み取り専用処理を**保存済みoffsetから増分実行**。メタデータ定義のスナップショットをSQLiteへ保持して再起動後も全履歴再走査不要
+- `DurableSpool.java`：`v1_import_cursors`を追加。**SQLiteへの原本保存が成功してから**offset・行番号・定義状態・source fileKey・先頭／境界SHAを更新。CASで古いカーソルによる後退を拒否
+- `ProductBridgeOnce.java`：明示実行時に最大256の完結済みLF行のみ取り込み、最大1 HTTP交換。**従来PoCの`Stream.java`やLogger callbackを変更・自動起動しない**
+- `IncrementalTsvBridgeTest.java`：再起動後の続き読み、部分行、故障レコードによるoffset停止、元ファイル改変／短縮の拒否、**原本DB commit直後／カーソル更新前の故障注入→重複なしの再処理**を実SQLiteで試験
+- [PR #8 最終CI](https://github.com/zawa356/RomRaider_agent/actions/runs/38348565296)：Windows／Linuxそれぞれ**SQLite 42＋HTTP 41＋旧TSV 16＋増分取り込み 37＝136項目PASS**
+- [失敗CI](https://github.com/zawa356/RomRaider_agent/actions/runs/38348269336)：故障注入テスト用TSVでタブ記号のエスケープを誤り形式不正。テストfixtureを修正した再実行でPASS。**失敗履歴は残す**
+- [詳細と限界](product_v1_incremental_import.md)：既存キューあふれ／TSV writer欠損／ソース削除とローテーション、fileKey不明時の交換検知、実車負荷・電源断・disk-full・Windows X270/Zulu8、Server側pin E2E更新はいずれも未完了
+- phase進行は安全側：未ACK原本を削除せず、予期しないソース変更は自動リセットしない
 
 ### 2026-10-13 — Phase 2.1-C2a：pin済みAgentと実Server/PostgreSQL合成E2Eの成功
 

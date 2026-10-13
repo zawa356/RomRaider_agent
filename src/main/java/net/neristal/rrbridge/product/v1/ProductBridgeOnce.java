@@ -25,10 +25,13 @@ public final class ProductBridgeOnce {
         String vehicle=requiredEnv("ROMLOGGER_VEHICLE_ID");
         String token=requiredEnv("ROMLOGGER_DEVICE_TOKEN");
         DurableSpool spool=new DurableSpool(new File(args[1]));
-        LegacyTsvBridge adapter=new LegacyTsvBridge(spool,device,vehicle);
-        LegacyTsvBridge.Result result=adapter.importFile(new File(args[0]));
-        System.out.println("Imported complete legacy rows: definitions="+result.metadata+
-            " observations="+result.observations+" events="+result.events+
+        // Bounded incremental scan. Cursor advances only after the exact
+        // complete TSV line has reached the durable SQLite outbox.
+        IncrementalTsvBridge adapter=new IncrementalTsvBridge(spool,device,vehicle);
+        IncrementalTsvBridge.Result result=adapter.importNew(new File(args[0]),256);
+        System.out.println("Durable imported TSV lines="+result.processedLines+
+            " metadata="+result.metadata+" observations="+result.observations+
+            " events="+result.events+" offset_bytes="+result.offsetBytes+
             " incompleteTail="+result.incompleteTail+" unacked="+spool.countPending());
         // Maximum one profile or data HTTP transaction. External scheduler
         // decides when to retry; 409/422/401 must NOT be retried aggressively.
