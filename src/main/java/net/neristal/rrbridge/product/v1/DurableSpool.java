@@ -207,6 +207,17 @@ public final class DurableSpool {
         p.setString(start+8,c.tailSha256);p.setString(start+9,c.snapshot);
     }
 
+    /** Diagnostic: a source which disappears after checkpointing is never silently ignored. */
+    public synchronized List<String> importedSourcePaths() throws SQLException {
+        List<String> paths=new ArrayList<String>();
+        try(Connection db=open(); PreparedStatement p=db.prepareStatement(
+                "SELECT source_path FROM v1_import_cursors ORDER BY source_path");
+            ResultSet r=p.executeQuery()) {
+            while(r.next())paths.add(r.getString(1));
+        }
+        return paths;
+    }
+
     /** Local delivery scheduling state. Does NOT imply Server ACK. */
     public static final class DeliveryState {
         public final int retryCount;
