@@ -32,6 +32,19 @@ bash scripts/test-product-v1-spool.sh
 
 GitHub ActionsはWindows／Linuxで実SQLiteと**ローカルHTTP契約モック**を用いて試験する。現時点では既存RRBridgeからのデータ生成、実際のFastAPI/PostgreSQLへの結合、X270への配置は未実施。製品HTTP送信コードはPoCの`Stream.java`にまだ接続していない。
 
+### 製品版Phase 2.1-C1：旧RRBridge TSVからの明示取り込み
+
+旧PoCの`rr_*.tsv`（M/S/E行）を、読み取り専用で製品版SQLiteへ変換する`LegacyTsvBridge`を追加。`ProductBridgeOnce`から、対象TSV、製品用SQLiteファイル、サーバーのoriginを指定して1回の取込／送信ができる。**既存Loggerのキューと転送処理には接続しておらず、勝手には実行されない。**
+
+```bash
+# テスト用：ECUやRomRaider本体は不要
+bash scripts/test-product-v1-spool.sh
+# 実Server E2E：独立したServerリポジトリと使い捨てPostgreSQLが必要
+# 詳細 docs/product_v1_integration.md
+```
+
+元TSVの再走査・キューあふれ・実車X270への配置が未解決のため、製品用の常時自動取得としては**有効化しない**。実Server E2EはPrivate repo読取用CI credentialがない場合にNOT RUN。
+
 ## 2. 状態（v0.5.0、2026-10-12）
 
 | 機能 | 状態 |
