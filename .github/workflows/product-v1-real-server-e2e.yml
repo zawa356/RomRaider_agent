@@ -1,0 +1,81 @@
+name: Product v1 REAL Server E2E (opt-in private repo)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/main/java/net/neristal/rrbridge/product/v1/**'
+      - 'src/test/java/net/neristal/rrbridge/product/v1/**'
+      - 'scripts/test-product-v1-real-server.sh'
+      - 'scripts/test-product-v1-spool.sh'
+      - '.github/workflows/product-v1-real-server-e2e.yml'
+  push:
+    branches: [main, 'feat/**']
+    paths:
+      - 'src/main/java/net/neristal/rrbridge/product/v1/**'
+      - 'src/test/java/net/neristal/rrbridge/product/v1/**'
+      - 'scripts/test-product-v1-real-server.sh'
+      - '.github/workflows/product-v1-real-server-e2e.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  real-server-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The normal GITHUB_TOKEN cannot read a second PRIVATE repository.
+    # A repo-scoped read-only credential must be installed explicitly.
+    env:
+      SERVER_READ_TOKEN: ${{ secrets.ROMLOGGER_SERVER_READ_TOKEN }}
+      DATABASE_URL: postgresql://romlogger:ci_disposable_agent_e2e@127.0.0.1:5432/romlogger_agent_e2e
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: romlogger
+          POSTGRES_DB: romlogger_agent_e2e
+          POSTGRES_PASSWORD: ci_disposable_agent_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U romlogger -d romlogger_agent_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Declare gated state (do not claim E2E PASS without Server checkout)
+        if: env.SERVER_READ_TOKEN == ''
+        run: |
+          echo "::warning::REAL-SERVER-E2E NOT EXECUTED: read-only cross-private-repo ROMLOGGER_SERVER_READ_TOKEN is absent."
+          echo "### Real Server E2E: NOT RUN (private repository credential absent)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+        if: env.SERVER_READ_TOKEN != ''
+        with:
+          repository: zawa356/RomRaiderServer
+          ref: main
+          token: ${{ secrets.ROMLOGGER_SERVER_READ_TOKEN }}
+          path: .real-server-source
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        if: env.SERVER_READ_TOKEN != ''
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        if: env.SERVER_READ_TOKEN != ''
+        with:
+          python-version: '3.12'
+      - name: Install Python Server deps and Java SQLite test dependencies
+        if: env.SERVER_READ_TOKEN != ''
+        run: |
+          python -m pip install -r .real-server-source/requirements.txt
+          bash scripts/test-product-v1-spool.sh
+      - name: REAL Agent→FastAPI→PostgreSQL profile/records/replay
+        if: env.SERVER_READ_TOKEN != ''
+        env:
+          ROMLOGGER_SERVER_PATH: .real-server-source
+        run: |
+          bash scripts/test-product-v1-real-server.sh
+          echo "### Real Server E2E: PASS (disposable synthetic DB)" >> "$GITHUB_STEP_SUMMARY"
