@@ -425,6 +425,62 @@ public final class DurableSpool {
         }
     }
 
+    /**
+     * Count durable Server ACK receipts, not in-memory sender calls. Fairness
+     * survives an unexpected process restart. A failed network call does not
+     * consume a scheduling slot.
+     */
+    public synchronized long confirmedBatchCount() throws SQLException {
+        try(Connection db=open();Statement query=db.createStatement();
+            ResultSet result=query.executeQuery("SELECT count(*) FROM v1_ack_receipts")) {
+            return result.next()?result.getLong(1):0L;
+        }
+    }
+
+    /**
+     * Most recently created eligible run, but oldest pending records WITHIN
+     * that run. This prevents all fresh traffic from sitting behind hours of
+     * offline backlog without starving the backlog itself.
+     */
+    public synchronized Batch nextRecentBatch(int maxRecords,int maxUtf8Bytes) throws Exception {
+        if(maxRecords<1||maxRecords>128||maxUtf8Bytes<128)
+            throw new IllegalArgumentException("Invalid batch bounds");
+        String run=null;
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+            "SELECT r.run_id FROM v1_records r WHERE r.acked=0 "+
+            "AND (r.profile_id IS NULL OR EXISTS "+
+            "(SELECT 1 FROM v1_profiles d WHERE d.profile_id=r.profile_id AND d.acked=1)) "+
+            "ORDER BY r.local_id DESC LIMIT 1");
+            ResultSet rs=p.executeQuery()) {
+            if(rs.next())run=rs.getString(1);
+        }
+        if(run==null)return null;
+        List<PendingRecord> rows=new ArrayList<PendingRecord>();
+        int size=0;
+        try(Connection db=open();PreparedStatement p=db.prepareStatement(
+            "SELECT r.local_id,r.record_id,r.run_id,r.body_json FROM v1_records r "+
+            "WHERE r.acked=0 AND r.run_id=? AND "+
+            "(r.profile_id IS NULL OR EXISTS "+
+            "(SELECT 1 FROM v1_profiles d WHERE d.profile_id=r.profile_id AND d.acked=1)) "+
+            "ORDER BY r.local_id LIMIT ?")) {
+            p.setString(1,run);
+            p.setInt(2,maxRecords);
+            try(ResultSet rs=p.executeQuery()) {
+                while(rs.next()){
+                    String body=rs.getString(4);
+                    int bytes=body.getBytes(StandardCharsets.UTF_8).length;
+                    if(size+bytes>maxUtf8Bytes){
+                        if(rows.isEmpty())throw new IllegalStateException("Newest record exceeds byte limit");
+                        break;
+                    }
+                    rows.add(new PendingRecord(rs.getLong(1),rs.getString(2),run,body));
+                    size+=bytes;
+                }
+            }
+        }
+        return rows.isEmpty()?null:new Batch(run,rows);
+    }
+
     /** First unACKed run only. Never mix run IDs in a Server batch. */
     public synchronized Batch nextBatch(int maxRecords, int maxUtf8Bytes) throws Exception {
         if (maxRecords<1 || maxRecords>128 || maxUtf8Bytes<128)
