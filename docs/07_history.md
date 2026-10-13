@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-10-13：Phase 2.1-D2b-2c-4b-2d-1（offline Workerと持続停止・監視状態のread-only化）
+
+- CloudPC独立cloneで`--journal-once` Worker、原本preflight、SQLite持続`INGRESS_REVIEW_REQUIRED`を実装。既定TSV経路は不変更。writerと並列の`--journal-foreground`は安全ゲートを満たさず非対応とした。
+- Reader側でsidecarを自動発行せず、UUID／パスの継続性、他ファイル混在、元journalとwriterロック等を確認。故障時は未ACK原本を保持し旧TSV Workerからも同DBを送信しない。read-only状態CLIは0/5/6のexit codeを区別。
+- CloudPC Java8互換、SQLite/receipt344＋journal/handoff75＝419合成チェックPASS。うち追加60件（Scanner25・Worker別JVM23・Status別JVM12）。
+- 専用CloudPC PostgreSQL16使い捨てDBで最新Agentの旧TSV3+旧journal3+新Worker1＝合成7 records/3 profiles、重複0、profile/batch ACKとfresh SQLite再送を実HTTP/実SQLでPASS。
+- 本番Worker自動設定・走行中Logger/ECU/X270・32bit Windows、物理電源断、容量逼迫の耐性試験は未実施。[設計/試験](phase_2_1_d2b_2c_4b_2d_1_offline_worker.md)。
+
 ## 2026-10-13：Phase 2.1-D2b-2c-4b-2c（最新Agent→隔離実FastAPI/PostgreSQL16）
 
 - CloudPCのjr2twt専用cloneに現行mainのAgentとServerを取得。公式PostgreSQL16/libpqパッケージを専用作業ディレクトリへ展開、127.0.0.1:25432の新しい使い捨てDBだけで動作。Python Server依存は専用venvに導入、Ubuntu python3.12-venvを開発用インストール。Caddy/MCP・運用DBには非接触。

@@ -285,3 +285,15 @@
 - GitHub Actions：cross-private-repoのread-only secretがない環境のE2Eジョブがsuccessでも実Server部分はSKIPPED。E2E実施済みの表示は実ステップの成功確認がある時に限る。
 - 未解決：自動Worker/Loggerへの配線は承認なしに進めない。電源断・容量逼迫・実車環境をこの合成E2Eと混同しない。
 - 状態：**隔離CloudPCでの最新AgentリアルServer E2EをPASS。製品ランタイムへの導入は保留。**
+
+
+## D-037 Journal Workerは閉じた原本の明示一回取込に限定し、障害時の持続reviewを優先する（2026-10-13、D2b-2c-4b-2d-1）
+
+- 背景：4b-2cまで`importJournal`とSenderの実Server ACKは証明できたが、運用Workerに選択的に入る入口と、原本故障時に送信のみ継続してしまうリスクへの対策がなかった。現在のjournal readerは`RandomAccessFile("rw")`から排他的FileLockを取る仕様でwriterとの並行読取には使えない。
+- 選択：A.既定Workerをjournalへ自動切替（拒否）、B.別daemonでjournalを継続走査（readerロック競合のため保留）、C.明示opt-in付きoffline`--journal-once`を追加し失敗時永久review（採用）。
+- 決定：`ROMLOGGER_JOURNAL_WORKER_ENABLE=1`の明示設定がある`--journal-once`のみ新経路を有効化。writerが閉じたjournal専用ディレクトリだけ扱い、原本とidentityの継続性・上限・移設・UUID衝突を事前検査。従来TSV CLIはそのまま。
+- 故障時：`v1_ingress_review_state`に定型原因を初回のみ保存し、以後のWorker全モードのHTTP送信を停止する。元原本・未ACK・既存ACKは残し、**クリア操作・自動再試行は実装しない**。本Phaseで解除権限を与えない。
+- 観測：`ProductIngressStatus`は既存SQLiteをread-onlyで読み、0=no latch/5=review/6=unknownを返すだけ。Supervisor連携は後続とし、no latchを「安全に走行可能」と解釈しない。
+- 検証：CloudPC合成419チェックPASS、隔離Postgres16への`--journal-once`別JVM本番型経路で新しい合成観測1件profile・batch ACK、fresh SQLite重複再送PASS。旧経路6件と合わせ実DB合成7件/3profiles/重複なし。Caddy/MCP/実車へ非接続。
+- 次のゲート：reader/writer同時利用時のread-only方式、source回転と8MiB上限、監視通知・レビュー解除手順、Windows32bit/実物理電源断とdisk-fullの検証。
+- 状態：**offline明示Worker限定で検証済み。常駐運用や実車への配備は未許可。**
