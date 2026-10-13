@@ -52,7 +52,7 @@ public final class ProductSenderTest {
                     if(!"PUT".equals(exchange.getRequestMethod())) code=405;
                     else if("profile503".equals(mode)) code=503;
                     else if("profile401".equals(mode)) code=401;
-                    else if("invalidProfileJson".equals(mode)) response="{\\\"status\\\":{}}";
+                    else if("invalidProfileJson".equals(mode)) response="{\"status\":{}}";
                     else if("badProfile".equals(mode)) response="{\"status\":\"registered\",\"profile_revision_id\":\""+id()+"\"}";
                     else {code=201;response="{\"status\":\"registered\",\"profile_revision_id\":\""+profileId+"\"}";}
                 } else if(path.equals("/api/agent/v1/telemetry/batches")){
