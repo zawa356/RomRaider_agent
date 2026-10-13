@@ -82,14 +82,33 @@ public final class LegacyStreamSafetyTest {
                 throw new AssertionError("queue unexpectedly full early");
         ok("bounded queue refuses overload",
             !stream.queue.offer("extra-unrecoverable"));
+        // The normal callback path must reserve headroom for M/E definitions,
+        // even when heavy sampling has pushed the queue beyond its soft limit.
+        stream.queue.clear();
+        long reserveBefore = stream.dropped.get();
+        for (int i = 0; i < Stream.SAMPLE_QUEUE_LIMIT; i++)
+            if (!stream.queue.offer("synthetic-queued-" + i))
+                throw new AssertionError("premature reserve fill");
+        stream.offer("S\tsession\t0\t123\t123\tRPM=900");
+        ok("sample pressure drops at reserve threshold",
+            stream.dropped.get() == reserveBefore + 1);
+        stream.offer("M\tsession\t0\tRPM\tEngine Speed\trpm");
+        stream.offer("E\tsession\t0\t124\thealth");
+        ok("definitions and health retained while sample limit reached",
+            stream.queue.size() == Stream.SAMPLE_QUEUE_LIMIT + 2
+            && stream.queue.contains("M\tsession\t0\tRPM\tEngine Speed\trpm")
+            && stream.queue.contains("E\tsession\t0\t124\thealth"));
+        stream.queue.clear();
+        for (int i = 0; i < Stream.QUEUE_CAPACITY; i++)
+            stream.queue.offer("synthetic-refill-" + i);
         // Stream.offer is the actual production loss-accounting hook.
         stream.offer("another-unrecoverable");
-        ok("callback overflow is counted",stream.dropped.get()==prior+1);
+        ok("callback overflow is counted",stream.dropped.get()==prior+2);
         stream.queue.clear(); // Test fixture ONLY: do not write 200k dummy lines.
         stream.flushPending(pending);
         String loss=read(stream.spoolFile());
         ok("overflow creates durable loss event",
-            loss.contains("queue_overflow lost_lines=1 dropped_total="+(prior+1)));
+            loss.contains("queue_overflow lost_lines=2 dropped_total="+(prior+2)));
         int length=loss.length();
         stream.flushPending(pending);
         ok("same loss is not reported twice",read(stream.spoolFile()).length()==length);
