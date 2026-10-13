@@ -62,6 +62,7 @@ bash scripts/test-product-v1-real-server.sh
 
 - `product-v1-real-server-e2e.yml` はcross-private-repoの読取専用secret `ROMLOGGER_SERVER_READ_TOKEN`がない場合、実Server checkoutと本物のE2Eを**SKIPPED**にする仕様を維持する。job自体がsuccessでも、実Server PASSとは報告しない。
 - secretがない場合でも、今回追加した**誤接続防止の6件の負試験**だけはCIで実行する。
+- [PR #23製品SQLite CI #38387493290](https://github.com/zawa356/RomRaider_agent/actions/runs/38387493290) はUbuntu/Windows双方の実SQLiteコンパイル試験PASS。[E2EゲートCI #38387493427](https://github.com/zawa356/RomRaider_agent/actions/runs/38387493427)は6件ガードの実行ステップ成功、一方で本物のAgent→FastAPI→PostgreSQLステップは**SKIPPED**である。
 - secretが設定されている場合にのみ、ワークフローが最新AgentからServerソースをcheckoutし、Disposable PostgreSQLサービスでTSV/journal両方のE2Eを実行する（実際に走ったかはjob stepsで確認する）。
 
 ## 残課題

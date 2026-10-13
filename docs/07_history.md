@@ -9,6 +9,7 @@
 - CloudPCのjr2twt専用cloneに現行mainのAgentとServerを取得。公式PostgreSQL16/libpqパッケージを専用作業ディレクトリへ展開、127.0.0.1:25432の新しい使い捨てDBだけで動作。Python Server依存は専用venvに導入、Ubuntu python3.12-venvを開発用インストール。Caddy/MCP・運用DBには非接触。
 - 新規`JournalServerE2E`は原本journal→製品v1 SQLite→FastAPI/Postgres実ACKと、別SQLiteからのduplicate-only再送を実証。従来TSV E2Eと合わせて実DB上で合成record6件/profile2件/重複0件をSQL確認。安全ガード6件拒否試験PASS、既存359件回帰PASS。
 - 誤接続回避のため本体スクリプトに明示opt-in/localhost/専用DB名/URLのhost上書き禁止を追加。GitHub ActionsはServer読取secret欠落時に本E2EをSKIPPEDのままとし、ガード試験だけ常時起動する。
+- [Agent PR #23](https://github.com/zawa356/RomRaider_agent/pull/23)で[製品v1 PR CI #38387493290](https://github.com/zawa356/RomRaider_agent/actions/runs/38387493290)は両OS PASS、[E2Eゲート #38387493427](https://github.com/zawa356/RomRaider_agent/actions/runs/38387493427)は安全負試験PASS・実ServerステップSKIPPED。CloudPC実E2Eの証跡とは区別して記録。
 - 現行Logger/運用Worker/X270/実ECU/本番Serverへの接続はしていない。物理電源断・Win32bit/走行中動作の保証はない。[設計・試験記録](phase_2_1_d2b_2c_4b_2c_real_postgres_e2e.md)。
 
 ## 2026-10-13：Phase 2.1-D2b-2c-4b-2b（journal原本の製品v1変換と二重取込排他）

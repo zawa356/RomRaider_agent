@@ -31,7 +31,7 @@
 | 2.1-D2b-2c-4b-1 | 有界非ブロッキングhandoff・失敗保持・安定再生IDの独立PoC | **CloudPC合成75チェックPASS、CI確認中、製品未接続** | [設計・試験記録](phase_2_1_d2b_2c_4b_1_handoff_contract.md) |
 | 2.1-D2b-2c-4b-2a | 永続source UUID sidecar＋実SQLiteの原本receipt/cursor原子的commit | **CloudPC実SQLite22項目＋旧PoC75項目PASS・PR/main CI両OS PASS、製品v1変換未接続** | [Agent PR #20](https://github.com/zawa356/RomRaider_agent/pull/20)／[main CI #38381208274](https://github.com/zawa356/RomRaider_agent/actions/runs/38381208274)／[設計・試験](phase_2_1_d2b_2c_4b_2a_sqlite_receipts.md) |
 | 2.1-D2b-2c-4b-2b | journal M/S/E→既存製品v1変換＋SQLite cursor/レーン排他 | **CloudPC合成359チェック・PR Windows/Linux製品v1 CI PASS、実車/実Server未接続** | [Agent PR #22](https://github.com/zawa356/RomRaider_agent/pull/22)／[CI #38384353160](https://github.com/zawa356/RomRaider_agent/actions/runs/38384353160)／[設計・故障試験](phase_2_1_d2b_2c_4b_2b_journal_to_product.md) |
-| 2.1-D2b-2c-4b-2c | 最新Agent journal/TSV→製品SQLite→FastAPI→実PostgreSQL16 E2E・安全DBガード | **CloudPC REAL E2E・6件合成レコード/2プロフィール/重複ACK PASS、DBガード6件PASS、CI確認中** | [検証記録](phase_2_1_d2b_2c_4b_2c_real_postgres_e2e.md) |
+| 2.1-D2b-2c-4b-2c | 最新Agent journal/TSV→製品SQLite→FastAPI→実PostgreSQL16 E2E・安全DBガード | **CloudPC REAL E2E・6件/2プロフィール/重複ACK PASS、PR CI Windows/Linux＋DBガード6件PASS。GitHub実ServerステップはSKIPPED** | [PR #23](https://github.com/zawa356/RomRaider_agent/pull/23)／[CI #38387493290](https://github.com/zawa356/RomRaider_agent/actions/runs/38387493290)／[検証記録](phase_2_1_d2b_2c_4b_2c_real_postgres_e2e.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
