@@ -28,8 +28,18 @@
 | 2.1-D2b-2c-2 | 旧TSV writerの64KiB分割書込／障害時巻戻しテスト | **Linux/Windows合成CI合格・PR #16** | [Agent PR #16](https://github.com/zawa356/RomRaider_agent/pull/16)／[PR CI #38369809042](https://github.com/zawa356/RomRaider_agent/actions/runs/38369809042) |
 | 2.1-D2b-2c-3 | writer未fsync行・障害状態の可視化／19.6万行飽和復旧試験 | **CloudPC合成44項目・Windows/Linux CI合格・PR #17** | [PR #17](https://github.com/zawa356/RomRaider_agent/pull/17)／[CI #38372123905](https://github.com/zawa356/RomRaider_agent/actions/runs/38372123905) |
 | 2.1-D2b-2c-4a | 独立した有界fsync前段journal PoC・異常終了／破損／quota検証 | **PR #18／Windows・Linux CI合格、製品接続は未実装** | [PR #18](https://github.com/zawa356/RomRaider_agent/pull/18)／[PR CI #38373993678](https://github.com/zawa356/RomRaider_agent/actions/runs/38373993678)／[設計・試験記録](phase_2_1_d2b_2c_4a_ingress_journal_prototype.md) |
+| 2.1-D2b-2c-4b-1 | 有界非ブロッキングhandoff・失敗保持・安定再生IDの独立PoC | **CloudPC合成75チェックPASS、CI確認中、製品未接続** | [設計・試験記録](phase_2_1_d2b_2c_4b_1_handoff_contract.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
+
+## Phase 2.1-D2b-2c-4b-1 — 独立handoffと再生契約PoC
+
+- Logger callback、旧TSV writer、製品v1 SQLite outboxに接続しない`IngressHandoffPrototype`を追加。受理側は`ArrayBlockingQueue.offer`のみで`ACCEPTED_VOLATILE`／満杯拒否／障害拒否を区別。同期fsyncは独立workerの`drainOne()`だけで行う（自動起動しない）。
+- writer異常時は`inFlight`の原文を保持し、fail closedで後続受入れを停止。resumeは運用者の明示review＋journal再検証後のみ。quota超過はterminal latchし、既存原本を消さない。
+- journalの`sequence`と外部不変`sourceUuid`から決定的UUIDを生成して再生。`afterSequence`を使った分割再生をサポート。ただし**実SQLiteへの送信、sourceUuidの本体への永続記録、cursorの永続化は未実装**。重複検証はテスト専用Mapのみ。
+- CloudPC（Java17 `--release 8`）で4aの34件と4b-1の41件、合計75チェックPASS。worker停止中のproducer追加投入、queue満杯拒否、I/O失敗後の保持と復帰、重複ID、quota終端、再起動前の未fsync行を取り戻せないことを合成確認。
+- **重要制約**：`ACCEPTED_VOLATILE`はfsync成功を表さず、JVM異常終了・電源断では失われる可能性がある。既存のLoggerや製品Serverに導入しておらず、D2b-2cの無欠損目標は未完了。次の4b-2で製品SQLiteとの厳密な責任分界・永続cursor・原本ID・安全な中断判断を設計する。
+- 詳細：[4b-1設計・試験](phase_2_1_d2b_2c_4b_1_handoff_contract.md)。
 
 ## Phase 2.1-D2b-2c-4a — 独立した永続入口ジャーナルPoC
 

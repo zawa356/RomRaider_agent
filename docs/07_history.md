@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-10-13：Phase 2.1-D2b-2c-4b-1（独立handoffと再生IDの合成検証）
+
+- `IngressHandoffPrototype`で非ブロッキングのメモリ受理とworker側の同期fsyncを切り分けた。writer待ち／故障後のin-flight維持／明示復旧／quota時停止を検証。
+- 外部の不変journal UUIDとsequenceから安定IDを生成、テスト専用Mapで同一IDの再送重複を模擬。**実SQLite接続での保証ではない**。
+- CloudPCで既存34件＋追加41件のJava8互換合成75チェックPASS。UI/ECU/本番Caddy/MCPに変更なし。
+- 未fsyncメモリは再起動時に喪失し得る。sourceUuid永続化、実SQLite outbox接続、永続cursor、実車32bit・物理電源断は後続フェーズへ保留。
+- [4b-1設計記録](phase_2_1_d2b_2c_4b_1_handoff_contract.md)。
+
 ## 2026-10-13：Phase 2.1-D2b-2c-4a（独立した前段journalの安全性検証）
 
 - `prototype.ingress.IngressJournalPrototype` を独立試作として追加。既存PoCのTSV writerやLogger callbackへ組み込まず、length/sequence/CRC付きUTF-8フレームを同期fsyncで保存。

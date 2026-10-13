@@ -5,6 +5,11 @@ cd "$(dirname "$0")/.."
 mkdir -p build/ingress-journal-prototype
 javac --release 8 -encoding UTF-8 -d build/ingress-journal-prototype \
   src/main/java/net/neristal/rrbridge/prototype/ingress/IngressJournalPrototype.java \
-  src/test/java/net/neristal/rrbridge/prototype/ingress/IngressJournalPrototypeTest.java
+  src/main/java/net/neristal/rrbridge/prototype/ingress/IngressHandoffPrototype.java \
+  src/test/java/net/neristal/rrbridge/prototype/ingress/IngressJournalPrototypeTest.java \
+  src/test/java/net/neristal/rrbridge/prototype/ingress/IngressHandoffPrototypeTest.java
 java -cp build/ingress-journal-prototype \
   net.neristal.rrbridge.prototype.ingress.IngressJournalPrototypeTest
+
+java -cp build/ingress-journal-prototype \
+  net.neristal.rrbridge.prototype.ingress.IngressHandoffPrototypeTest
