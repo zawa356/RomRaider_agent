@@ -278,7 +278,7 @@ public final class Stream implements DataUpdateHandler {
         long before = raf.length();
         if (before > 0) {
             raf.seek(before - 1);
-            if (raf.read() != '\\n')
+            if (raf.read() != '\n')
                 throw new IOException("Incomplete TSV tail; manual recovery required");
         }
         try {
