@@ -26,6 +26,12 @@ bash scripts/test-product-v1-spool.sh
 
 `RomRaider.jar`を必要としない。この試験はJDK 9以上でJava 8向けにコンパイルしてSQLiteの永続化を確認する。実車環境（Zulu 8 32bit）での動作は後続フェーズで検証する。
 
+### 製品版Phase 2.1-B：HTTP送信（独立コンポーネント）
+
+`ProductSender`／`AgentWire`で、保存済みのProfileRevisionを先行PUTし、バッチJSONをServer v1へPOSTする処理を追加した。HTTPSを標準とし、**200/201の本文に有効な登録・全件確定ACKが無ければ未送信を保持**する。詳しくは[送信実装・安全／試験範囲](docs/product_v1_http_transport.md)。
+
+GitHub ActionsはWindows／Linuxで実SQLiteと**ローカルHTTP契約モック**を用いて試験する。現時点では既存RRBridgeからのデータ生成、実際のFastAPI/PostgreSQLへの結合、X270への配置は未実施。製品HTTP送信コードはPoCの`Stream.java`にまだ接続していない。
+
 ## 2. 状態（v0.5.0、2026-10-12）
 
 | 機能 | 状態 |
