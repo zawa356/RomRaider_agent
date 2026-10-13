@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-10-13：Phase 2.1-D2b-2c-4b-2b（journal原本の製品v1変換と二重取込排他）
+
+- CloudPC `jr2twt`の独立Git cloneで旧TSVの`apply(M/S/E)`を共有した明示journal取込を実装。製品v1の実SQLite profile/record、journal cursor CAS、sessionごとの旧TSV/journal排他を追加し、旧全件TSV importerも同じガードを使う。
+- 改変後CRCを再計算した原本、journalパス変更、旧バージョン由来のclaimのないrun、2経路混在をfail closed。製品SQLiteレコード保存後cursor前に別JVMを`Runtime.halt(79)`で終了し再実行しても重複しないことを確認。
+- CloudPCで既存・新規のJava8互換合成／実SQLite **284+75=359件PASS**。試験追加で原本が1件増えたにもかかわらず期待件数を更新しておらず、一度FAIL。テスト期待値を直して全件再検証。
+- 自動計測経路・実ECU・本番Serverは一切変更していない。最新Agent実PostgreSQL E2E、電源断、X270 32bit、ディスクフルはNOT RUN。[設計・故障試験](phase_2_1_d2b_2c_4b_2b_journal_to_product.md)。
+
 ## 2026-10-13：Phase 2.1-D2b-2c-4b-2a（source UUID永続化・実SQLite原子受領）
 
 - CloudPCのjr2twt専用cloneで実装・コンパイル・障害系試験。journal側UUID/CRCを別sidecarに一度のみ保存、破損／欠落はfail closed。

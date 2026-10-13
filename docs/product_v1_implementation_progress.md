@@ -30,8 +30,18 @@
 | 2.1-D2b-2c-4a | 独立した有界fsync前段journal PoC・異常終了／破損／quota検証 | **PR #18／Windows・Linux CI合格、製品接続は未実装** | [PR #18](https://github.com/zawa356/RomRaider_agent/pull/18)／[PR CI #38373993678](https://github.com/zawa356/RomRaider_agent/actions/runs/38373993678)／[設計・試験記録](phase_2_1_d2b_2c_4a_ingress_journal_prototype.md) |
 | 2.1-D2b-2c-4b-1 | 有界非ブロッキングhandoff・失敗保持・安定再生IDの独立PoC | **CloudPC合成75チェックPASS、CI確認中、製品未接続** | [設計・試験記録](phase_2_1_d2b_2c_4b_1_handoff_contract.md) |
 | 2.1-D2b-2c-4b-2a | 永続source UUID sidecar＋実SQLiteの原本receipt/cursor原子的commit | **CloudPC実SQLite22項目＋旧PoC75項目PASS・PR/main CI両OS PASS、製品v1変換未接続** | [Agent PR #20](https://github.com/zawa356/RomRaider_agent/pull/20)／[main CI #38381208274](https://github.com/zawa356/RomRaider_agent/actions/runs/38381208274)／[設計・試験](phase_2_1_d2b_2c_4b_2a_sqlite_receipts.md) |
+| 2.1-D2b-2c-4b-2b | journal M/S/E→既存製品v1変換＋SQLite cursor/レーン排他 | **CloudPC合成359チェック・PR Windows/Linux製品v1 CI PASS、実車/実Server未接続** | [Agent PR #22](https://github.com/zawa356/RomRaider_agent/pull/22)／[CI #38384353160](https://github.com/zawa356/RomRaider_agent/actions/runs/38384353160)／[設計・故障試験](phase_2_1_d2b_2c_4b_2b_journal_to_product.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
+
+## Phase 2.1-D2b-2c-4b-2b — Journalから既存v1レコードへ明示的に変換（合成検証）
+
+- 新規`IncrementalTsvBridge.importJournal()`を追加。既存`apply(M/S/E)`を共有するため同一原本から旧TSVと同じprofile/record UUIDを生成でき、製品`v1_profiles`・`v1_records`へ格納。自動起動・ECU callback・Server IFは変更なし。
+- `v1_journal_import_cursors`はsource UUID/原本パス/セッション/連番/先頭SHAと累積SHAチェーン/metadata snapshotを記録。各行の製品レコードをSQLiteへcommitした後にcursorをCAS更新。障害時は同一ID再投入で冪等復旧。原本変更・移動・縮小をfail closed。
+- `v1_source_claims`でdevice/vehicle/sessionあたりの旧TSV/Journal受入れを排他。既存増分・旧一括TSV両方にもガードを適用し、過去バージョンに残るcursorなしのrun recordにも安全側で対応する。
+- CloudPCのJava8互換／実SQLite試験で製品v1＋receipt計**284件PASS**、journal/handoff旧回帰**75件PASS**、合計**359件PASS**。新しいJournalProductBridgeTestは**35件PASS**（TSVとの同一レコードID、重複・移設・SHA改変、旧run、ServerプロフィールACK gate、別JVM halt(79)直後の再起動）。
+- [PR CI #38384353160](https://github.com/zawa356/RomRaider_agent/actions/runs/38384353160)では製品v1実SQLiteのWindows/Linux両ジョブPASS。一方、[real-server-e2e #38384353153](https://github.com/zawa356/RomRaider_agent/actions/runs/38384353153)は「gated状態の宣言」のみであり、Server接続ステップを**実行していない**。\n- テスト追加中、別JVMの新規原本を数える前の期待件数が残り初回FAIL。期待値を更新して全suite PASS。実車・ディスクフル・32bit・OS電源断・**最新Agentの実Server PostgreSQL E2EはNOT RUN**。
+- 本Phaseは **製品v1内部の明示呼び出し機能** まで。Logger→journal→Workerの自動配線、本番配備、実Server ACKの結合検証を行っていない。詳細：[4b-2b設計／検証](phase_2_1_d2b_2c_4b_2b_journal_to_product.md)。
 
 ## Phase 2.1-D2b-2c-4b-2a — 原本ジャーナルIDと実SQLite receipt台帳の原子的境界
 

@@ -15,6 +15,9 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.List;
+import net.neristal.rrbridge.prototype.ingress.IngressJournalPrototype;
+import net.neristal.rrbridge.prototype.ingress.JournalIdentityPrototype;
 
 /**
  * Opt-in, bounded, append-only TSV importer. A complete line is persisted
@@ -219,12 +222,93 @@ public final class IncrementalTsvBridge {
      * replacement or mutations at a saved source boundary rather than
      * silently skipping a potentially missing span.
      */
+    private static String shaText(String text) throws Exception {
+        MessageDigest md=MessageDigest.getInstance("SHA-256");
+        byte[] bytes=md.digest(text.getBytes(StandardCharsets.UTF_8));
+        StringBuilder s=new StringBuilder();
+        for(byte b:bytes)s.append(String.format(java.util.Locale.ROOT,"%02x",b&255));
+        return s.toString();
+    }
+    private static String chain(String previous,IngressJournalPrototype.Entry frame)
+            throws Exception {
+        return shaText(previous+"|"+frame.sequence+"|"+
+            frame.row.getBytes(StandardCharsets.UTF_8).length+"|"+frame.row);
+    }
+    /**
+     * EXPLICIT opt-in isolated ingestion: journal frames are converted by
+     * the SAME apply() as legacy TSV. No background activation or Logger hook.
+     *
+     * Product rows/profiles commit before the journal cursor, as in legacy
+     * TSV. Replaying after interruption is safe only with immutable IDs.
+     * This is NOT a Server ACK or a guarantee against pre-fsync memory loss.
+     */
+    public Result importJournal(File source,int maxLines)throws Exception {
+        if(source==null||!source.isFile()||!source.getName().endsWith(".rlj")||
+           Files.isSymbolicLink(source.toPath())||maxLines<1||maxLines>10000)
+            throw new IllegalArgumentException("Invalid journal source or limit");
+        String path=source.getCanonicalPath();
+        JournalIdentityPrototype identity=JournalIdentityPrototype.open(source);
+        String sourceUuid=identity.sourceUuid();
+        try(IngressJournalPrototype reader=new IngressJournalPrototype(
+                source,IngressJournalPrototype.MAX_JOURNAL_BYTES)){
+            List<IngressJournalPrototype.Entry> frames=reader.replay();
+            if(frames.isEmpty())return new Result(0,0,0,0,false,0);
+            String[] first=frames.get(0).row.split("\\t",-1);
+            if(first.length<3||first[1].isEmpty()||
+               first[1].indexOf('/')>=0||first[1].indexOf('\\')>=0)
+                throw new IllegalArgumentException("Invalid journal source session");
+            String session=first[1];
+            DurableSpool.JournalImportCursor cursor=spool.loadJournalCursor(sourceUuid);
+            String firstHash=shaText(frames.get(0).row);
+            if(cursor!=null){
+                if(!cursor.path.equals(path)||!cursor.device.equals(deviceId)||
+                   !cursor.vehicle.equals(vehicleId)||!cursor.session.equals(session)||
+                   !cursor.firstHash.equals(firstHash)||cursor.sequence>frames.size())
+                    throw new IllegalStateException("Journal identity, source or length changed");
+            }
+            // Validate the ENTIRE imported immutable prefix, including frames
+            // with a freshly recomputed CRC. CRC alone is not a mutation guard.
+            String chainHash="START";
+            for(int i=0;i<(cursor==null?0:cursor.sequence);i++)
+                chainHash=chain(chainHash,frames.get(i));
+            if(cursor!=null&&!cursor.chainHash.equals(chainHash))
+                throw new IllegalStateException("Already imported journal prefix changed");
+            spool.claimSourceSession(deviceId,vehicleId,session,"journal",sourceUuid);
+            Map<String,Segment> state=decode(cursor==null?"":cursor.snapshot);
+            int m=0,o=0,e=0,done=0;
+            long offset=cursor==null?0:frames.get((int)cursor.sequence-1).offset+
+                IngressJournalPrototype.HEADER_BYTES+
+                frames.get((int)cursor.sequence-1).row.getBytes(StandardCharsets.UTF_8).length;
+            for(int i=(cursor==null?0:(int)cursor.sequence);i<frames.size()&&done<maxLines;i++){
+                IngressJournalPrototype.Entry frame=frames.get(i);
+                int kind=apply(frame.row,frame.sequence,session,state);
+                chainHash=chain(chainHash,frame);
+                DurableSpool.JournalImportCursor next=
+                    new DurableSpool.JournalImportCursor(sourceUuid,path,deviceId,vehicleId,
+                        session,frame.sequence,firstHash,chainHash,encode(state));
+                // A fault after apply leaves the last cursor behind, and
+                // the same deterministic v1 record/profile is retried.
+                if(beforeCheckpoint!=null)beforeCheckpoint.run();
+                spool.saveJournalCursor(cursor,next);
+                cursor=next;
+                done++;
+                offset=frame.offset+IngressJournalPrototype.HEADER_BYTES+
+                    frame.row.getBytes(StandardCharsets.UTF_8).length;
+                if(kind==1)m++;else if(kind==2)o++;else if(kind==3)e++;
+            }
+            return new Result(m,o,e,done,false,offset);
+        }
+    }
+
     public Result importNew(File source,int maxLines)throws Exception{
         if(source==null||!source.isFile()||!source.getName().startsWith("rr_")||
            !source.getName().endsWith(".tsv")||maxLines<1||maxLines>10000)
             throw new IllegalArgumentException("Invalid source or import limit");
         String path=source.getCanonicalPath();
         String session=source.getName().substring(3,source.getName().length()-4);
+        // A single logical session cannot be imported from both legacy TSV
+        // and journal lanes. Claim is durable before parsing any source row.
+        spool.claimSourceSession(deviceId,vehicleId,session,"legacy",path);
         BasicFileAttributes attr=Files.readAttributes(source.toPath(),BasicFileAttributes.class);
         String key=attr.fileKey()==null?"unknown":attr.fileKey().toString();
         DurableSpool.ImportCursor cursor=spool.loadImportCursor(path);

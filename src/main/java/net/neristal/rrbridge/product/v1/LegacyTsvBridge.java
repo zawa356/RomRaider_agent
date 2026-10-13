@@ -107,6 +107,8 @@ public final class LegacyTsvBridge {
             throw new IllegalArgumentException("Expected RRBridge rr_*.tsv spool");
         // Legacy filename forms a namespace; re-importing after reboot is idempotent.
         final String fileSession=source.getName().substring(3,source.getName().length()-4);
+        // Same durable ownership gate as incremental TSV and journal import.
+        spool.claimSourceSession(deviceId,vehicleId,fileSession,"legacy",source.getCanonicalPath());
         final Map<String,Segment> segments=new LinkedHashMap<String,Segment>();
         int metadata=0,observations=0,events=0;
         long lineNumber=0;
