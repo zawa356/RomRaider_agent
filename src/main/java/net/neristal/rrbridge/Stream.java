@@ -53,6 +53,12 @@ public final class Stream implements DataUpdateHandler {
     // as soon as the local TSV is writable again.
     private long lastDropMarker = 0;
     private long pendingDropMarker = -1;
+    // Memory-only diagnostics: not a crash-survivable ingress journal.
+    final AtomicLong spoolWriteFailures = new AtomicLong();
+    volatile int writerPendingLines = 0;
+    volatile long lastWriterFsyncAtMs = 0;
+    volatile long lastWriterFailureAtMs = 0;
+    volatile boolean writerDegraded = false;
 
     // ---------- 取得速度の計測（実ECUの応答だけを数える。selftest は含めない） ----------
     static final int RING = 512;
@@ -255,18 +261,34 @@ public final class Stream implements DataUpdateHandler {
                 + delta + " dropped_total=" + pendingDropMarker);
         }
         if (pending.isEmpty()) return;
+        // Report dequeued, uncommitted lines while disk I/O is unavailable.
+        // Diagnostic counters never run in the Logger callback.
+        writerPendingLines = pending.size();
         File file = spoolFile();
-        // Reader must not see a complete LF-delimited row before fsync.
-        synchronized (spoolIoLock) {
-            try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
-                appendDurably(raf, pending);
+        try {
+            // Reader must not see a complete LF-delimited row before fsync.
+            synchronized (spoolIoLock) {
+                try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+                    appendDurably(raf, pending);
+                }
             }
-        } // release spool I/O mutex after durable fsync
+        } catch (IOException | RuntimeException ex) {
+            spoolWriteFailures.incrementAndGet();
+            lastWriterFailureAtMs = System.currentTimeMillis();
+            writerDegraded = true;
+            // Crucial: pending and pendingDropMarker are retained for retry.
+            throw ex;
+        }
+        // A successful fsync clears the observable degraded state. Never
+        // interpret this as a guarantee for previously dropped sample rows.
+        lastWriterFsyncAtMs = System.currentTimeMillis();
+        writerDegraded = false;
         if (pendingDropMarker >= 0) {
             lastDropMarker = pendingDropMarker;
             pendingDropMarker = -1;
         }
         pending.clear();
+        writerPendingLines = 0;
     }
 
     /**
@@ -405,7 +427,14 @@ public final class Stream implements DataUpdateHandler {
         return "{\"installed\":" + installed + ",\"installResult\":" + Util.q(installResult)
                 + ",\"session\":" + Util.q(session) + ",\"segment\":" + segment
                 + ",\"samples\":" + seq.get() + ",\"linesProduced\":" + produced.get() + ",\"linesDropped\":" + dropped.get()
-                + ",\"linesSent\":" + sentLines.get() + ",\"queue\":" + queue.size() + ",\"pendingBytes\":" + pendingBytes()
+                + ",\"linesSent\":" + sentLines.get() + ",\"queue\":" + queue.size()
+                + ",\"writerPendingLines\":" + writerPendingLines
+                + ",\"memoryBufferedLines\":" + (queue.size() + (long) writerPendingLines)
+                + ",\"spoolWriteFailures\":" + spoolWriteFailures.get()
+                + ",\"writerDegraded\":" + writerDegraded
+                + ",\"lastWriterFsyncAtMs\":" + (lastWriterFsyncAtMs == 0 ? "null" : String.valueOf(lastWriterFsyncAtMs))
+                + ",\"lastWriterFailureAtMs\":" + (lastWriterFailureAtMs == 0 ? "null" : String.valueOf(lastWriterFailureAtMs))
+                + ",\"pendingBytes\":" + pendingBytes()
                 + ",\"sendErrors\":" + sendErrors.get()
                 + ",\"sink\":" + Util.q(sinkUrl.isEmpty() ? "(spool only)" : sinkUrl) + ",\"lastSendAt\":" + Util.q(lastSendAt) + ",\"lastSendResult\":" + Util.q(lastSendResult)
                 + ",\"lastSampleAgeMs\":" + (lastSampleT == 0 ? "null" : String.valueOf(now - lastSampleT))
