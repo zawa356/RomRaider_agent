@@ -203,8 +203,10 @@ public final class Stream implements DataUpdateHandler {
         List<String> pending = new ArrayList<String>();
         while (true) {
             try {
-                if (pending.isEmpty() && dropped.get() <= lastDropMarker)
+                if (pending.isEmpty() && dropped.get() <= lastDropMarker) {
                     pending.add(queue.take());
+                    queue.drainTo(pending, 5000);
+                }
                 flushPending(pending);
             } catch (Throwable e) {
                 Agent.log("spool write error (retaining " + pending.size()
@@ -223,9 +225,13 @@ public final class Stream implements DataUpdateHandler {
         if (pending == null) throw new IllegalArgumentException("Pending buffer required");
         if (pending.isEmpty()) {
             String head = queue.poll();
-            if (head != null) pending.add(head);
+            if (head != null) {
+                pending.add(head);
+                queue.drainTo(pending, 5000);
+            }
         }
-        if (!pending.isEmpty()) queue.drainTo(pending, 5000);
+        // When pending is non-empty it may have failed on the previous
+        // attempt. Never increase that in-flight batch during retries.
         if (pendingDropMarker < 0 && dropped.get() > lastDropMarker) {
             pendingDropMarker = dropped.get();
             long delta = pendingDropMarker - lastDropMarker;
