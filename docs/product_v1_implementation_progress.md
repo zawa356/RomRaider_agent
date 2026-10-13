@@ -22,7 +22,7 @@
 | 2.1-D1 | TSV増分取り込み、SQLite永続offset＋安全再開・障害注入 | **CI合格・Agent PR #8** | [PR #8](https://github.com/zawa356/RomRaider_agent/pull/8) |
 | 2.1-D2a | Agent増分取り込み版の実Server E2E再pin・再起動試験 | **実FastAPI/PostgreSQL E2E PASS・Server PR #24** | [Server PR #24](https://github.com/zawa356/RomRaiderServer/pull/24)／[E2E CI](https://github.com/zawa356/RomRaiderServer/actions/runs/38350030034) |
 | 2.1-D2b-1 | 明示起動の独立Worker、SQLite永続backoff／要調査ゲート、旧TSV監視 | **Windows/Linux各208件PASS・PR #11** | [PR #11](https://github.com/zawa356/RomRaider_agent/pull/11)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
-| 2.1-D2b-2a | 旧PoC writer復旧・queue欠損イベント・TSV削除禁止 | **合成CI成功・PR準備中** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
+| 2.1-D2b-2a | 旧PoC writer復旧・queue欠損イベント・TSV削除禁止 | **合成CI成功・PR #12** | [Agent PR #12](https://github.com/zawa356/RomRaider_agent/pull/12)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-D2b-2b | fresh/backlog公平配送・queue過負荷の原本保全設計 | 未着手 | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
@@ -36,7 +36,7 @@
 - キュー満杯時に失われた元観測は復元できない。**次回writer成功時に`E queue_overflow lost_lines=N`として欠損数を明示**。電源断前の未fsyncキューは依然復旧不能
 - 旧`cleanupSpool()`を無効化。旧Receiverの`.sent`では製品Server ACKにならないため、未読元TSVを**自動削除しない**。ディスク残量監視・手動バックアップ整理は必要
 - 既存`Stream.java`本体をGUIなしRomRaider stubで検査するCIを追加。書込故障・再試行、破損末尾、overflow証跡、削除拒否をLinux/Windowsで実行
-- [合成CI #38354926517](https://github.com/zawa356/RomRaider_agent/actions/runs/38354926517)：Windows/Linuxそれぞれ**19項目PASS**。実車・Zulu8 32bit・disk-full・電源断は未試験
+- [PR #12の最終CI #38355293148](https://github.com/zawa356/RomRaider_agent/actions/runs/38355293148)：Windows/Linuxそれぞれ**19項目PASS**。実車・Zulu8 32bit・disk-full・電源断は未試験
 - **未完了**：queue飽和そのものの回避、再起動前メモリの完全保全、fresh/backlog公平配送、製品Worker最新の実Server E2E。後続D2b-2bで扱う
 
 ### 2026-10-13 — Phase 2.1-D2b-1：永続backoffと明示起動Worker／旧TSVソース欠損検知
