@@ -23,20 +23,20 @@
 | 2.1-D2a | Agent増分取り込み版の実Server E2E再pin・再起動試験 | **実FastAPI/PostgreSQL E2E PASS・Server PR #24** | [Server PR #24](https://github.com/zawa356/RomRaiderServer/pull/24)／[E2E CI](https://github.com/zawa356/RomRaiderServer/actions/runs/38350030034) |
 | 2.1-D2b-1 | 明示起動の独立Worker、SQLite永続backoff／要調査ゲート、旧TSV監視 | **Windows/Linux各208件PASS・PR #11** | [PR #11](https://github.com/zawa356/RomRaider_agent/pull/11)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-D2b-2a | 旧PoC writer復旧・queue欠損イベント・TSV削除禁止 | **合成CI成功・PR #12** | [Agent PR #12](https://github.com/zawa356/RomRaider_agent/pull/12)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
-| 2.1-D2b-2b | fresh/backlog公平配送（原本ACKベースの3:1） | **CI検証中** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
+| 2.1-D2b-2b | fresh/backlog公平配送（原本ACKベースの3:1） | **合成CI合格・PR #13** | [PR #13](https://github.com/zawa356/RomRaider_agent/pull/13) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
 ## 変更履歴
 
-### 2026-10-13 — Phase 2.1-D2b-2b：滞留／新規データの公平配送（CI検証中）
+### 2026-10-13 — Phase 2.1-D2b-2b：滞留／新規データの公平配送（Windows/Linux合成CI合格）
 
 - `DurableSpool.nextRecentBatch()`で最後に生成されたrunの**最も古い未ACKレコードから**同一runバッチを構築。runを混ぜず、個々のrun内の順序を保つ
 - `ProductSender`で成功ACK台帳の件数を基準に**3バッチは旧滞留、4バッチ目は新run**を選択。プロセス再起動後も比率とデータIDが維持され、失敗・未ACKでは選択スロットが進まない
 - ローカル未ACK削除なし。既存の厳格なACK条件、ProfileRevision待ち、通信断時backoff、要調査停止を維持
 - `FairDeliveryTest`で実SQLiteの16レコード・2runを用い、古いrunの飢餓回避、最新runの遅延軽減、再起動、ACK無しでの安定性を合成検証
 - **残課題**：旧PoCのメモリキュー飽和自体の完全防止は実装していない。飽和時の欠損マーカーは引き続き残り、既知の不完全性として実車／負荷試験で評価する
-- CI合格後に実行URLとPRを追記
+- [Agent PR #13](https://github.com/zawa356/RomRaider_agent/pull/13)／[Windows/Linux CI #38361284331](https://github.com/zawa356/RomRaider_agent/actions/runs/38361284331)：Windowsで`FairDeliveryTest` **19チェックPASS**、既存DurableSpoolTest42件・ProductSenderTest41件もPASS。Linuxジョブも成功
 
 ### 2026-10-13 — Phase 2.1-D2b-2a：PoC原本の安全側保全（合成CI成功）
 
