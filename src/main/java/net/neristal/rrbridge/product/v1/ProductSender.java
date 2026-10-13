@@ -54,7 +54,13 @@ public final class ProductSender {
                 return statusOutcome(result.status);
             } catch (IOException ex) {return Outcome.RETRY_LATER;}
         }
-        DurableSpool.Batch batch=spool.nextBatch(maxRecords,maxRecordBytes);
+        // Three confirmed deliveries service the oldest backlog; the fourth
+        // attempts the newest run. ACK receipts make this deterministic after
+        // restart. Failed/partial responses do not advance the lane.
+        long completed=spool.confirmedBatchCount();
+        DurableSpool.Batch batch=(completed%4==3)
+            ?spool.nextRecentBatch(maxRecords,maxRecordBytes)
+            :spool.nextBatch(maxRecords,maxRecordBytes);
         if(batch==null)return Outcome.IDLE;
         final String request=AgentWire.batchJson(deviceId,vehicleId,batch);
         // Total envelope size is bounded as well as each record's byte count.
