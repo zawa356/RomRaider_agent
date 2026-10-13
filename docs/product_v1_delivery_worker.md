@@ -23,6 +23,7 @@ RomRaider Logger (既存PoC) → 旧TSV queue / writer（既存・欠損リス�
 - `ProductLegacyScanner`：既読TSVの消失・ファイル改変、symlink、監視対象64ファイル超を検出した場合には**例外停止**。生データを飛ばして次のファイルへ進まない
 - `*.worker.lock`をOSプロセス間排他に使い、同一DBの製品ワーカーを二重起動しない。旧PoCのwriter/CSV senderの排他までは保証しない
 - Workerが自動的にECU操作やProfile切替を行う機能はない。別プロセス用Windowsサービスの自動起動設定もこの段階では実装しない
+- 既存の明示用`ProductBridgeOnce`も**共通の永続再試行・要調査停止ゲート経由**へ変更し、通常CLIから停止状態を迂回して再送できないようにした
 
 ## 再試行と停止の意味
 
