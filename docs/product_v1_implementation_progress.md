@@ -16,7 +16,7 @@
 | --- | --- | --- | --- |
 | 2.1-A | Java 8対応SQLite durable spool、原本・定義とACK台帳 | **CI合格・PR #3** | [PR #3](https://github.com/zawa356/RomRaider_agent/pull/3)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-B | Server v1プロファイル／バッチのHTTP送信・ACK厳密検証（契約モックCI） | **合成CI完了・PR #4** | [PR #4](https://github.com/zawa356/RomRaider_agent/pull/4)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
-| 2.1-C1 | 既存RRBridge TSV→製品v1 SQLiteの非破壊取込・合成CI | **実装済み・CI検証中** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
+| 2.1-C1 | 既存RRBridge TSV→製品v1 SQLiteの非破壊取込・合成CI | **CI合格、PR作成中** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-C2 | Agent→実FastAPI→PostgreSQL E2Eと常駐取り込み接続 | **E2Eワークフロー実装済み／別Private Repo認証未設定で未実行** | [E2E run](https://github.com/zawa356/RomRaider_agent/actions/runs/38339215160) |
 | 2.1-D | Windows再起動／通信断／ディスク不足／実機での耐久検証 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
@@ -33,6 +33,7 @@
 - TEST_パラメーターだけの観測は`synthetic`、それ以外は`ecu`。旧RRBridgeイベントは`source_kind=agent`で構造化登録
 - `ProductBridgeOnce.java`で、明示的に指定したTSVファイルから一度だけSQLiteに取り込み、最大1 HTTP交換するCLIを追加。トークンは環境変数、**車載へ自動組込／自動起動しない**
 - Windows/LinuxのSQLite実DBテストに`LegacyTsvBridgeTest`を追加。再読込・不完全行・イベント・profile定義の保護を確認
+- [Product v1 Agent CI](https://github.com/zawa356/RomRaider_agent/actions/runs/38339288365)：**Windows/Linuxの両方で SQLite 42 + HTTP 41 + TSV importer 16 = 各99件PASS**。合成データ／契約モックの試験。
 
 **実Server接続試験の状態**
 
