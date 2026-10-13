@@ -38,6 +38,7 @@ public final class DurableSpoolTest {
         File dir=Files.createTempDirectory("product-spool-ci-").toFile();
         File file=new File(dir,"product-outbox.sqlite");
         DurableSpool spool=new DurableSpool(file);
+        final DurableSpool initialSpool=spool;
         String run=id(), seg=id(), profile=id();
         String profileJson="{\"profile_revision_id\":\""+profile+"\",\"parameters\":[\"P8\"]}";
         spool.appendProfile(profile,profileJson);
@@ -51,7 +52,7 @@ public final class DurableSpoolTest {
         check("unACKed observation is durable",spool.countPending()==1L);
         check("samples blocked until profile ACK",spool.nextBatch(20,65536)==null);
         expectFailure("profile cannot ACK without confirmation",new Throwing() {
-            public void run() throws Exception { spool.markProfileAcked(profile,false); }
+            public void run() throws Exception { initialSpool.markProfileAcked(profile,false); }
         });
         check("unconfirmed profile not lost",spool.pendingProfiles().size()==1);
 
