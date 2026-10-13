@@ -297,3 +297,14 @@
 - 検証：CloudPC合成419チェックPASS、隔離Postgres16への`--journal-once`別JVM本番型経路で新しい合成観測1件profile・batch ACK、fresh SQLite重複再送PASS。旧経路6件と合わせ実DB合成7件/3profiles/重複なし。Caddy/MCP/実車へ非接続。
 - 次のゲート：reader/writer同時利用時のread-only方式、source回転と8MiB上限、監視通知・レビュー解除手順、Windows32bit/実物理電源断とdisk-fullの検証。
 - 状態：**offline明示Worker限定で検証済み。常駐運用や実車への配備は未許可。**
+
+
+## D-038 live Journalの完全フレーム観測をfsync済み確定受領と混同しない（2026-10-13、D2b-2c-4b-2d-2a）
+
+- 背景：旧readerはRandomAccessFile(rw)+排他FileLockでwriterと並行読取できない。writerはheader/bodyのあとにfsyncするため、CRC妥当フレームが見えただけでは永続確定の根拠にならない。
+- 選択：排他ロックを外して製品Workerへ直結（却下）、FileChannel.READのbounded監査プローブ（採用）、耐電源断watermarkで確定したフレームだけ製品へ移送（後続）。
+- 実装：最大8MiB、行128KiB、magic/CRC/連番/UTF8とファイル属性変更を検証。COMPLETE/CHANGING/INCOMPLETE_TAILを区別。修復・破棄・自動ACKはしない。
+- 書込禁止：writer用JournalIdentityPrototype.openのUUID発行がreaderまで及ばないようreadExistingを追加してreaderを切替。既存ID不在は必ず拒否。
+- 合成検証：CloudPC Java8 443チェックPASS、160回fsync writerと最大320回のprobe同時検査5反復PASS。実機/Windows 32bit/物理電源断は未実施。
+- 禁止：プローブから製品v1 cursor/ACKは進めない。--journal-foregroundは引き続き禁止。watermark、回転、容量監視、権限付き復旧手順を次Phaseで定義。
+- 状態：**read-onlyライブ診断だけPoC合成PASS。ライブ製品化・運用適用は保留。**

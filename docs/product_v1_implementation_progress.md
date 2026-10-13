@@ -33,8 +33,16 @@
 | 2.1-D2b-2c-4b-2b | journal M/S/E→既存製品v1変換＋SQLite cursor/レーン排他 | **CloudPC合成359チェック・PR Windows/Linux製品v1 CI PASS、実車/実Server未接続** | [Agent PR #22](https://github.com/zawa356/RomRaider_agent/pull/22)／[CI #38384353160](https://github.com/zawa356/RomRaider_agent/actions/runs/38384353160)／[設計・故障試験](phase_2_1_d2b_2c_4b_2b_journal_to_product.md) |
 | 2.1-D2b-2c-4b-2c | 最新Agent journal/TSV→製品SQLite→FastAPI→実PostgreSQL16 E2E・安全DBガード | **CloudPC REAL E2E・6件/2プロフィール/重複ACK PASS、PR CI Windows/Linux＋DBガード6件PASS。GitHub実ServerステップはSKIPPED** | [PR #23](https://github.com/zawa356/RomRaider_agent/pull/23)／[CI #38387493290](https://github.com/zawa356/RomRaider_agent/actions/runs/38387493290)／[検証記録](phase_2_1_d2b_2c_4b_2c_real_postgres_e2e.md) |
 | 2.1-D2b-2c-4b-2d-1 | オフライン限定の明示Worker選択、SQLite持続停止、状態確認CLI | **CloudPC419チェック＋実PostgreSQL E2E合成7件/3profiles PASS、PR Windows/Linux CI PASS。GitHub実ServerステップSKIPPED** | [PR #24](https://github.com/zawa356/RomRaider_agent/pull/24)／[CI #38391573311](https://github.com/zawa356/RomRaider_agent/actions/runs/38391573311)／[設計/試験](phase_2_1_d2b_2c_4b_2d_1_offline_worker.md) |
+| 2.1-D2b-2c-4b-2d-2a | live writerと並行するlock-free/read-only RLJ1診断、existing-only identity | **CloudPC Java8/Linux 合成443項目PASS（新規24）、製品SQLite cursor/ACK未接続、Windows CI待ち** | [設計・検証](phase_2_1_d2b_2c_4b_2d_2a_live_readonly_probe.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
+
+## Phase 2.1-D2b-2c-4b-2d-2a — lock-freeライブ原本診断（製品へ非接続）
+
+- live writerが排他的ロックを保持する間もFileChannel.READによりRLJ1を検査できるread-only診断APIを追加。CRC・連番・UTF-8・8MiB/128KiB上限、途中tailや変更中ファイルを区別。原本には書込みしない。
+- 旧JournalIdentityPrototype.openにはID生成があり得たため、readExisting()を分離しすべてのjournal readerから呼ぶように変更。sidecar欠落時の自動UUID再発行を防止。
+- **CRC妥当な完全フレームでもfsync完了とは限らない**ため、既存ProductBridgeWorker、製品SQLiteカーソル、Server ACKに接続しない。次にdurable watermarkを検討する。
+- CloudPC Java8実行：journal/handoff旧75＋新24＝99件、製品SQLite/receipt344件、合計**443件PASS**。160件fsync付き追記と最大320回の同時読取を追加5反復PASS。物理電源断／実車／Win32bitは未実施。[4b-2d-2a設計](phase_2_1_d2b_2c_4b_2d_2a_live_readonly_probe.md)。
 
 ## Phase 2.1-D2b-2c-4b-2d-1 — Journal Workerのオフライン・明示実行、安全停止、監視参照
 
