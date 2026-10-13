@@ -197,7 +197,7 @@ profile=fuel.xml
 | `rateHz10s` | 直近10秒の取得周波数（実ECU応答のみ） |
 | `intervalP95Ms10s` | 直近10秒のサンプル間隔の95パーセンタイル（ms、2件未満は -1） |
 | `lastSampleAgeMs` | 最後のサンプルからの経過（ms、なければ null） |
-| `linesProduced` / `linesDropped` / `linesSent` | 生成した行／キュー溢れで捨てた行／送信済み行 |
+| `linesProduced` / `linesDropped` / `linesSent` | 生成した行／キュー溢れで失った行／旧経路の送信済み行。`linesDropped`増加分はTSVに`E ... queue_overflow lost_lines=N dropped_total=N`として明示記録（行自体の復元不可） |
 | `queue` / `pendingBytes` | メモリキューの行数／spoolの未送信バイト合計 |
 | `sendErrors` / `lastSendAt` / `lastSendResult` | 送信失敗回数／最後の送信時刻／最後の応答（HTTPコード、本文、所要時間、バイト数） |
 | `sink` | 送信先URL（空なら `(spool only)`） |
@@ -275,7 +275,7 @@ profile=fuel.xml
 | `http.token` | 空 | C3 の Bearer トークン。空なら認証なし |
 | `switch.settleMs` | 1500 | 0〜10000。`switch_profile` で読込後CSV記録を再開するまでの待ち |
 | `log.maxBytes` | 5242880 | `rrbridge.log` の上限。超えたら `.1` に退避（1世代） |
-| `spool.retentionDays` | 14 | 送信済みspoolを残す日数（0以下で削除しない） |
+| `spool.retentionDays` | 14 | **互換設定値として読取のみ**。2026-10-13から元TSVの自動削除は安全のため無効。旧`.sent`だけでは製品ServerのACKを保証できない |
 | `profile.maxParams` | 20 | 選択項目数の上限（0で無制限） |
 | `guard.enabled` | true | 自動復帰ガード |
 | `guard.minRateHz` | 2.0 | これを下回ったら取れていないとみなす |
@@ -343,7 +343,7 @@ text は「先頭の語＝種類」＋空白区切りの続き。`key=value` 形
 ### C8.4 spool ファイル
 - `<rrbridge.dir>\spool\rr_<session>.tsv`: 追記のみ。転送の正本。
 - `<…>.tsv.sent`: 送信済みバイト位置（10進整数1行）。行の途中では止まらない。
-- 送信済みかつ `spool.retentionDays` より古い過去セッションのファイルは自動削除。未送信は消さない。
+- **旧TSVは自動削除しない**。2026-10-13より、従来の`.sent`を根拠にした削除は製品v1 Workerの原本損失につながるため停止。管理者が製品SQLite取込済み・Server ACK・バックアップを別途検証するまでは保持する。
 
 ---
 
