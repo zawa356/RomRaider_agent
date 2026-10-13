@@ -28,8 +28,6 @@ public final class ProductServerE2E {
         String vehicle=env("ROMLOGGER_E2E_VEHICLE_ID");
         String token=env("ROMLOGGER_E2E_TOKEN");
         String session="ci_"+UUID.randomUUID().toString().replace("-","");
-        File file=File.createTempFile("rr_"+session,".tsv");
-        file.deleteOnExit();
         String legacy=
             "M\t"+session+"\t1\tTEST_RPM\tSynthetic RPM\trpm\n"+
             "M\t"+session+"\t1\tTEST_TPS\tSynthetic throttle\t%\n"+
