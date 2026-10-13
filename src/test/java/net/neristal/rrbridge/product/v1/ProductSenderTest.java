@@ -157,12 +157,6 @@ public final class ProductSenderTest {
             check("profile ACK does not release observations",spool.countPending()==2);
             mock.mode="normal";
             check("profile no longer pending after 200 confirmation",spool.pendingProfiles().isEmpty());
-            // Other runs and the strict telemetry ACK checks continue below.
-            // Existing profile-registration assertion is now about the idempotent 200 path.
-            // Original 201 case is exercised below using another fixture.
-            // DO NOT alter the synthetic Server's known token.
-            /* old 201 assertion removed */
-            check("successful profile registration is durable",spool.pendingProfiles().isEmpty());
             check("profile originally sent before any samples",mock.batches.get()==0);
             check("profile registered once only",spool.pendingProfiles().isEmpty());
             check("profile request contains definition and device",mock.lastProfile.contains(device)&&mock.lastProfile.contains("synthetic-fingerprint"));
@@ -189,6 +183,15 @@ public final class ProductSenderTest {
             check("envelope includes correct IDs and 2 records",mock.lastBatch.contains(run)&&
                   mock.lastBatch.contains(device)&&mock.lastBatch.contains(vehicle)&&
                   mock.lastBatch.contains("\"protocol_version\":1"));
+            DurableSpool separate=senderSpool(
+                Files.createTempDirectory("second-profile-ci").toFile(),
+                profile,device,vehicle,id(),id(),id(),id());
+            ProductSender newRegistration=new ProductSender(separate,origin,TOKEN,
+                device,vehicle,1500,2,65536);
+            mock.mode="normal";
+            check("201 registered profile accepted for a fresh Agent spool",
+                  newRegistration.pumpOnce()==ProductSender.Outcome.PROFILE_ACKED);
+            check("fresh profile ACK does not release observations",separate.countPending()==2);
         } finally {server.stop(0);}
         check("duplicate JSON response keys rejected",rejectAck(
               "{\"status\":\"committed\",\"status\":\"committed\"}"));
