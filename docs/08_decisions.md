@@ -152,3 +152,13 @@
 - 決定: 切替前に2Hz以上で取れていた場合だけ作動。切替後10秒（＋settleMs）の平均が2Hz未満なら戻す。戻し先は直前のプロファイル（不明なら `guard.fallbackProfile`）。
 - 理由: 項目数の上限だけでは防げない（バイト数、ECU側の事情、配線）。「取れなくなったら取れていた状態へ戻す」ことでデータ全損を避ける。
 - 状態: 有効。実車での作動確認は未実施。
+
+## D-024 製品版スプールは既存PoCと分離したSQLite outboxにする（2026-10-13、Phase 2.1-A）
+
+- 背景: PoCのTSV spoolと旧Receiverは「HTTP 2xxなら送信済み」となる条件が製品の全件DB commit後ACK契約と一致せず、プロファイル版・UUID・分割run・再送冪等の管理も不足する。
+- 選択肢: PoC `Stream.java`を一括書換／製品版専用ファイルジャーナル新作／Java8 SQLite JDBCの製品版独立outbox。
+- 決定: **既存RRBridgeのJava Agentを再利用する方針は維持しつつ、製品版spool層を別クラスへ追加する**。SQLite JDBCのWAL＋FULL同期、原本行の不変ID／ハッシュ／run連番、先行profile登録、バッチACK確認と未ACK保持を採用。
+- 理由: PoCの実車操作・旧送信経路・安全ガードを壊さない。DBトランザクションで「全件送信済み／未送信」を原子的に更新でき、プロセス再起動時の未ACK再送に向く。長期の任意容量でスプールを無言削除する方式を採用しない。
+- 影響: Java8 SQLite JDBCのネイティブライブラリとWindows x86同梱を実機で確認する必要がある。現段階はspool単体で、JSON構築・HTTP送受信・RRBridge統合はPhase 2.1-B/C。Agent上の安全判定は独立して必要。
+- 検証区分: Windows／Linux CIのSQLite実DB単体試験。**X270実機、Zulu 8 32bit、実ECU、停車/走行中動作は未検証**。
+- 状態: 有効（Phase 2.1-Aで限定実装）。

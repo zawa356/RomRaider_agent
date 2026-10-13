@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-10-13：製品版Phase 2.1-A SQLiteスプール（実装中）
+
+- RomRaiderServerのPhase 1.2-A/Bで受信側のPostgreSQL原子的ACK・通信契約CIが通過したことを前提に、Agent側のdurable spoolに着手。
+- PoCの`Stream.java`を直接製品用に置換すると安全ガード・旧転送に影響するため、新Javaパッケージ`net.neristal.rrbridge.product.v1`へ分離。
+- SQLiteのWAL／FULL同期、record ID・run sequence衝突検出、profile定義ACK待ち、未ACK保持、バッチ単位の受信確認を実装。
+- JDK17の`--release 8`でJava8互換バイトコードを生成し、Linux/WindowsでSQLite実DB試験を実行。実車・K-Line・Zulu 8 32-bitは未検証。
+- 詳細：[`product_v1_implementation_progress.md`](product_v1_implementation_progress.md)とGitコミット／PRを参照。
+
+---
+
 ## フェーズ0: ChatGPT での検討（〜2026-10-10）
 
 出典: 引継ぎ資料 §10（`docs/handoff/`）。この期間の作業はChatGPT上の会話で、実機での実行結果はほとんど残っていない。
