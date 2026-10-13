@@ -45,6 +45,12 @@ bash scripts/test-product-v1-spool.sh
 
 元TSVの再走査・キューあふれ・実車X270への配置が未解決のため、製品用の常時自動取得としては**有効化しない**。実Server E2EはPrivate repo読取用CI credentialがない場合にNOT RUN。
 
+### 製品版Phase 2.1-D1：TSV増分カーソル（自動常駐なし）
+
+`ProductBridgeOnce`は旧TSVの全量再走査ではなく、SQLiteに記録したoffsetから**最大256完結行**を取り込む。原本の先行commit→カーソル更新、重複時の再処理、ファイル改変／短縮の停止を実装。詳細は[増分取り込みと保全ルール](docs/product_v1_incremental_import.md)。
+
+**まだ既存Loggerから自動起動しない。** 旧TSV writerやbounded queueの欠損、ディスク故障、X270/Zulu8 32bit、実車を検証済みとは扱わない。
+
 ## 2. 状態（v0.5.0、2026-10-12）
 
 | 機能 | 状態 |
