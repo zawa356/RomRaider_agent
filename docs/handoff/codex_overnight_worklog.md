@@ -68,3 +68,11 @@
 - 2b-1 PR27 merged; main journal38408152381 / spool38408153111全jobsと実試験success。
 - Branch feat/phase-4b2d2b2-watermark。次: versioned104byte marker(UUID/seq/offset/fileKey SHA/prefix SHA/CRC)、所有handle fsync→tmp同期→atomic rename→dir force診断。
 - 新試験NOT RUN。故障hook/JVM halt/不整合/改変/置換/容量を合成fixtureだけで検証。readerは別JVM、製品DB/ACK非接続。dir sync未確認や物理電源断をPASS保証にしない。
+
+## 2026-10-13 22:57 JST — 4b-2d-2b-2 / WORKING implementation checkpoint
+
+- DurableWatermarkPrototype RLC1 104bytes: UUID16/seq8/offset8/fileKeyHash32/prefixSHA32/CRC4/magic4。Writer checkpointは所有handleのsync後にtmp force→atomic move→dir force。tmp残存時は保全して停止、非atomic fallbackなし。
+- WSL初回47チェックPASS、追加の別JVM live reader4件とCRC/sequence/UTF8/identity故障5件を追加。最新試験はこれから実行、Windows/VPS NOT RUN。
+- dir force Linux SYNCEDを観測、Windows未実施。電源断保証、永続previous highwater、同一JVMreader/運用配線なし。
+- Server PR39 merged 50ff71ce3ba719d86b14b99db8ba4e1c162e8473; main CI確認待ち。
+- Next exact: bash scripts/test-ingress-journal-prototype.sh → VPS同script/SQLite→PR両OSCI。

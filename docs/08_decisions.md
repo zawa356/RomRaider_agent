@@ -324,3 +324,12 @@
 - GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
 - 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
 - Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。
+
+## D-040 watermarkは原本fsync後のprefixを独立markerで表し、dir永続化保証と分離する（2026-10-13）
+
+- 独立RLC1 104bytesを候補: source UUID、sequence、offset、fileKey SHA256、原本prefix SHA256、CRC32。既存RLJ1/identityを変更しない。fileKeyを得られないFSはfail closed。置換原本は内容が同じでも拒否。
+- writerの所有RandomAccessFileでCRC/seq/UTF8を確認しsync成功→tmp CREATE_NEW/force→ATOMIC_MOVE(REPLACE_EXISTING)→directory force。非atomic fallback、tmp自動削除、marker自動補修はしない。Windows dir force未確認時はUNCONFIRMEDとして電源断保証をしない。
+- readerは別JVM READ専用でwatermark範囲まで厳密検査。watermark先行/破損/UUID違い/連番退行/原本切詰め/置換/改変/temp残存を拒否。完全だが未checkpointのtailは除外。読取途中marker変更はretry/reviewとして拒否。
+- previouslyObservedはメモリ内だけ。新readerで古いvalid watermarkを読むと安全な古いprefixへ戻る場合があり、永続highwater/SQLiteとの原子的統合は本Phase未実装。CRC/hashは認証ではなく管理者による同時原本+marker改変の耐改ざん保証なし。
+- WSL OpenJDK17 --release8の新56＋既存138=194チェックPASS。JVM halt3段階、擬似I/O/quota故障、部分marker、live別JVM READを検証。Windows/VPSはこれから。実ディスク満杯/物理電源断/実ECUはNOT RUN。
+- 状態: 独立PoCのみ。製品cursor/ACK/Worker非接続。実運用採用と原本セットrotationは別判断。

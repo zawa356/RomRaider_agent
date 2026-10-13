@@ -283,3 +283,9 @@
 - GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
 - 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
 - Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。
+
+## 2026-10-13 夜 — 4b-2d-2b-2 watermark実装と故障試験
+
+- 所有handle fsync後に公開するRLC1独立marker、read-only prefix reader、明示SplitLock checkpointを追加。元writer/製品IF/Worker非変更。
+- WSLの初回47、live別JVM4追加後51、frameCRC/sequence/UTF8/identity故障5追加後56チェックPASS、旧138と合計194。JVM haltをjournal sync直後/tmp force直後/atomic rename直後に注入し、元原本保全と未公開tailの除外を確認。
+- Windows/VPS CIの最新結果は後続追記。Server PR39統合後main CI38409078002成功。

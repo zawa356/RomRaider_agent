@@ -26,6 +26,8 @@ public final class SplitLockJournalPrototype implements Closeable {
     private final RandomAccessFile journal, coordination;
     private final FileLock writerLock, legacyGuard;
     private final long quota;
+    private final File source;
+    private final String sourceKey, sourceUuid;
     private long sequence;
     private boolean failed, closed;
 
@@ -42,6 +44,7 @@ public final class SplitLockJournalPrototype implements Closeable {
         RandomAccessFile coord = new RandomAccessFile(lockFile, "rw");
         RandomAccessFile data = null;
         FileLock owner = null, guard = null;
+        String openedKey, openedUuid;
         try {
             owner = acquire(coord, 0, Long.MAX_VALUE);
             data = new RandomAccessFile(absolute, "rw");
@@ -51,6 +54,10 @@ public final class SplitLockJournalPrototype implements Closeable {
             // POSIX locks can be released when ANY other handle to this inode
             // is closed in the same process. Do not use a separate probe here.
             sequence = validateOwnedHandle(data, quota);
+            Object fileKey = Files.readAttributes(absolute.toPath(), java.nio.file.attribute.BasicFileAttributes.class).fileKey();
+            if (fileKey == null) throw new IOException("stable file identity unavailable");
+            openedKey = fileKey.toString();
+            openedUuid = JournalIdentityPrototype.readExisting(absolute).sourceUuid();
         } catch (IOException | RuntimeException problem) {
             release(guard, problem); release(owner, problem);
             close(data, problem); close(coord, problem);
@@ -58,13 +65,15 @@ public final class SplitLockJournalPrototype implements Closeable {
         }
         journal = data; coordination = coord;
         writerLock = owner; legacyGuard = guard; this.quota = quota;
+        this.source = absolute;
+        this.sourceKey = openedKey; this.sourceUuid = openedUuid;
     }
 
     private static void checkPath(File path) throws IOException {
         if (Files.isSymbolicLink(path.toPath()) || (path.exists() && !path.isFile()))
             throw new IOException("regular non-symlink path required");
     }
-    private static long validateOwnedHandle(RandomAccessFile data, long quota) throws IOException {
+    static long validateOwnedHandle(RandomAccessFile data, long quota) throws IOException {
         long size = data.length(), pos = 0, seq = 0;
         if (size > quota) throw new IOException("source exceeds bounded quota");
         data.seek(0);
@@ -87,6 +96,26 @@ public final class SplitLockJournalPrototype implements Closeable {
         }
         return seq;
     }
+
+    /** Explicit synthetic checkpoint. No product DB/cursor/ACK involvement. */
+    public synchronized DurableWatermarkPrototype.DirectorySync checkpoint() throws IOException {
+        return checkpoint(null);
+    }
+    synchronized DurableWatermarkPrototype.DirectorySync checkpoint(DurableWatermarkPrototype.Hook hook) throws IOException {
+        if (closed || failed) throw new IOException("writer stopped; review required");
+        try {
+            checkContinuity();
+            return hook == null ? DurableWatermarkPrototype.publish(source, journal, sequence)
+                : DurableWatermarkPrototype.publish(source, journal, sequence, hook);
+        }
+        catch (IOException | RuntimeException fault) { failed = true; throw fault; }
+    }
+    private void checkContinuity() throws IOException {
+        Object key = Files.readAttributes(source.toPath(), java.nio.file.attribute.BasicFileAttributes.class).fileKey();
+        if (sourceKey == null || key == null || !sourceKey.equals(key.toString()) ||
+                !sourceUuid.equals(JournalIdentityPrototype.readExisting(source).sourceUuid()))
+            throw new IOException("owned source replaced; review required");
+    }
     private static FileLock acquire(RandomAccessFile file, long offset, long length) throws IOException {
         try {
             FileLock lock = file.getChannel().tryLock(offset, length, false);
@@ -106,6 +135,7 @@ public final class SplitLockJournalPrototype implements Closeable {
     /** Synchronous worker/test method. NEVER invoke on ECU callback. */
     public synchronized long append(String row) throws IOException {
         if (closed || failed) throw new IOException("writer stopped; review required");
+        checkContinuity();
         if (row == null || row.isEmpty() || row.indexOf('\r') >= 0 || row.indexOf('\n') >= 0)
             throw new IllegalArgumentException("single nonempty row required");
         ByteBuffer encoded = StandardCharsets.UTF_8.newEncoder()

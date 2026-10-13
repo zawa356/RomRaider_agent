@@ -39,3 +39,34 @@ new writer保有中の別JVM live READ、純粋別lockの両方向二重ownershi
 - `--journal-foreground`、ECU/X270、安全ガード緩和、原本retentionは未実装。
 - watermark設計、dir fsync/物理電源断、rotationは次の独立Phase。
 - Windows実結果はCIログを確認して追記する。Linux PASSから推定しない。
+
+## 2b-2 RLC1 watermark候補
+
+実験用`.rlj.commit`はbig-endian固定104bytes:
+magic RLC1(4)、UUID(16)、sequence(8)、offset(8)、fileKeyのSHA256(32)、
+全確定prefixのSHA256(32)、先頭100byteのCRC32(4)。version不一致は拒否。
+fileKey未提供のFSは保護できたと推定せず停止する。原本ファイルの移設/
+network filesystem/管理者によるinode置換の運用は承認前。
+
+`checkpoint()`は所有handle検証→getFD.sync→tmp CREATE_NEW→force(true)→
+ATOMIC_MOVE+REPLACE_EXISTING→親directory READ channel force(true)。
+atomic move未対応は例外で停止しtmpを残す。非atomic fallbackは実装しない。
+dir force失敗はUNCONFIRMEDを返す。これは成功したjournal/temp syncの事実と
+区別し、物理電源断後のdirectory entry保存を保証しない。
+
+readerは別JVMでのみ使用し、markerが安定している間の確定prefixだけ返す。
+マーカー欠落/破損/UUID違い/offset先行/途中frame/seq矛盾/原本改変/
+byte-identical inode置換/tmp残存をfail closed。既存製品DBへの挿入機能なし。
+読めた完全tailであってもwatermarkを超えていればentriesへ含めない。
+
+以前のSnapshotを渡せば連番退行・既読prefix変更を拒否。ただしメモリのみに
+保持するので別reader再起動での永続highwaterは未実装。古いvalid markerを
+初観測した場合は古い安全prefixのみ返す。製品cursor/ACKへの採用には別の
+SQLite永続highwater・原子的commitの検証が必要。
+
+合成負試験: 3段階のIOExceptionと別JVM halt、旧marker/部分marker、
+CRC/UUID/seq/offset不整合、原本切詰め/内容改変、同内容新inode置換、
+再計算したmarker hashに対するframe CRC/UTF8/seq検査、identity欠落、
+tmp残存の保持、別JVM live readとguard維持。計56項目。
+擬似storage errorは実ENOSPC/実ディスク満杯試験ではない。JVM haltは物理
+電源断ではない。dir sync/zero-lossの強い保証を試験PASSから推定しない。

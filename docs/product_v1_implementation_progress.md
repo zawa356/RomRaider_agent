@@ -283,3 +283,8 @@
 - GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
 - 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
 - Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。
+
+## Phase 4b-2d-2b-2 — 独立durable watermark / WORKING
+
+- DurableWatermarkPrototype RLC1、SplitLockJournalPrototype.checkpoint、別JVM reader試験。既存原本/RLJ1/identity/製品Worker/SQLite/Server IFへ配線しない。
+- WSL Linux JDK17 --release8: journal194チェックPASS (99+39+56)。dir force SYNCED観測。Windows/VPS、実物理電源断はNOT RUN。永続reader highwater未実装、tmp残存は自動修復せず停止。
