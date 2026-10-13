@@ -188,3 +188,12 @@
 - 安全上の制限：元ファイル短縮・OS fileKey差・既読境界fingerprint異常では自動resetせず停止。fileKeyをOSが提供しない環境、追記以外のファイル書き換え・queue欠落の検知は別検証が必要。
 - スコープ：ProductBridgeOnceの明示操作に限定。Server ACKは別台帳、常駐スケジューラ・Loggerコールバック・ECU操作の切替は未実装。
 - 証跡：[詳細](product_v1_incremental_import.md)、[Phase台帳](product_v1_implementation_progress.md)。
+
+## D-028 製品v1の再送は永続backoff・operator reviewを維持しPoC外の別JVMで実行する（2026-10-13、Phase 2.1-D2b-1）
+
+- 背景：HTTPが戻らない際の連続再送はネットワークとServerを圧迫する。認証エラー・契約衝突等は再送しても原本が受理されず、Logger JVMの計測を妨げてはならない。
+- 決定：`v1_delivery_state`にretry回数・次回予定・要調査を永続化し、`ProductDeliveryCoordinator`による2秒開始・最大120秒の指数遅延を実装。`NEEDS_REVIEW`は永続停止し、明示的なoperator resetなしでは再送しない。
+- 実行：`ProductBridgeWorker --once|--foreground`の別Javaプロセスで旧TSVをread-onlyに増分走査。ファイル消失・symlink・上限超はfail closed。同一DBの製品worker間はlock fileで制御。PoC Loggerの`Stream.java`と車両安全操作は変更しない。
+- 制約：旧Queueの満杯drop、`writerLoop`のdequeue後write失敗による消失、旧ACK基準での14日cleanupは未解決。Workerが初めて見る前に削除されたTSVは検知不能。Retry-After、jitter、近時・過去の公平送信、409/422隔離も別フェーズ。
+- 検証：Windows/Linux実SQLite／合成HTTP／独立Javaプロセス。Zulu8 32bit実車・電源断・実Serverに対する**本Worker** E2Eは未実行。
+- 状態：安全側の限定実装。Windowsサービスへの自動登録・実車有効化なし。
