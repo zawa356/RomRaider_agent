@@ -99,6 +99,8 @@ public final class LegacyStreamSafetyTest {
             && stream.queue.contains("M\tsession\t0\tRPM\tEngine Speed\trpm")
             && stream.queue.contains("E\tsession\t0\t124\thealth"));
         stream.queue.clear();
+        for (int i = 0; i < Stream.QUEUE_CAPACITY; i++)
+            stream.queue.offer("synthetic-refill-" + i);
         // Stream.offer is the actual production loss-accounting hook.
         stream.offer("another-unrecoverable");
         ok("callback overflow is counted",stream.dropped.get()==prior+2);
