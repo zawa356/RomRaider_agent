@@ -28,6 +28,40 @@ public final class LegacyStreamSafetyTest {
     private static String read(File f)throws Exception {
         return new String(Files.readAllBytes(f.toPath()),StandardCharsets.UTF_8);
     }
+    /** Counts byte-array writes without depending on timing or runner speed. */
+    private static final class CountingRaf extends RandomAccessFile {
+        int writes;
+        CountingRaf(File file) throws IOException { super(file, "rw"); }
+        @Override public void write(byte[] bytes, int off, int len) throws IOException {
+            super.write(bytes, off, len);
+            writes++;
+        }
+        @Override public void write(byte[] bytes) throws IOException {
+            super.write(bytes);
+            writes++;
+        }
+        @Override public void write(int b) throws IOException {
+            super.write(b);
+            writes++;
+        }
+    }
+    /** Simulates a mid-batch I/O failure AFTER bytes have reached a file. */
+    private static final class FaultRaf extends RandomAccessFile {
+        int writes;
+        FaultRaf(File file) throws IOException { super(file, "rw"); }
+        @Override public void write(byte[] bytes, int off, int len) throws IOException {
+            if (writes++ >= 1) throw new IOException("synthetic mid-batch write failure");
+            super.write(bytes, off, len);
+        }
+        @Override public void write(byte[] bytes) throws IOException {
+            if (writes++ >= 1) throw new IOException("synthetic mid-batch write failure");
+            super.write(bytes);
+        }
+        @Override public void write(int b) throws IOException {
+            if (writes++ >= 1) throw new IOException("synthetic mid-batch write failure");
+            super.write(b);
+        }
+    }
     public static void main(String[] args)throws Exception {
         final Stream stream=Stream.INSTANCE;
         final File base=Files.createTempDirectory("romlogger-legacy-poc-safety").toFile();
@@ -112,6 +146,65 @@ public final class LegacyStreamSafetyTest {
         int length=loss.length();
         stream.flushPending(pending);
         ok("same loss is not reported twice",read(stream.spoolFile()).length()==length);
+
+        // D2b-2c-2: multi-chunk UTF-8/LF write uses fixed buffering, and
+        // rollback is exercised with an IOException AFTER the first write.
+        File batchFile = new File(base, "batched-test.tsv");
+        write(batchFile, "prefix\n");
+        List<String> batchRows = new ArrayList<String>();
+        StringBuilder expected = new StringBuilder("prefix\n");
+        for (int i = 0; i < 2400; i++) {
+            String row = "S\tsynthetic\t2\t" + i
+                + "\t1790000000000\tRPM=1400.0,TPS=12.0,MPR=-9.0,UNIT=日本語";
+            batchRows.add(row);
+            expected.append(row).append('\n');
+        }
+        ok("test batch spans multiple 64KiB blocks",
+            expected.toString().getBytes(StandardCharsets.UTF_8).length
+                > Stream.WRITE_CHUNK_BYTES * 2);
+        boolean injected = false;
+        try (FaultRaf raf = new FaultRaf(batchFile)) {
+            try { Stream.appendDurably(raf, batchRows); }
+            catch (IOException expectedFault) { injected = true; }
+        }
+        ok("mid-batch injected IOException occurs after first write", injected);
+        ok("partial multi-chunk batch is rolled back to durable prefix",
+            read(batchFile).equals("prefix\n"));
+        ok("writer input retained unchanged for explicit retry",
+            batchRows.size() == 2400 && batchRows.get(0).startsWith("S\tsynthetic"));
+        int calls;
+        try (CountingRaf raf = new CountingRaf(batchFile)) {
+            Stream.appendDurably(raf, batchRows);
+            calls = raf.writes;
+        }
+        ok("batched writer avoids per-line OS writes", calls < 50);
+        ok("retry preserves exact UTF-8 TSV bytes once",
+            read(batchFile).equals(expected.toString()));
+
+        List<String> runtimeRows = new ArrayList<String>(batchRows);
+        runtimeRows.add(null);  // synthetic invalid producer, after two chunks
+        boolean runtimeFailed = false;
+        try (RandomAccessFile raf = new RandomAccessFile(batchFile, "rw")) {
+            try { Stream.appendDurably(raf, runtimeRows); }
+            catch (NullPointerException expectedFault) { runtimeFailed = true; }
+        }
+        ok("runtime encoder failure is propagated", runtimeFailed);
+        ok("runtime encoder failure restores original file", read(batchFile).equals(expected.toString()));
+
+        StringBuilder oversized = new StringBuilder("E\tsynthetic\t2\t999\t");
+        for (int i = 0; i < 70000; i++) oversized.append('x');
+        oversized.append("終");
+        List<String> mixedRows = Arrays.asList("M\tsynthetic\t2\tRPM\t回転数\trpm",
+            oversized.toString(), "E\tsynthetic\t2\t1000\tlast");
+        StringBuilder mixedExpected = new StringBuilder(expected);
+        for (String row : mixedRows) mixedExpected.append(row).append('\n');
+        try (RandomAccessFile raf = new RandomAccessFile(batchFile, "rw")) {
+            Stream.appendDurably(raf, mixedRows);
+        }
+        ok("single oversized UTF-8 row bypasses chunk without truncation",
+            read(batchFile).equals(mixedExpected.toString()));
+        ok("oversized line ends with LF before next complete event",
+            read(batchFile).contains("終\nE\tsynthetic\t2\t1000\tlast\n"));
 
         File old=new File(good,"rr_20000101_000000.tsv");
         write(old,"E\told\t0\t1\tline\n");
