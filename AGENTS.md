@@ -1,5 +1,7 @@
 # AGENTS.md — AIエージェント向け作業ガイド
 
+> **2026-10-13夜からのCodex開発**：先に [Codex夜間Agent入口](docs/handoff/2026-10-13_codex_overnight.md) と [Server側Codex引継ぎ正本](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-13_codex_overnight.md) を全文確認する。以下の「現在の状態（2026-10-12時点）」は歴史的スナップショットであり最新版ではない。**現在地はAgent製品進捗、Server進捗、最新GitHub main・PR・CIで確認**すること。作業中はworklog、履歴、ADR、commitをこまめにpushし、中断後の再開点をGitへ残す。ECU/本番/Caddy/MCPの夜間無断変更は禁止。
+
 このファイルは、このリポジトリで作業するAI（Claude、ChatGPT/Codex など）が最初に読むためのものです。
 人間向けの概要は `README.md`、詳細は `docs/` にあります。**情報量を優先して書いています。要約しすぎないでください。**
 

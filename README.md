@@ -1,6 +1,6 @@
 # RomRaider_agent（RRBridge）
 
-**新チャットへの引継ぎ:** [Agent進捗・安全上の注意](docs/handoff/2026-10-13_chat_handoff.md)／[Server全体の詳細引継ぎ](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-13_chat_handoff.md)。必ず最新GitHub main・CIのstepを再確認すること。
+**Codex夜間開発の最新引継ぎ:** [Agent作業入口](docs/handoff/2026-10-13_codex_overnight.md)／[Server側の完全指示書](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-13_codex_overnight.md)。[旧チャット引継ぎ](docs/handoff/2026-10-13_chat_handoff.md)は履歴として保持。必ず最新GitHub main・open PR・CIの実stepとworklogを確認。
 
 > **RomLogger製品設計の正本**: [要件定義書](https://github.com/zawa356/RomRaiderServer/blob/main/docs/system_requirements.md)、[基本設計書](https://github.com/zawa356/RomRaiderServer/blob/main/docs/basic_design.md)、[Server–Agent通信契約v1](https://github.com/zawa356/RomRaiderServer/blob/main/docs/interfaces/server_agent_wire_v1.md)、[設計資料一覧](https://github.com/zawa356/RomRaiderServer/blob/main/docs/README.md)。製品版ではこれらを優先してください。車載側実装の製品仕様は[Agent詳細設計](https://github.com/zawa356/RomRaiderServer/blob/main/docs/agent_detailed_design.md)および[契約・試験計画](https://github.com/zawa356/RomRaiderServer/blob/main/docs/test_acceptance_plan.md)を参照してください。このリポジトリの既存実装・文書はPoCであり、**今動いているPoCの接続規約の正本だけは** [docs/10_interfaces.md](docs/10_interfaces.md) です。製品通信契約v1はPoCと互換とは限らず、製品実装・実車検証は未了です。
 
