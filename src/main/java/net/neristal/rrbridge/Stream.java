@@ -28,6 +28,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class Stream implements DataUpdateHandler {
     static final Stream INSTANCE = new Stream();
     static final int QUEUE_CAPACITY = 200000;
+    // Reserve space for definitions/events (including overflow diagnostics).
+    // This is loss mitigation, NOT durable buffering or a zero-loss guarantee.
+    static final int SAMPLE_QUEUE_LIMIT = QUEUE_CAPACITY - 4096;
     static final int MAX_POST_BYTES = 512 * 1024;
 
     final String session = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -187,6 +190,13 @@ public final class Stream implements DataUpdateHandler {
     }
 
     void offer(String line) {
+        // Sample volume must not consume the final 4096 slots. Preserve M/E
+        // metadata while the writer drains, without blocking the ECU callback.
+        // An M/E storm can still fill the bounded queue: count such loss too.
+        if (line.startsWith("S\t") && queue.size() >= SAMPLE_QUEUE_LIMIT) {
+            dropped.incrementAndGet();
+            return;
+        }
         if (queue.offer(line)) produced.incrementAndGet(); else dropped.incrementAndGet();
     }
 
