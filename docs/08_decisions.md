@@ -308,3 +308,19 @@
 - 合成検証：CloudPC Linux Java8 443チェックPASS、160回fsync writerと最大320回のprobe同時検査を5反復PASS。初回Windows PR CI #38400570091でmandatory FileLockによるライブreader拒否を確認。これは未解決blockerであり、Win32bit/物理電源断も未実施。
 - 禁止：プローブから製品v1 cursor/ACKは進めない。--journal-foregroundは引き続き禁止。watermark、回転、容量監視、権限付き復旧手順を次Phaseで定義。
 - 状態：**read-onlyライブ診断だけPoC合成PASS。ライブ製品化・運用適用は保留。**
+
+## D-039 Lock分離は旧whole-file lockと衝突するquota外guardを付けた別JVM PoCのみ（2026-10-14）
+
+- 純粋な.writer.lock専有は旧writerのwhole-file lockと交差せず、両起動順で二重ownershipが成立する反例。移行案として却下。
+- 候補: 独立SplitLockJournalPrototypeでwriter.lockを取得した後、journalの8MiB位置に1byte排他guardを取る。データは8MiB以下、readerはデータ範囲だけREAD。旧writer whole-file lockはguardに必ず重なる。ロック自体はEOFを伸ばさない。
+- FAIL→修正: Linux POSIXロックは同一inodeの別descriptor closeで解放される。constructor内LiveJournalReadProbeを使わず、所有RandomAccessFileでCRC/sequence/UTF8を検証する。reader/競合writerは別JVM限定。同一JVMの別handle操作・lockファイル置換・削除は未対応/禁止。
+- WSL Linux OpenJDK17.0.20.1 --release 8: 新matrix39＋既存99=138チェックPASS。Windows/VPS新規試験は確認待ち。
+- 状態: 合成PoC候補。既存IngressJournalPrototype、製品Scanner、Worker、Logger、正式IFは変更なし。容量変更・運用導入・同一JVM統合は承認待ち。
+
+### 2026-10-13 22:47 JST — 4b-2d-2b-1 実検証結果 / PASS (PoCのみ)
+
+- PR https://github.com/zawa356/RomRaider_agent/pull/27; code 36bd679 / docs a1a6fa9。
+- WSL/VPS1 codex Linux OpenJDK17.0.20.1 --release8: journal138 + SQLite/receipt344 = 482チェックPASS。VPSにrgなし→grepへ切替、journal試験自体は最初から成功。
+- GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
+- 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
+- Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。

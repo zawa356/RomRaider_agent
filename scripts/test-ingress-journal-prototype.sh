@@ -8,9 +8,11 @@ javac --release 8 -encoding UTF-8 -d build/ingress-journal-prototype \
   src/main/java/net/neristal/rrbridge/prototype/ingress/IngressHandoffPrototype.java \
   src/main/java/net/neristal/rrbridge/prototype/ingress/JournalIdentityPrototype.java \
   src/main/java/net/neristal/rrbridge/prototype/ingress/LiveJournalReadProbe.java \
+  src/main/java/net/neristal/rrbridge/prototype/ingress/SplitLockJournalPrototype.java \
   src/test/java/net/neristal/rrbridge/prototype/ingress/IngressJournalPrototypeTest.java \
   src/test/java/net/neristal/rrbridge/prototype/ingress/IngressHandoffPrototypeTest.java \
-  src/test/java/net/neristal/rrbridge/prototype/ingress/LiveJournalReadProbeTest.java
+  src/test/java/net/neristal/rrbridge/prototype/ingress/LiveJournalReadProbeTest.java \
+  src/test/java/net/neristal/rrbridge/prototype/ingress/SplitLockJournalPrototypeTest.java
 java -cp build/ingress-journal-prototype \
   net.neristal.rrbridge.prototype.ingress.IngressJournalPrototypeTest
 
@@ -20,3 +22,6 @@ java -cp build/ingress-journal-prototype \
 
 java -cp build/ingress-journal-prototype \
   net.neristal.rrbridge.prototype.ingress.LiveJournalReadProbeTest
+
+java -cp build/ingress-journal-prototype \
+  net.neristal.rrbridge.prototype.ingress.SplitLockJournalPrototypeTest

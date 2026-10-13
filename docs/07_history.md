@@ -270,3 +270,16 @@
 - RomRaider: RRBridge v0.5.0 付きで起動中（13:58時点）、ロギング停止、プロファイル basic.xml、session `20261012_135639`。`rrbridge.properties` 配置済み、`profiles/test_21params.xml`（試験用、読込不可）あり。
 - 受信サーバー: v0.4.0 で起動中（127.0.0.1:18766、`data\telemetry.db` に selftest 320＋160サンプル）。
 - OpenPort: USB接続、ECU無応答。
+
+## 2026-10-14 — 4b-2d-2b-1 初回ロック分離試験
+
+- 別JVMの旧/新writer競合matrixと純粋別lockの反例を追加。初回Linux試験で新writerの診断handle closeがguardを消すためsplit→oldがFAIL。所有handle内検証へ修正後39項目PASS、既存99項目PASS。Windows CIとVPSの結果は後続追記。
+- WSL Java未導入はUbuntu公式パッケージのユーザー領域展開で対応。絶対java.security symlinkの初回エラーを修正。VPS1に専用codex clone、baseline99項目PASS。Git資格情報はVPSに移さずlocal ghでpush。
+
+### 2026-10-13 22:47 JST — 4b-2d-2b-1 実検証結果 / PASS (PoCのみ)
+
+- PR https://github.com/zawa356/RomRaider_agent/pull/27; code 36bd679 / docs a1a6fa9。
+- WSL/VPS1 codex Linux OpenJDK17.0.20.1 --release8: journal138 + SQLite/receipt344 = 482チェックPASS。VPSにrgなし→grepへ切替、journal試験自体は最初から成功。
+- GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
+- 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
+- Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。
