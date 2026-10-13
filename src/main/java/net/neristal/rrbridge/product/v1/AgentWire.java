@@ -128,11 +128,13 @@ final class AgentWire {
         return (int)count;
     }
 
-    static boolean profileConfirmed(String json,String profileId) {
+    static boolean profileConfirmed(String json,String profileId,int httpStatus) {
         Map<String,Object> fields=flatObject(json);
         String status=requireString(fields,"status");
-        return ("registered".equals(status)||"already_registered".equals(status))
-            && profileId.equals(requireString(fields,"profile_revision_id"));
+        // Profile HTTP statuses are part of the frozen wire-v1 contract.
+        return ((httpStatus==201 && "registered".equals(status)) ||
+                (httpStatus==200 && "already_registered".equals(status))) &&
+                profileId.equals(requireString(fields,"profile_revision_id"));
     }
 
     static DurableSpool.Ack confirmedAck(String json,DurableSpool.Batch batch) {
