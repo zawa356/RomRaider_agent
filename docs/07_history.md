@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-10-13：製品版Phase 2.1-C1 PoC TSV→v1取込／E2E準備
+
+- PoCの`Stream.java`内部のQueue/TSV writerとServer v1の送信契約が違うため、Logger callbackにI/Oを足さず**TSVの読み取り専用インポーター**を追加。
+- 安定IDでM/S/E行をv1のprofile/observation/eventへ変換してSQLiteに追加。同じ旧TSVの繰り返し取込、切れた行、再起動をWindows/Linux合成テストへ追加。
+- 本物のServer PostgreSQLへ送るE2E試験を用意したが、Private→Privateを読むCI credentialが未設定で実行できていない。**モックCI成功とE2E実行を区別**。
+- 経緯と未解決：[Phase履歴](product_v1_implementation_progress.md)。
+
+---
+
 ## 2026-10-13：製品版Phase 2.1-B HTTP送信クライアント（実装中）
 
 - Phase 2.1-AのSQLite outboxに、Java8単体のHTTPS／JSON送信クライアントとServer v1の完全ACK照合を追加。
