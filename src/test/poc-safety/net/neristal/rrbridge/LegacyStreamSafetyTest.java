@@ -96,7 +96,8 @@ public final class LegacyStreamSafetyTest {
             failedStatus.contains("\"writerDegraded\":true")
             && failedStatus.contains("\"writerPendingLines\":2")
             && failedStatus.contains("\"memoryBufferedLines\":2")
-            && failedStatus.contains("\"lastWriterFsyncAtMs\":null"));
+            && failedStatus.contains("\"lastWriterFsyncAtMs\":"
+                + stream.lastWriterFsyncAtMs));
         ok("no duplicated queue entries after failure",stream.queue.isEmpty());
         stream.spoolDir=good;
         stream.flushPending(pending);
