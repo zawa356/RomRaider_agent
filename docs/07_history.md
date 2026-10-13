@@ -9,7 +9,7 @@
 - LiveJournalReadProbeをJava8 FileChannel.READ専用で実装。writerのlockを奪わずCRC/sequence/UTF8、容量、部分header/bodyや原本変更を検出。COMPLETEは観測結果であり**fsync済みの証明ではない**。
 - JournalIdentityPrototype.readExistingを追加し、probe/Scanner/製品journal importerが空原本のID sidecarを勝手に新規発行しないよう変更。writer従来open互換維持。
 - CloudPCで既存journal/handoff75＋新reader24、製品SQLite/receipt344＝計**443件PASS**。160行writerと最大320回readerの同時検査を5回反復PASS。
-- 未実施：Windows CI（PR結果で確認）、実ECU・Zulu8 32bit・電源断、製品SQLite/Server ACKのライブ動作。次はwatermarkの設計・停止/回転手順。[詳細](phase_2_1_d2b_2c_4b_2d_2a_live_readonly_probe.md)。
+- 初回PR Windows CIでmandatory FileLockによりwriter保有中のFileChannel.readが拒否されることを確認。Linuxライブ読取とのOS差を明示し、Windowsは既知BLOCKEDとして診断試験を更新した。実ECU・Zulu8 32bit・電源断、製品SQLite/Server ACKのライブ動作は未実施。次はlock分離・watermark設計。[詳細](phase_2_1_d2b_2c_4b_2d_2a_live_readonly_probe.md)。
 
 ## 2026-10-13：Phase 2.1-D2b-2c-4b-2d-1（offline Workerと持続停止・監視状態のread-only化）
 

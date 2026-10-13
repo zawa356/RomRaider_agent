@@ -17,7 +17,7 @@
 - `scripts/test-ingress-sqlite-receipts.sh`：既存SQLite/receipt/Worker **344項目PASS**。合算して**443項目PASS**。
 - 新規試験：writer排他lock保有中の読取、160回のfsync付き追記とreader最大320回の並行検査、途中header/途中body/復旧完了、安定CRC破損、sequence gap、UTF-8不正、source/identity不在、quota8MiB超、symlink（OSで許可される環境）、読取専用identity APIがsidecarを生成しないことを確認。
 - 追加の5反復試験：各160回追記・最大320回検査を5回実行、すべてPASS。いずれも合成一時ファイルのみで実ECU/車両に接続なし。
-- Windows上のFileLockの動作とread-only共有方法はOS依存であり、**CIの実ステップ結果を確定するまでWindows PASSとは記載しない**。symlink作成権限がないWindows runnerではsymlink試験はSKIPと表示。
+- **Windowsライブ読取はBLOCKED**：初回CI [#38400570091](https://github.com/zawa356/RomRaider_agent/actions/runs/38400570091) で、writerの排他ロック保有中はFileChannel.readが「別プロセスがファイルの一部をロックしている」エラーで拒否。Linuxの成功をWindowsへ一般化しない。テストでは既知の拒否をBLOCKEDと明記し、writer CLOSE後に全フレームを確認。symlink作成不可はSKIP。
 - 物理電源断、ディスク満杯、Zulu8 32bit、大量長時間ロードテスト、実サーバー統合は未実施。
 
 ## 次の判断ゲート

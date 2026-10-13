@@ -305,6 +305,6 @@
 - 選択：排他ロックを外して製品Workerへ直結（却下）、FileChannel.READのbounded監査プローブ（採用）、耐電源断watermarkで確定したフレームだけ製品へ移送（後続）。
 - 実装：最大8MiB、行128KiB、magic/CRC/連番/UTF8とファイル属性変更を検証。COMPLETE/CHANGING/INCOMPLETE_TAILを区別。修復・破棄・自動ACKはしない。
 - 書込禁止：writer用JournalIdentityPrototype.openのUUID発行がreaderまで及ばないようreadExistingを追加してreaderを切替。既存ID不在は必ず拒否。
-- 合成検証：CloudPC Java8 443チェックPASS、160回fsync writerと最大320回のprobe同時検査5反復PASS。実機/Windows 32bit/物理電源断は未実施。
+- 合成検証：CloudPC Linux Java8 443チェックPASS、160回fsync writerと最大320回のprobe同時検査を5反復PASS。初回Windows PR CI #38400570091でmandatory FileLockによるライブreader拒否を確認。これは未解決blockerであり、Win32bit/物理電源断も未実施。
 - 禁止：プローブから製品v1 cursor/ACKは進めない。--journal-foregroundは引き続き禁止。watermark、回転、容量監視、権限付き復旧手順を次Phaseで定義。
 - 状態：**read-onlyライブ診断だけPoC合成PASS。ライブ製品化・運用適用は保留。**
