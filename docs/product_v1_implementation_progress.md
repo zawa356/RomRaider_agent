@@ -27,6 +27,15 @@
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
+## Phase 2.1-D2b-2c-1 — bounded queueのサンプル優先制限（合成試験中）
+
+- 既存の200,000行上限は維持。S行のみ深さが`QUEUE_CAPACITY - 4096 = 195904`行以上の深さで新たなS行を非ブロッキングで拒否する。
+- M/E行には4,096枠の予約余地を確保する。ただしM/E行の大量生成、競合、writer停止が続けば全体上限に到達し得る。**メタデータ完全保全・欠損ゼロの保証ではない**。
+- 拒否したS行も既存`dropped`計数と`queue_overflow lost_lines`イベントへ反映する。原本の復元はできない。
+- Logger callbackへディスクI/O・sleep・ブロッキング待機は追加しない。PoC/製品v1の通信契約、旧TSV原本の自動削除禁止は変更しない。
+- スタブ合成試験で予約閾値・M/E格納・累積欠損マーカーを確認する。CI証跡はPR確認後に追記する。
+- **未完了**：長期I/O停止・プロセス異常終了時の未fsyncメモリ、完全なdurable ingress、実車X270/32bit/disk-full。後続のD2b-2c-2以降で設計・故障注入する。
+
 ## 変更履歴
 
 ### 2026-10-13 — チャット上限に伴う開発引継ぎ
