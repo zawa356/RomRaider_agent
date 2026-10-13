@@ -37,7 +37,7 @@
 - 制約: HTTPは認証なし（localhost限定）。同じPC上の任意のプロセスから操作できる。
 - 状態: 有効。
 
-## D-005 プロファイルは `RRBridge\profiles\` のファイル名だけを受け付ける（2026-10-12）
+## D-005 プロファイルは `RRBridge\profiles` のファイル名だけを受け付ける（2026-10-12）
 
 - 理由: 任意パスを受け付けると、LLMやネットワーク経由の指示で意図しないファイルを読ませられる。計測計画の「承認済みの範囲」をファイルの配置で表現できる。
 - 実装: `[A-Za-z0-9_.-]+\.xml` かつ実在。範囲外は拒否を実機確認。
@@ -262,3 +262,15 @@
 - 制約：sidecarとjournalの二ファイル整合・ディレクトリ永続化はOSの物理電源断では未証明、Windows32bit・ECU接続なし。SQLite受領receiptを製品レコード登録／Server ACK済みと誤認しない。
 - 後続：ジャーナルの固有IDを原本に埋める設計とファイル回転、既存TSVと二重投入を防ぐ製品v1変換契約、キュー容量上限時の安全な運用停止判断。
 - 状態：独立PoCとして試験完了。実車/本番への接続は引き続き禁止。
+
+
+## D-035 Journal→製品v1取込は既存M/S/E変換を共有し、取込元レーンをセッション単位で固定する（2026-10-13、D2b-2c-4b-2b）
+
+- 背景：独立receipt PoCはSQLiteに原文を保存するが、実運用の`v1_records`・プロフィール・厳密ACKへは繋がっていなかった。別実装のM/S/Eパーサーを作るとTSVと異なるIDや変換ルールが発生する。
+- 決定：`IncrementalTsvBridge.importJournal()`を明示呼び出しで設け、既存の`apply()`/ID生成をそのまま使う。製品v1のprofile/recordを各行の状態snapshot付きの新journalカーソルより先に永続保存する。データとcursorは別transactionだが不変ID・CAS・再入試験で回復する。
+- 二重投入：`v1_source_claims`をSQLiteで永続化し、device/vehicle/sessionごとに旧TSVのsource pathまたはjournal UUIDのどちらか1経路だけ許す。既存の増分・全件TSV両方を対象とし、旧run recordや旧cursorがあり出所不明ならjournalへの切替は拒否する。自動移行・破壊的なclaim解除は提供しない。
+- 改変・障害：journal原本のCRC・連番・UTF8と取込済みprefix SHAチェーンを検査。移設・短縮・取り込んだ行の改変時はSQLiteの原本/ACK/カウンターを勝手に変更せずfail closed。
+- 検証：CloudPC（Java17 `--release 8`）で新規JournalProductBridgeTest35件、製品/receipt284件、journal/handoff75件PASS。異常終了JVMを使って「record保存後cursor更新前」の境界を実行し、再起動時の重複なしを確認。
+- **制限**：現時点では実行Workerに自動接続しない。実ECU制御・OS電源断・32bit/JVM圧力・本番Server E2Eを試験していない。entryジャーナルの元queueが耐電源断になったわけではなく、無欠損・exactly-onceは保証しない。
+- 次のゲート：隔離実Server/Postgresで最新Agentのprofile/record/ACK通過試験、CPU/ディスク容量上限、ファイルローテーション・メンテナンス手順、運用者レビューを設計。安全検証終了まで本番配備しない。
+- 状態：限定的な**製品v1の明示的取込経路**として合成試験完了。Runtime経路の切替は保留。

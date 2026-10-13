@@ -5,12 +5,14 @@ on:
     branches: [main, 'feat/**']
     paths:
       - 'src/main/java/net/neristal/rrbridge/product/v1/**'
+      - 'src/main/java/net/neristal/rrbridge/prototype/ingress/**'
       - 'src/test/java/net/neristal/rrbridge/product/v1/**'
       - 'scripts/test-product-v1-spool.sh'
       - '.github/workflows/product-v1-spool-ci.yml'
   pull_request:
     paths:
       - 'src/main/java/net/neristal/rrbridge/product/v1/**'
+      - 'src/main/java/net/neristal/rrbridge/prototype/ingress/**'
       - 'src/test/java/net/neristal/rrbridge/product/v1/**'
       - 'scripts/test-product-v1-spool.sh'
       - '.github/workflows/product-v1-spool-ci.yml'
