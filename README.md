@@ -74,6 +74,14 @@ bash scripts/test-product-v1-spool.sh
 
 検証の詳細: [`docs/06_verification.md`](docs/06_verification.md)。未解決事項: [`docs/09_open_issues.md`](docs/09_open_issues.md)。
 
+### 2026-10-13：PoC原本保護の追加制約
+
+- TSV writerはdequeue後の行を**fsyncに成功するまでメモリに保持**して再試行する。改行が欠損した破損TSV末尾には追記せず手動修復を要求する
+- 旧`.sent`受領だけでは製品Server ACKにならないため、**元TSVを自動削除しない**。必要容量は監視し、アーカイブは管理者がSQLite取込・本番側ACKを照合した後に別途行う
+- bounded queueが満杯になって失われた行は、writer復帰後に`E ... queue_overflow lost_lines=N`を記録する。**元観測値を復元する仕組みではなく、電源断時の未fsyncキューも復旧不能**
+
+検証：[PoC TSV保全CI](https://github.com/zawa356/RomRaider_agent/actions/workflows/legacy-stream-safety-ci.yml)。本変更はX270実車上では未検証。
+
 ## 3. 仕組みの要点
 
 - `EcuLogger.getEcuLoggerWithoutCreation()`（public static）でロガー本体を取得し、`startLogging()`／`stopLogging()`／`loadUserProfile()` などの公開メソッドを呼ぶ。
@@ -194,7 +202,7 @@ POST http://127.0.0.1:18765/selftest_stream?count=80&hz=8
 | `stream_status` | — | 転送の状態（生成・破棄・送信済み行数、未送信バイト数、送信エラー、最終応答） |
 | `selftest_stream` | `count`≤10000、`hz`≤50 | ECU無しで転送経路を試す合成データ |
 
-設定ファイル `rrbridge.properties`（任意）: `http.token`、`switch.settleMs`（既定1500）、`log.maxBytes`（既定5MB、超えたら `.1` に退避）、`spool.retentionDays`（既定14、送信済みで古いspoolを削除）、`profile.maxParams`（既定20）、`guard.enabled`（既定true）、`guard.minRateHz`（既定2.0）、`guard.checkMs`（既定10000）、`guard.fallbackProfile`。
+設定ファイル `rrbridge.properties`（任意）: `http.token`、`switch.settleMs`（既定1500）、`log.maxBytes`（既定5MB、超えたら `.1` に退避）、`spool.retentionDays`（互換設定値のみ。**製品移行中は旧`.sent`によるTSV自動削除を無効化**）、`profile.maxParams`（既定20）、`guard.enabled`（既定true）、`guard.minRateHz`（既定2.0）、`guard.checkMs`（既定10000）、`guard.fallbackProfile`。
 
 仕様の詳細（応答形式、status JSON、エラー）: [`docs/03_rrbridge_design.md`](docs/03_rrbridge_design.md) §4〜5。
 

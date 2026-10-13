@@ -42,6 +42,12 @@ public final class Stream implements DataUpdateHandler {
     volatile long retentionDays = 14;
     volatile boolean installed = false, threadsStarted = false;
     File spoolDir;
+    private final Object spoolIoLock = new Object();
+    // Writer-only state. A failed append retains the same queued lines for retry.
+    // A queue overflow cannot be recovered, so persist an explicit loss marker
+    // as soon as the local TSV is writable again.
+    private long lastDropMarker = 0;
+    private long pendingDropMarker = -1;
 
     // ---------- 取得速度の計測（実ECUの応答だけを数える。selftest は含めない） ----------
     static final int RING = 512;
@@ -193,16 +199,81 @@ public final class Stream implements DataUpdateHandler {
     File spoolFile() { return new File(spoolDir, "rr_" + session + ".tsv"); }
 
     void writerLoop() {
-        List<String> buf = new ArrayList<String>();
+        // DO NOT clear this buffer after an IOException. queue.take/drainTo
+        // removed the originals, so this is the last copy until fsync succeeds.
+        List<String> pending = new ArrayList<String>();
         while (true) {
             try {
-                buf.clear();
-                buf.add(queue.take());
-                queue.drainTo(buf, 5000);
-                Writer w = new OutputStreamWriter(new FileOutputStream(spoolFile(), true), StandardCharsets.UTF_8);
-                try { for (String s : buf) { w.write(s); w.write('\n'); } } finally { w.close(); }
-            } catch (Throwable e) { Agent.log("spool write error " + e); sleep(500); }
+                if (pending.isEmpty() && dropped.get() <= lastDropMarker) {
+                    pending.add(queue.take());
+                    queue.drainTo(pending, 5000);
+                }
+                flushPending(pending);
+            } catch (Throwable e) {
+                Agent.log("spool write error (retaining " + pending.size()
+                    + " lines for retry): " + e);
+                sleep(500);
+            }
         }
+    }
+
+    /**
+     * One bounded writer cycle, exposed to GUI-free fault tests.
+     * Retain pending on every exception; after success the full group is
+     * durable and can be cleared. Never append to a damaged partial TSV tail.
+     */
+    void flushPending(List<String> pending) throws IOException {
+        if (pending == null) throw new IllegalArgumentException("Pending buffer required");
+        if (pending.isEmpty()) {
+            String head = queue.poll();
+            if (head != null) {
+                pending.add(head);
+                queue.drainTo(pending, 5000);
+            }
+        }
+        // When pending is non-empty it may have failed on the previous
+        // attempt. Never increase that in-flight batch during retries.
+        if (pendingDropMarker < 0 && dropped.get() > lastDropMarker) {
+            pendingDropMarker = dropped.get();
+            long delta = pendingDropMarker - lastDropMarker;
+            // The original dropped sample is unrecoverable. This marker is
+            // evidence of a gap, NEVER a claim that no observations were lost.
+            pending.add("E\t" + session + "\t" + segment + "\t"
+                + System.currentTimeMillis() + "\tqueue_overflow lost_lines="
+                + delta + " dropped_total=" + pendingDropMarker);
+        }
+        if (pending.isEmpty()) return;
+        File file = spoolFile();
+        // Reader must not see a complete LF-delimited row before fsync.
+        synchronized (spoolIoLock) {
+        try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+            long before = raf.length();
+            if (before > 0) {
+                raf.seek(before - 1);
+                if (raf.read() != '\n')
+                    throw new IOException("Incomplete TSV tail; manual recovery required");
+            }
+            try {
+                raf.seek(before);
+                for (String line : pending) {
+                    raf.write(line.getBytes(StandardCharsets.UTF_8));
+                    raf.write('\n');
+                }
+                raf.getFD().sync();
+            } catch (IOException ex) {
+                // Best-effort rollback of this write attempt; if rollback is
+                // impossible, retain both buffer and evidence for diagnosis.
+                try { raf.setLength(before); raf.getFD().sync(); }
+                catch (IOException rollback) { ex.addSuppressed(rollback); }
+                throw ex;
+            }
+        }
+        } // release spool I/O mutex after durable fsync
+        if (pendingDropMarker >= 0) {
+            lastDropMarker = pendingDropMarker;
+            pendingDropMarker = -1;
+        }
+        pending.clear();
     }
 
     // ---------- 転送（spoolの未送信分を送る） ----------
@@ -235,16 +306,20 @@ public final class Stream implements DataUpdateHandler {
     boolean sendSome(File f) throws IOException {
         File off = new File(f.getPath() + ".sent");
         long pos = readLong(off);
-        long len = f.length();
-        if (pos >= len) return false;
-        RandomAccessFile raf = new RandomAccessFile(f, "r");
+        long len;
         byte[] chunk;
-        try {
-            raf.seek(pos);
-            int n = (int) Math.min(len - pos, MAX_POST_BYTES);
-            chunk = new byte[n];
-            raf.readFully(chunk);
-        } finally { raf.close(); }
+        synchronized (spoolIoLock) {
+            // Copy a committed byte range while the writer cannot append or
+            // roll back an interrupted write. Network I/O stays OUTSIDE lock.
+            try (RandomAccessFile raf = new RandomAccessFile(f, "r")) {
+                len = raf.length();
+                if (pos >= len) return false;
+                raf.seek(pos);
+                int n = (int) Math.min(len - pos, MAX_POST_BYTES);
+                chunk = new byte[n];
+                raf.readFully(chunk);
+            }
+        }
         int end = chunk.length;
         while (end > 0 && chunk[end - 1] != '\n') end--;   // 行の途中は送らない
         if (end == 0) return false;
@@ -267,19 +342,13 @@ public final class Stream implements DataUpdateHandler {
         return pos + end < len;
     }
 
-    /** 送信済み（.sent が末尾まで）かつ最終更新が保持日数より古いspoolを削除する。現在のsessionは消さない */
+    /**
+     * RETENTION SAFETY: legacy .sent is NOT a product-v1 Server commit ACK.
+     * Never unlink source files behind the product scanner. Offline archival
+     * must be explicitly reviewed against import cursors AND Server receipts.
+     */
     int cleanupSpool(long days, long nowMs) {
-        if (days <= 0 || spoolDir == null) return 0;
-        int deleted = 0;
-        for (File f : spoolFiles()) {
-            if (f.equals(spoolFile())) continue;
-            File off = new File(f.getPath() + ".sent");
-            boolean fullySent = readLong(off) >= f.length();
-            boolean old = nowMs - f.lastModified() > days * 24L * 3600 * 1000;
-            if (fullySent && old && f.delete()) { off.delete(); deleted++; }
-        }
-        if (deleted > 0) Agent.log("spool cleanup: deleted " + deleted + " fully-sent file(s) older than " + days + " days");
-        return deleted;
+        return 0;
     }
 
     long pendingBytes() {

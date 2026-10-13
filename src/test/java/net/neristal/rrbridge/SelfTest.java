@@ -130,7 +130,7 @@ public final class SelfTest {
         oldSent.setLastModified(longAgo); oldUnsent.setLastModified(longAgo);
         st.sinkUrl = ""; // 掃除試験中に未送信ファイルが送られないよう転送を止める
         int del = st.cleanupSpool(7, System.currentTimeMillis());
-        check("cleanup deleted 1", del == 1 && !oldSent.exists());
+        check("cleanup keeps legacy ACKed source for product importer", del == 0 && oldSent.exists());
         check("cleanup kept unsent", oldUnsent.exists());
         check("cleanup kept current session", st.spoolFile().exists());
 

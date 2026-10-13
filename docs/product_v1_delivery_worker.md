@@ -1,5 +1,7 @@
 # Phase 2.1-D2b-1：製品v1の安全な送信ループ・バックオフ（明示起動）
 
+> **2026-10-13 D2b-2a追記:** 旧`Stream.java`はwriter失敗時にdequeue済み行を保持・再試行し、fsync前の読取をロックで保護するよう変更した。旧`.sent`での自動TSV削除は禁止。queue上限超の行欠損は`E queue_overflow lost_lines=N`として可視化する。以下のD2b-1時点のリスク調査は**修正前の履歴**であり、最新の未完了事項は[実装台帳](product_v1_implementation_progress.md)を参照。無欠損の証明ではない。
+
 ## 今回追加した構成
 
 従来RRBridge/PoCのLogger callback、`Stream.java`、旧TSV送信、操作コマンド、K-Line安全ガードは**変更しない**。
