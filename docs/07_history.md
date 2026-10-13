@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-10-13：製品版 Phase 2.1-D2b-1（永続送信backoff／旧TSV監視）
+
+- SQLiteにretry期限／回数／要調査停止を永続化し、認証・契約エラーの自動再送を禁止。明示起動の別JVM Workerに限り読み取り専用旧TSV監視とServerへのHTTP送信を実行
+- 実際の別Javaプロセスで定義→送信→ACK再送防止→既読TSV消失時停止を合成HTTPで試験。Windows/Linuxで各208項目PASS
+- 既存PoCのwriterはqueueから取り出した後の書き込み失敗で行を失い得ること、送信済みTSVを旧ACKに基づき自動削除することをコードで確認。D2b-2に未解決の重大リスクとして記録
+- 詳細：[送信Worker・欠損リスク](product_v1_delivery_worker.md)と[Phase台帳](product_v1_implementation_progress.md)
+
+---
+
 ## 2026-10-13：製品版 Phase 2.1-D1 増分TSVと故障復旧
 
 - 旧TSVの全行再走査を廃止するため、永続offset・行番号・定義snapshotのSQLite CAS台帳を追加。完結済み行だけ進める。
