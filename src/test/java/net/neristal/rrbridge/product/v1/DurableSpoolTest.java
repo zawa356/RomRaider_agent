@@ -45,7 +45,7 @@ public final class DurableSpoolTest {
         spool.appendProfile(profile,profileJson);
         check("pending profile survives registration",spool.pendingProfiles().size()==1);
         expectFailure("profile immutability", new Throwing() {public void run() throws Exception {
-            spool.appendProfile(profile,"{\"profile_revision_id\":\"changed\"}");
+            initialSpool.appendProfile(profile,"{\"profile_revision_id\":\"changed\"}");
         }});
         String first=id();
         record(spool,first,run,seg,profile,0);
