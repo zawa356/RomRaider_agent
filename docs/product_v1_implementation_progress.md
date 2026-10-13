@@ -15,12 +15,33 @@
 | Phase | 対象 | 状態 | 記録 |
 | --- | --- | --- | --- |
 | 2.1-A | Java 8対応SQLite durable spool、原本・定義とACK台帳 | **CI合格・PR #3** | [PR #3](https://github.com/zawa356/RomRaider_agent/pull/3)／[Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
-| 2.1-B | Server v1プロファイル登録・バッチJSON送信・ACK検証・再送 | 未着手 | Issue #7 |
+| 2.1-B | Server v1プロファイル／バッチのHTTP送信・ACK厳密検証（契約モックCI） | **実装済み・最終CI確認中** | [Issue #7](https://github.com/zawa356/RomRaiderServer/issues/7) |
 | 2.1-C | 既存RRBridgeから製品spoolへ取り込み（合成PoC first） | 未着手 | Issue #7 |
 | 2.1-D | Windows再起動／通信断／ディスク不足／実機での耐久検証 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
 
 ## 変更履歴
+
+### 2026-10-13 — Phase 2.1-B（実装・CI検証中）
+
+**追加・修正**
+
+- `ProductSender.java`：既存SQLiteのProfileRevisionを先にPUT登録し、定義ACK後に同一runの観測レコードをJSON配列化してPOSTする。1回の呼出しで1 HTTP交換に限定
+- `AgentWire.java`：Java8のみでHTTPS通信（loopbackはHTTP可）、転送先リダイレクト禁止、Bearer認証、パスと本文の上限、受信JSONの型・フィールド重複を厳格に検証
+- HTTP200だけでは決してACKとせず、`committed`／`batch_id`／`record_count`／`inserted_count+duplicate_count`一致を条件にSQLiteの原本受領台帳へ反映
+- 401/403/409/413/422/不正レスポンスは`NEEDS_REVIEW`、429/503・一時ネットワーク不通は`RETRY_LATER`とし、**いずれも未ACK原本を保持**
+- 不正な201 Profile応答が例外伝播し得た点を修正し、原本保全した診断待ち結果へ変更
+- `ProductSenderTest.java`：ローカルHTTP契約モックと実SQLiteで、ACK喪失後の再起動・duplicate-only確定、レスポンス偽装、不正なJSON、各種HTTPエラーの保全を検証
+- [通信実装・未検証範囲](product_v1_http_transport.md)を追加
+
+**非対象／未検証**
+
+- **本物のServer v1 PostgreSQLとJava Agent間のE2E試験は未実施**（ローカルHTTP契約モックでの検証）
+- 既存`Stream.java`のLogger callbackへの組込み、バックグラウンド送信、デバイスtokenファイル運用、実ECU、X270 Zulu 8 32bitは未対応
+- 413分割、409/422の不良レコードの隔離、Retry-After／指数バックオフ、鮮度優先と過去回収の公平性はPhase 2.1-C以降
+- PoCの旧HTTP/TSV、RomRaiderアプリ、手動操作・安全ゲートは未変更
+
+**CI**: 合格したGitHub Actions URLとPRを統合前に追記。
 
 ### 2026-10-13 — Phase 2.1-A（Linux/Windows合成CI合格）
 
