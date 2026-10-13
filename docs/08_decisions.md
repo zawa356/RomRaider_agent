@@ -197,3 +197,13 @@
 - 制約：旧Queueの満杯drop、`writerLoop`のdequeue後write失敗による消失、旧ACK基準での14日cleanupは未解決。Workerが初めて見る前に削除されたTSVは検知不能。Retry-After、jitter、近時・過去の公平送信、409/422隔離も別フェーズ。
 - 検証：Windows/Linux実SQLite／合成HTTP／独立Javaプロセス。Zulu8 32bit実車・電源断・実Serverに対する**本Worker** E2Eは未実行。
 - 状態：安全側の限定実装。Windowsサービスへの自動登録・実車有効化なし。
+
+## D-029 元TSVの自動削除を止めwriterはfsyncと失敗再試行を必須とする（2026-10-13、D2b-2a）
+
+- 背景：旧`Stream.java`はqueueから最大5001行をdequeueした後にファイル書込に失敗すると、その原文を失う。旧`.sent`は製品Server v1へのDB commit ACKではなく、元TSVを移行前に消す危険がある。bounded queueが満杯の行は復元できない。
+- 決定：1）writerの未書込バッチを成功fsyncまで保持・再試行。2）readerはwriterとI/Oロックを共有し、fsync前・rollback中の読み出しを避ける。3）TSV尾のLF欠損には追記せず手動修復。4）`cleanupSpool`の旧ACKによる自動削除は**無条件停止**。5）queue超過は可視化イベント`queue_overflow lost_lines`とstatus値で知らせる。
+- 理由：旧PoCサンプル生成と車載操作への影響を最小化しつつ、製品v1のSQLite取込前に原本が消える事故を防ぐ。原本破棄による不可逆欠損より、増加するディスク使用量と要調査停止を安全側に選ぶ。
+- 制約：キューからファイルfsyncまでの電源断、上限超過した瞬間の行の復元はできない。異常tailではWriterが再試行停止し容量逼迫が起こり得る。旧`.sent`の到達だけで製品の全件保存確認としない。
+- 試験：RomRaider.jar不要のStubを用いて実`Stream.java`を`--release 8`でコンパイルし、Windows/Linux上で書込失敗・復帰・尾破損・drop marker・削除無効化を検証。K-Line/実車・電源断は未検証。
+- 残：高負荷時のqueue dropを根絶する構造、fairness、長時間運用・ディスク制限・X270実機は後続Phaseで確認。
+- 状態：D2b-2aとして採用。
