@@ -44,8 +44,10 @@ public final class ProductSender {
                     "/api/agent/v1/profile-revisions/"+pending.profileId,pending.json);
                 if(result.status==200||result.status==201) {
                     // 2xx does NOT imply confirmation without full response matching.
-                    if(!AgentWire.profileConfirmed(result.body,pending.profileId))
-                        return Outcome.NEEDS_REVIEW;
+                    boolean confirmed;
+                    try {confirmed=AgentWire.profileConfirmed(result.body,pending.profileId);}
+                    catch(IllegalArgumentException invalidResponse) {return Outcome.NEEDS_REVIEW;}
+                    if(!confirmed)return Outcome.NEEDS_REVIEW;
                     spool.markProfileAcked(pending.profileId,true);
                     return Outcome.PROFILE_ACKED;
                 }
