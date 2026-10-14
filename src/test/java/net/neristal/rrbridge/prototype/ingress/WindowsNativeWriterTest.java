@@ -242,6 +242,28 @@ public final class WindowsNativeWriterTest {
         try(Writer w=new Writer(quota,21)){w.append("x",NONE);
             try{w.append("y",NONE);throw new AssertionError("quota accepted");}catch(IOException denied){check(quota.toFile().length()==21,"quota stop retains flushed frame");}
             try{w.append("z",NONE);throw new AssertionError("failure latch absent");}catch(IOException denied){check(true,"quota failure latches writer");}}
+        Path partialDir=seed("partial");Path partial=partialDir.resolve("source.rlj");
+        byte[] broken=new byte[]{0x52,0x4c,0x4a,0x31,0,0};Files.write(partial,broken);
+        try(Writer ignored=new Writer(partial,1024)){throw new AssertionError("partial source accepted");}
+        catch(IOException denied){check(Arrays.equals(broken,Files.readAllBytes(partial)),"native constructor rejects partial frame without truncation/repair");}
+        Path tamperDir=seed("tamper");Path tamper=tamperDir.resolve("source.rlj");
+        try(Writer w=new Writer(tamper,1024)){
+            w.append("x",NONE);byte[] modified=Files.readAllBytes(tamper);modified[modified.length-1]^=1;Files.write(tamper,modified);
+            try{w.append("y",NONE);throw new AssertionError("modified prefix accepted");}
+            catch(IOException denied){check(Arrays.equals(modified,Files.readAllBytes(tamper)),"native writer rejects in-place prefix tamper and retains evidence");}
+        }
+        Path invalidDir=seed("invalid-row");Path invalid=invalidDir.resolve("source.rlj");
+        try(Writer w=new Writer(invalid,1024)){
+            try{w.append("\ud800",NONE);throw new AssertionError("malformed surrogate accepted");}
+            catch(IOException denied){check(invalid.toFile().length()==0,"malformed UTF16 input rejected before native write");}
+        }
+        Pointer readOnly=API.CreateFileW(new WString(source.toAbsolutePath().toString()),0x80000000,7,null,3,0x00200000,null);
+        try{
+            WindowsNativeIdentityTest.id(readOnly);
+            check(API.FlushFileBuffers(readOnly)==0,"real native FlushFileBuffers denies read-only handle");
+        }finally{check(API.CloseHandle(readOnly)!=0,"read-only native flush test closes owned handle");}
+        Path closedDir=seed("closed");Writer closed=new Writer(closedDir.resolve("source.rlj"),1024);closed.close();
+        try{closed.append("x",NONE);throw new AssertionError("closed writer appended");}catch(IOException denied){check(true,"closed native writer rejects append");}
         for(final Stage fault:Stage.values()) {
             Path fdir=seed("fault");Path f=fdir.resolve("source.rlj");
             try(Writer w=new Writer(f,1024)) {

@@ -94,3 +94,8 @@
 - test-only native existing-file writer obtains coordination lock + native 8MiB guard, native ID/read/write/FlushFileBuffers on same handle; old/split/native child JVM competition; no SHARE_DELETE while held, retained prefix/sequence validation, quota/fault latch, halt before/after flush.
 - WSL --release8 compilation PASS; runtime Windows-only NOT RUN pending Actions. Existing source/identity/marker formats and product paths unchanged.
 - Next exact: push; create PR; inspect native x64/x86 stages and fix failures. Directory durability/highwater/version migration still BLOCKED.
+
+### 3a-writer-binding negative-fixture checkpoint
+
+- Added real native flush failure on read-only handle, partial-original constructor rejection without repair, in-place tampering preservation, malformed UTF16 rejection before write, closed-writer rejection. Windows runtime validation pending; simulated hooks remain distinct from real ENOSPC/power loss.
+- Next exact: inspect PR33 native x64/x86 CI; do not merge until latest head checks finish.
