@@ -370,3 +370,8 @@
 - 途中失敗/quotaでterminal latch、曖昧原本はretain。SHARE_DELETEなしのrename拒否はfixture限定で、製品共有モードや旧writer移行は決定しない。
 - メモリProofのみ。marker/DB/ACKへ渡さず、RLC1を再解釈しない。dir durability、永続expected identity/highwater、marker version/移行、volume/再起動ゲートは残る。
 - [設計・故障試験](phase_4b_2d_2b_3a_writer_binding.md)、実x64/x86結果はworklogへ保存。
+
+### D-043試験結果（2026-10-14）
+
+- 実Java17/x64とZulu8 1.8.0_504/x86でnative write/FlushFileBuffers/identityの同一handle結合に成功。新旧排他・原本保全・失敗latchもfixtureで成功。
+- テスト候補の基礎のみ。dirUNKNOWN/marker version/expected ledgerが残るため、このProofを製品cursor/ACKへ渡さない。次Phase3bで新版markerを設計する際もdirectory sync未確認をBLOCKED/UNKNOWNと保持する。
