@@ -36,6 +36,9 @@
 | 2.1-D2b-2c-4b-2d-2a | live writerと並行するlock-free/read-only RLJ1診断、existing-only identity | **CloudPC/Linux443項目PASS、Windowsライブ読取はFileLockでBLOCKED、PR両OS CI PASS（遮断検証）・製品cursor/ACK非接続** | [Agent PR #25](https://github.com/zawa356/RomRaider_agent/pull/25)／[journal CI #38401119395](https://github.com/zawa356/RomRaider_agent/actions/runs/38401119395)／[設計・検証](phase_2_1_d2b_2c_4b_2d_2a_live_readonly_probe.md) |
 | 2.1-D2b-2c-4b-2d-2b-1 | 別writer lock＋8MiB外guardの独立PoC・新旧別JVM競合 | **PR #27 merged、Windows/Linux CI PASS、運用非接続** | [PR #27](https://github.com/zawa356/RomRaider_agent/pull/27) |
 | 2.1-D2b-2c-4b-2d-2b-2 | fsync確定watermarkとprefix検証・別JVM故障注入 | **PR #28 merged、Linux PoC PASS、Windows BLOCKED（拒否/保全CI PASS）** | [PR #28](https://github.com/zawa356/RomRaider_agent/pull/28) |
+| 4b-2d-2b-3a | Windows原本同一性3案比較 | **独立比較PASS、A/C反例で否決、B test candidate** | [PR31](https://github.com/zawa356/RomRaider_agent/pull/31) |
+| 3a-compat（安全代替） | bound native READ/actual Zulu8 1.8.0_504 x86 | **独立fixture PASS、NOT_COMMITTED診断** | [PR32](https://github.com/zawa356/RomRaider_agent/pull/32) |
+| 3a-writer-binding（安全代替） | same native ID/write/flush/guard | **x64 writer44/x86 writer45 PASS、marker/DB非接続** | [PR33](https://github.com/zawa356/RomRaider_agent/pull/33) |
 | 2.1-D2b-2c-4b-2d-2b-3 | 新writer/reader/SQLite合成結合とrotation | **BLOCKED（両OSwatermark成立ゲート未達）、設計境界のみ** | [設計/ゲート](phase_4b_2d_2b_lock_watermark.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
@@ -340,3 +343,8 @@
 - PR33 code96e4f15 CI38497582903全3jobs適用steps success、実ログ確認。Windows17/x64 writer44、Zulu8 1.8.0_504/x86 writer45 PASS。
 - Windows17 combined594 unique checks、x86検証subset154 PASS。VPS Linux222+SQLite344=566 PASS。native writerはWindows専用、Linux nativewriter runtimeはNOT RUN。
 - 原本ID/read/write/flushのnative test primitiveは成立。RLC1/dir同期/highwater/marker新版/rotation/本番移行は完成していない。最新docs-head/main/Server同期はworklog参照。
+
+### 2026-10-14 日中最終verification
+
+- 3小Phase Agent31/32/33とServer42/43/44全MERGED。コードmain Agentbd8e70b/Server5a9cdb3。Agent mainCI38498047914 attempt1はWindows依存JAR404でFAIL、attempt2実SQLite/native試験を含む全jobs success。Server main38498052348全適用steps success。
+- 現行VPS main566合成checks、Windows17/x64594、actualZulu8/x86subset154、WSLlegacy44 PASS。Windows old RLC1 full56/dir sync/実車などNOT RUN/BLOCKEDを保持。[最新日中報告](handoff/codex_daytime_report.md)を正本の区切りにする。

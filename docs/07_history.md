@@ -333,3 +333,8 @@
 
 - CI38497582903実ログ：x64 writer44/x86 writer45。old↔native/split↔native/native↔native別JVM排他、read共有、flush前後halt、real native read-only flush拒否、partial/tamper保全、quota latchを確認。Windows594 unique checks、x86subset154、VPS566。
 - 大きな安全ゲートはWindows directory syncUNCONFIRMED、新marker version/永続expected ledger/highwater/rotationのまま。RLC1再解釈・製品Writer/Workerへの配線はしない。
+
+## 2026-10-14 日中最終verificationと取得障害復旧
+
+- Agent33/Server44通常merge後main Agentbd8e70b/Server5a9cdb3。Agent mainCI38498047914 attempt1はWindows SQLite依存JAR404でFAIL、compile/test前の取得障害。Failed-job rerunを要求しattempt2は全実steps/jobs success。同一version/試験条件を維持しskipで隠していない。
+- VPS merged mainjournal222+SQLite344=566 PASS。実Windows17/x64594、Zulu8 1.8.0_504/x86subset154、WSLlegacy44。Server mainCI38498052348success。詳細は日中report/worklog、最終docs-only PRへ保存。

@@ -118,3 +118,11 @@
 - VPS merged main bd8e70b journal222+SQLite344=566 PASS, job-uf9amEsceERJskf- exit0.
 - Existing VPS Caddy/SSH active, mcp-ssh/ssh-mcp-chatgpt running; jr2twt process list had no Java children after tests. Services/config/auth untouched; no own long-running services started.
 - Final docs branch docs/daytime-final-20261014 (/home/zawa/git/romlogger-day-final-agent), based current merged main. Next exact: gh api repos/zawa356/RomRaider_agent/actions/runs/38498047914 --jq '{status,conclusion,run_attempt}'; inspect raw retried job logs/steps. If dependency fetch fails again, diagnose official artifact retrieval in a separate fix Phase; do not mask/skips tests.
+
+## 2026-10-14 10:58 JST / 01:58 UTC — final verification recovery / PASS
+
+- Agent main38498047914 attempt2 all3jobs/適用steps success confirmed. Windows raw job115638842561 logs show actual SQLite/receipt344, native18/READ20/writer44 executed. First attempt HTTP404 failure remains recorded above.
+- VPS tested exact merged mainbd8e70ba88fe2e0e5c8af43379d31651a7594088 with journal222+SQLite344=566 PASS. Server main5a9cdb3/CI38498052348 all applicable steps success.
+- Report rewritten for all3 phases, actual594 x64/154 x86/566 Linux/44 legacy, safety gates, failure/retry, exact next Phase3b design commands. Final docs-only branch docs/daytime-final-20261014; no code changes.
+- Next exact: create final report docs-only PR; workflow_dispatch ingress-journal-prototype-ci.yml on this branch; inspect all latest SHA jobs; usual merge; dispatch current main verification and ensure Server final progress synchronization.
+- Checkpoint timestamps earlier in session were approximate minute headings; actual UTC run/job timestamps and raw logs are authoritative. No original history edited.

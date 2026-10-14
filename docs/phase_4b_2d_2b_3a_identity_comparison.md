@@ -40,7 +40,7 @@ PASSとして再現するが、排他が維持されたとは報告しない。
 これらの製品への配線を許可するものではない。
 
 Windows追加コマンド：`bash scripts/test-windows-native-identity.sh`。
-NTFS/x64 Java17の実結果はActions確認後worklogに追記する。32bit Java8/Zulu8、
+NTFS/x64 Java17の実結果はworklogに保存。32bit Java8/Zulu8は3a時点NOT RUN、後続[compat](phase_4b_2d_2b_3a_compatibility.md)でactual Zulu8/x86成功。
 OS再起動、物理電源断、実ENOSPC、network FS、ReFS、volume cloneはNOT RUN。
 Windows directory forceは従来UNCONFIRMEDのまま。
 
