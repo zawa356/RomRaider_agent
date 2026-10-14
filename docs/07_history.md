@@ -319,3 +319,7 @@
 
 - 3a PR31/main c58a4ba、Server PR42/main31ac365のmain CI38496452266/38496457020適用steps成功を確認。
 - 同一native READ handleのidentity/bytes、copy/tamper/quota/legacy-lock負試験、実Zulu8/x86 ActionsをPR32へ保存。新Windows実行結果は確認中。製品配線・watermarkversion変更なし。
+
+### 2026-10-14 10:39 JST — actual Zulu8 x86 successful
+
+- PR32 code032f294 CI38496691143：Zulu8 1.8.0_504/32bit actual data-model assertion成功。native18+READ21+anchor25+split39+watermark safety6=109 PASS。Windows17 x64550、Linux566 unique checks。原本変更/旧mandatory lock拒否/別handle identity bindingを実際のWindows APIで検証。

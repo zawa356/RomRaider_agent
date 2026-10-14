@@ -358,3 +358,8 @@
 - データはNOT_COMMITTED診断のみ。fsync/DB/ACKの証明や製品path条件解除に使わない。writer側binding、dir永続化、expected ledgerは未成立。
 - 実Zulu8/x86 Actionsを追加しdata-model32をassert。Java17 --release8だけでは32bit成功と報告しない。X270/RomRaider同JVMは別のNOT RUN。
 - [設計・正確な実行手順](phase_4b_2d_2b_3a_compatibility.md)、実試験結果はworklogに追記。
+
+### D-042試験結果（2026-10-14）
+
+- Actual Zulu8 1.8.0_504 x86/Windows2025で同じnative handleのID/bytes診断成功。Java17/x64も成功。原本のコピー・in-place改変・旧writer lockを安全拒否。
+- writer側fsync handleのbindingは残るため、次は独立test-only writer/FlushFileBuffers/identity試験。dir永続化とpersistent highwaterはまだ別ゲート。

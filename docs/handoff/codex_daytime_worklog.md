@@ -69,3 +69,13 @@
 - Test-only Native READ now obtains identity and bounded prefix bytes from SAME handle, checks expected identity/hash, rejects invalid/closed/oversized handles, retains tampered fixtures; native read cannot bypass legacy whole-file lock.
 - Added actual Zulu8/x86 runner step after Java17 --release8 compilation; asserts data-model32. No production dependencies/format/DB/ACK changes.
 - New Windows x64/x86 test NOT RUN until PR Actions. Next: push; gh pr create --head test/day-3a-compat; inspect jobs/raw logs; fix failures.
+
+## 2026-10-14 10:39 JST / 01:39 UTC — 3a-compat / PASS (synthetic primitives)
+
+- PR32 https://github.com/zawa356/RomRaider_agent/pull/32 head c35b6a4; code032f294 CI38496691143 all3 jobs/applicable test steps success, new docs-head CI pending. Raw job115633962743 and115633962357 logs examined, no inferred Windows PASS.
+- Actual Windows Server2025 Zulu8 1.8.0_504 Azul data-model32: native18 + bound READ21 (incl model assertion) + comparison25 + split39 + watermark safety6 =109 checks PASS. full watermark56 NOT RUN, directory UNCONFIRMED. x86 SQLite/product suite NOT RUN in this phase.
+- Windows Java17 x64: journal168 + SQLite/receipt344 + native18 + bound READ20 =550 unique checks PASS. x64 duplicate baseline in x86 job is not added. Linux CI/VPS journal222; Linux CI realSQLite344 PASS (566 unique).
+- VPS dedicated phase clone /home/jr2twt/git/romlogger-day-3a-compat-agent-20261014 tested032f294, job-qAYa1bMQLRUc3a0P exit0. WSL compile --release8 of new native fixtures PASS (runtime Windows-only).
+- Held native reader returns original bytes after same-content path replacement; old writer mandatory lock remains BLOCKED; in-place tampering preserves ID but expected SHA rejects. No fsync proof/DB/ACK.
+- Next exact: gh pr checks 32 -R zawa356/RomRaider_agent; inspect latest head jobs; merge normally; main CI; Server sync. Then safe alternative 3a-writer-binding for same native write/FlushFileBuffers/identity handle (not product migration).
+- Gates unchanged: native writer fsync binding/directory durability/expected ledger not complete, 3b/3c/3d integration BLOCKED. All test child JVMs exited; no existing services modified.
