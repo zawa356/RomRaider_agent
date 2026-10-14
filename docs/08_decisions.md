@@ -324,3 +324,23 @@
 - GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
 - 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
 - Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。
+
+## D-040 watermarkは原本fsync後のprefixを独立markerで表し、dir永続化保証と分離する（2026-10-13）
+
+- 独立RLC1 104bytesを候補: source UUID、sequence、offset、fileKey SHA256、原本prefix SHA256、CRC32。既存RLJ1/identityを変更しない。fileKeyを得られないFSはfail closed。置換原本は内容が同じでも拒否。
+- writerの所有RandomAccessFileでCRC/seq/UTF8を確認しsync成功→tmp CREATE_NEW/force→ATOMIC_MOVE(REPLACE_EXISTING)→directory force。非atomic fallback、tmp自動削除、marker自動補修はしない。Windows dir force未確認時はUNCONFIRMEDとして電源断保証をしない。
+- readerは別JVM READ専用でwatermark範囲まで厳密検査。watermark先行/破損/UUID違い/連番退行/原本切詰め/置換/改変/temp残存を拒否。完全だが未checkpointのtailは除外。読取途中marker変更はretry/reviewとして拒否。
+- previouslyObservedはメモリ内だけ。新readerで古いvalid watermarkを読むと安全な古いprefixへ戻る場合があり、永続highwater/SQLiteとの原子的統合は本Phase未実装。CRC/hashは認証ではなく管理者による同時原本+marker改変の耐改ざん保証なし。
+- WSL OpenJDK17 --release8の新56＋既存138=194チェックPASS。JVM halt3段階、擬似I/O/quota故障、部分marker、live別JVM READを検証。Windows/VPSはこれから。実ディスク満杯/物理電源断/実ECUはNOT RUN。
+- 状態: 独立PoCのみ。製品cursor/ACK/Worker非接続。実運用採用と原本セットrotationは別判断。
+
+### D-040補記 — Windows fileKey非対応をBLOCKEDとする（2026-10-13 23:05 JST）
+
+- Windows Actions journal CI38409471808/38409589169でfileKey nullによる初回FAIL。OpenJDK17 WindowsFileAttributes.fileKey()は常にnullを返す公式実装を確認。内部ensureAccurateMetadata設定でもpublic APIのkeyは得られない。設定案は推測を訂正し未採用。
+- SplitLockのlock-only機能はfileKey任意で前Phase互換を維持、watermarkはnon-null必須を維持。Windowsで3件のfail-closed/原本保全を試験、watermark56シナリオはBLOCKED/NOT RUNと表示する。Windows/Linux atomic stagingとdirectory forceは別の合成試験を追加。
+- 2b-3結合は両OSでwatermark成立のゲート未達としてBLOCKED。代替候補: 公開APIのhardlink anchor+isSameFile、Windows native file identity、原本内UUIDを含む新形式。いずれもlock/互換/dir耐久の追加検証と運用採用承認が必要。夜間は配線せずこの候補を保持。
+
+### D-040最終区切り — 2026-10-14
+
+- 採用範囲は独立PoC/故障fixtureのみ。Linux full watermark56+storage primitive3 PASS、Windows watermark発行/読取拒否3+storage primitive3 PASS (full56 BLOCKED)。Windows directory force UNCONFIRMED。CI successを製品ライブ機能の成立と解釈しない。
+- 2b-3は承認済み順序の両OS成立ゲートが未達でBLOCKED。別方式の識別とsession/source claimのrotation契約をレビューするまでWorker/SQLiteへの配線を実施しない。

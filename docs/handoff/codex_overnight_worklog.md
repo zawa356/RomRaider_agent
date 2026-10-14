@@ -61,3 +61,41 @@
 - GitHub PR最新a1a6fa9: journal run38407692420のWindows/Linux compile/crash/SQLite実ステップsuccess、spool run38407690527の両OS実ステップsuccess。旧writerライブ読取BLOCKEDは継続、新PoCの別JVMライブREAD成功。実Server E2Eは今回NOT RUN。
 - 日時訂正: 前節の2026-10-14表記は記入誤り。実作業は2026-10-13 22:34〜22:49 JST (13:34〜13:49 UTC)。失敗内容・試験実績に変更なし。
 - Next: 最新PR head再CI確認→main mergeとmain CI確認→4b-2d-2b-2 watermark独立PoC。製品導入承認待ち。
+
+## 2026-10-13 22:51 JST — Phase 4b-2d-2b-2 / WORKING
+
+- Base Agent 60ae43cb366e2d2141905526af3675f0ceb0a759; Server 9f98c2e5b6dc673cbc806a89aa87229ed3c784ff (docs PR39 open)。
+- 2b-1 PR27 merged; main journal38408152381 / spool38408153111全jobsと実試験success。
+- Branch feat/phase-4b2d2b2-watermark。次: versioned104byte marker(UUID/seq/offset/fileKey SHA/prefix SHA/CRC)、所有handle fsync→tmp同期→atomic rename→dir force診断。
+- 新試験NOT RUN。故障hook/JVM halt/不整合/改変/置換/容量を合成fixtureだけで検証。readerは別JVM、製品DB/ACK非接続。dir sync未確認や物理電源断をPASS保証にしない。
+
+## 2026-10-13 22:57 JST — 4b-2d-2b-2 / WORKING implementation checkpoint
+
+- DurableWatermarkPrototype RLC1 104bytes: UUID16/seq8/offset8/fileKeyHash32/prefixSHA32/CRC4/magic4。Writer checkpointは所有handleのsync後にtmp force→atomic move→dir force。tmp残存時は保全して停止、非atomic fallbackなし。
+- WSL初回47チェックPASS、追加の別JVM live reader4件とCRC/sequence/UTF8/identity故障5件を追加。最新試験はこれから実行、Windows/VPS NOT RUN。
+- dir force Linux SYNCEDを観測、Windows未実施。電源断保証、永続previous highwater、同一JVMreader/運用配線なし。
+- Server PR39 merged 50ff71ce3ba719d86b14b99db8ba4e1c162e8473; main CI確認待ち。
+- Next exact: bash scripts/test-ingress-journal-prototype.sh → VPS同script/SQLite→PR両OSCI。
+
+## 2026-10-13 23:02 JST / 14:02 UTC — 4b-2d-2b-2 / FAIL→diagnosis
+
+- Windows journal push CI38409471808 job115337677147失敗。default Java17のBasicFileAttributes.fileKeyがnull、constructorの新規必須条件で旧lock-only回帰も止まった。
+- 修正方針: lock-only PoCのfileKeyは任意として前Phase互換維持。watermark自体はnon-null必須を維持し、default Windowsには3件のfail-closed/PRESERVED試験とBLOCKED表示。成功56件とは扱わない。
+- OpenJDK公式実装 https://github.com/openjdk/jdk17u/blob/master/src/java.base/windows/classes/sun/nio/fs/WindowsFileAttributes.java のget()はdefault高速経路でindex値を省略、内部sun.nio.fs.ensureAccurateMetadataを確認。独立Windows test JVMのみtrueを比較、子JVMへ明示伝達。製品/既存writer起動設定は変更しない。
+- 現在ローカル/VPS Linuxは194+344=538チェックPASS (code0bef713)。新修正はNOT VERIFIED、次は同script再実行→commit/push→最新Windows実ログ/dir force観測。2b-3結合はdefaultWindows前提未成立のためBLOCKED候補。
+- 追加レビュー: watermark非regular file拒否、最終読取後source縮小検査を追加。
+
+### 2026-10-13 23:05 JST / 14:05 UTC — fileKey blockerの確定/前節の推測訂正
+
+- OpenJDK公式WindowsFileAttributes.fileKey()は常にnullを返す (同source lines391–394)。ensureAccurateMetadataは内部nativeindexを取得してもpublic fileKeyを公開しない。前節の「高速経路が原因/設定で解消」の推測は撤回、独立設定比較の未実行コードも除去。製品設定変更なし。
+- Windows水準: lock-only PoCは成立、watermark候補はfileKey取得不可でBLOCKED。key条件を弱めず3件の拒否/原本保全を検証。atomic move/dir forceは別の合成primitive試験として両OSで観測し、full watermark56件をWindows PASSと呼ばない。
+- 2b-3のwriter/reader/SQLite結合は両OS成立ゲート未達のためBLOCKED。安全な代替: marker故障注入/OS primitive/設計・rotation境界記録を継続。
+
+## 2026-10-14 09:46 JST — 利用制限から再開 / 4b-2d-2b-2 FINALIZING
+
+- User: 新Phaseへ拡張せず、きりのよいところまで完了して文書を最新化。
+- Base: Agent main60ae43cb366e2d2141905526af3675f0ceb0a759、Server main50ff71ce3ba719d86b14b99db8ba4e1c162e8473。Agent branch headad1a570、Server branch head07db7fe、両作業ツリーclean。open PR28/40を保全して再開。
+- PR28最新ad1a570: journal38410669443/spool38410669276、両OS全jobと実compile/crash/SQLiteステップsuccess。Linux journal197/SQLite344。Windows journal143/SQLite344 (watermark56ケースBLOCKED/NOT RUN、primitive3+安全拒否3のみ)。Windows directory force UNCONFIRMED。
+- legacy bash test.sh: 最初RomRaider.jar欠落でcompile失敗。公式RomRaider 1.1.0-NOV26-2025 linux.zipからcompile-only jarをignored lib/へ導入後、WSLで44 PASS/0 FAIL。binaryはcommitせず、ECU/GUI/本番配備なし。
+- PR40 PoC CI38410796178 compose smoke/supervisor実ステップsuccess。
+- Next: 報告書/ADR/progress更新をpush→PR28最新版CI確認→通常merge→main CI→PR40同期merge/main CI→VPS両cloneを最新mainへff-only同期し最終journal/SQLite試験。2b-3はBLOCKEDのまま。
