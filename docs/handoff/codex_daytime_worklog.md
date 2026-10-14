@@ -143,3 +143,8 @@
 - Review found TEST writer validates old prefix and new CRC/sequence but does not compare post-flush new frame to EXACT bytes passed to WriteFile. A FLUSHED hook can replace x→y with recomputed CRC and produce an incorrect memory Proof for y, though y was not the bytes flushed by this writer. Product has no wiring/marker/ACK and is unaffected.
 - Reproducer not executed yet: add FLUSHED-stage rewrite of payload+CRC; expect no Proof and latched writer. Save RED fixture, run actual Windows x64/x86, then compare entire new frame against written frame and rerun.
 - Next exact: commit/push RED fixture; create PR; inspect actual native job failures; fix and save expected-byte comparison. Keep current watermark/dir/SQLite safety gates.
+
+### 3a-writer-integrity RED fixture saved / NOT YET EXECUTED
+
+- FLUSHED hook rewrites x→y and recomputes valid frame CRC. Expected: reject Proof, preserve CRC-valid y evidence, latch. Existing code is expected to FAIL this new assertion; not called an executed FAIL until Actions.
+- Product/runtime guards unchanged; only test fixture. Next: inspect PR36 real Windows failure, then compare new frame exactly to WriteFile bytes.
