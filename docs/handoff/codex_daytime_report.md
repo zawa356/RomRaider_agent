@@ -10,3 +10,7 @@
 ## 10:39 JST 更新
 
 3a mainCI成功を確認。代替3a-compat PR32で同一native READ handle診断とactual Zulu8 1.8.0_504/32bitの109 checks成功。Windows17/x64 550 unique checks、Linux566。最新docs-head/main統合は進行中。次はwriter fsync handle bindingの安全な独立試験。3b/3c/3dの製品/SQLite配線は依然BLOCKED。
+
+## 10:55 JST — final main verification checkpoint
+
+3a/compat/native-writerのAgent31/32/33、Server42/43/44は統合済み。Agent code mainbd8e70b、Servermain5a9cdb3。Server mainCI成功。Agent mainCI38498047914 attempt1はWindowsのSQLite依存JAR取得HTTP404でFAIL（SQLite tests/native-following step NOT RUN/SKIPPED）。同一URLはlocalHTTP200、failed job retryを依頼。Linux main/VPS566と独立native x86/x64 jobは成功。**main全体PASSはまだ確認していない**。失敗を隠さず最終worklogへ保存。

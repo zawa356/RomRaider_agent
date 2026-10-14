@@ -109,3 +109,12 @@
 - Handles bound in the native TEST candidate only. Original RLC1 watermark full56 remains Windows BLOCKED/NOT RUN; dirUNCONFIRMED, newversion marker/expected ledger/atomic highwater/rotation remain unimplemented. Physical power loss/real ENOSPC/OS reboot/ECU/X270 NOT RUN.
 - Next exact: gh pr checks 33 -R zawa356/RomRaider_agent; verify latest head jobs, normal merge, main jobs; Server sync PR. Then separate new Phase3b can DESIGN a tagged newversion marker using these TEST primitives, with Windows directory UNKNOWN and no SQLite admission until durability gates are met. Do not silently reinterpret RLC1.
 - Code/ADR/history/progress checkpoints pushed; current test processes ended.
+
+## 2026-10-14 10:55 JST / 01:55 UTC — main verification FAIL / retry checkpoint
+
+- Agent PR33 merged main bd8e70ba88fe2e0e5c8af43379d31651a7594088; Server44 merged main5a9cdb3eccff47aa065e7078f4d072c8a6fe28c1. Server mainCI38498052348 all applicable steps success.
+- Agent mainCI38498047914 attempt1 FAILURE: Windows real SQLite step could not obtain sqlite-jdbc3.46.1.3 JAR. Raw job115638230350 shows8 HTTP404 responses across both official Maven endpoints then exit1. SQLite tests and following native step in that job NOT RUN/SKIPPED. Linux and independent x86/x64 native-baseline job success. Do NOT report whole main PASS.
+- Same exact Maven artifact URL returnsHTTP200 from local verification at01:54 UTC. Failure is dependency retrieval before compilation/testing; no evidence of product/native regression. Failed job rerun requested, attempt2 pending. No version/auth/network config changes.
+- VPS merged main bd8e70b journal222+SQLite344=566 PASS, job-uf9amEsceERJskf- exit0.
+- Existing VPS Caddy/SSH active, mcp-ssh/ssh-mcp-chatgpt running; jr2twt process list had no Java children after tests. Services/config/auth untouched; no own long-running services started.
+- Final docs branch docs/daytime-final-20261014 (/home/zawa/git/romlogger-day-final-agent), based current merged main. Next exact: gh api repos/zawa356/RomRaider_agent/actions/runs/38498047914 --jq '{status,conclusion,run_attempt}'; inspect raw retried job logs/steps. If dependency fetch fails again, diagnose official artifact retrieval in a separate fix Phase; do not mask/skips tests.
