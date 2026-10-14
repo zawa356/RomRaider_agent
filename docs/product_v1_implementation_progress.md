@@ -329,3 +329,8 @@
 - Windows actual Zulu8 1.8.0_504 x86 data-model32:109 checks (native18/boundREAD21/comparison25/split39/watermark safety6) PASS。x86 SQLite NOT RUN。X270/RomRaider同JVM/物理電源断はNOT RUN。
 - Windows17 x64 journal168+SQLite344+native18+READ20=550 unique PASS。Linux journal222+SQLite344=566 PASS（VPS phase regressionはjournal222）。PR32 CI38496691143実steps success、最新docs-head/main結果はworklog参照。
 - READはNOT_COMMITTED、legacy writer読取BLOCKED、full watermark56 NOT RUN/dirUNCONFIRMEDを維持。
+
+## Phase 4b-2d-2b-3a-writer-binding — 安全代替 / WORKING
+
+- [PR33](https://github.com/zawa356/RomRaider_agent/pull/33)、D-043、[設計](phase_4b_2d_2b_3a_writer_binding.md)。同一native write/flush/IDとquota外native guardをtest-only x64/x86で比較。marker/DB/製品配線なし。
+- native ownership証拠が成立してもWindows dirUNCONFIRMED・persistent expected ID/highwater・新marker versionが未成立。3bの新version候補設計が次工程、3c/3dはBLOCKED。結果はworklogへ追記。

@@ -363,3 +363,10 @@
 
 - Actual Zulu8 1.8.0_504 x86/Windows2025で同じnative handleのID/bytes診断成功。Java17/x64も成功。原本のコピー・in-place改変・旧writer lockを安全拒否。
 - writer側fsync handleのbindingは残るため、次は独立test-only writer/FlushFileBuffers/identity試験。dir永続化とpersistent highwaterはまだ別ゲート。
+
+## D-043 — native writerのID/read/write/flushは同じhandleで独立検証（2026-10-14）
+
+- 3a-writer-bindingのtest-only native fixtureで既存RLJ1のowned prefixとnative ID、WriteFile、FlushFileBuffersを同一handleへ結合。Java coordination＋native quota外guardでold/split/nativeの排他を比較。
+- 途中失敗/quotaでterminal latch、曖昧原本はretain。SHARE_DELETEなしのrename拒否はfixture限定で、製品共有モードや旧writer移行は決定しない。
+- メモリProofのみ。marker/DB/ACKへ渡さず、RLC1を再解釈しない。dir durability、永続expected identity/highwater、marker version/移行、volume/再起動ゲートは残る。
+- [設計・故障試験](phase_4b_2d_2b_3a_writer_binding.md)、実x64/x86結果はworklogへ保存。

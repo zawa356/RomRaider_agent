@@ -323,3 +323,8 @@
 ### 2026-10-14 10:39 JST — actual Zulu8 x86 successful
 
 - PR32 code032f294 CI38496691143：Zulu8 1.8.0_504/32bit actual data-model assertion成功。native18+READ21+anchor25+split39+watermark safety6=109 PASS。Windows17 x64550、Linux566 unique checks。原本変更/旧mandatory lock拒否/別handle identity bindingを実際のWindows APIで検証。
+
+## 2026-10-14 — 3a-writer-binding native flush基盤
+
+- Agent32/main535929d、Server43/maina9bf1a0のmainCI38497117325/38497121453適用steps successを確認後、独立writer fixtureをPR33へ保存。
+- 同一native handle identity/owned prefix/WriteFile/FlushFileBuffers、nativeguard、新旧別JVM競合、quota/部分原本/改変/UTF16/実flush拒否/別JVM haltを追加。Windows runtime確認中。製品writer/marker/Worker/DB非変更。
