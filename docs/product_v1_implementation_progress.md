@@ -357,3 +357,8 @@
 ### 3a-writer-integrity actual GREEN
 
 - c72ad0d CI38499593483 all3jobs success。post-flush CRC-valid rewriteを拒否/保全/latchする新2項目PASS、x64 writer46、actualZulu8/x86writer47。combined x64596/x86subset156、Linux566。RED証跡と旧44/45範囲を保存。最新head/mainはworklog参照。
+
+### 日中の最終integrity checkpoint
+
+- Agent36/Server46 MERGED、コードmain126c174/8804caa、mainCI38500236200/38500240744全適用steps success。latest Windows17/x64596、actualZulu8/x86subset156、VPS/Linux566、legacy44。writerは46/47。
+- 4小Phase（3a比較/compat/nativewriter/integrity）統合、D-041〜044。最新report/worklogは追加修正を含む。旧594/154は歴史的scope。次Phase3b設計へ、directory UNKNOWN/full old watermark56/ledger/highwater/rotation/本番配線は未成立。

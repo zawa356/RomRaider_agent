@@ -347,3 +347,7 @@
 ### 2026-10-14 11:13 JST — exact-byte integrity GREEN
 
 - c72ad0d pushCI38499593483実x64/x86成功。rawjobs115643128338/115643128598でafter-flush改変拒否・原本保全・latchを照合。writer46/47、combined596/156。REDを削除せず別commitからfixまで追跡可能。
+
+## 日中追加integrity修正の最終統合
+
+- PR36/Server46 MERGED、Agent main126c174/Server8804caa。mainCI38500236200/38500240744の全適用steps成功、raw Windows main logsでwriter46/47とactual x86を照合。RED→exact-byte fix→GREEN→mainまで追跡可能。4小Phaseのreportを最新化し、次Phase3b設計の再開コマンドを保存。
