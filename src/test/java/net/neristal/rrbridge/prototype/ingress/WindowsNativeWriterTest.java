@@ -150,7 +150,8 @@ public final class WindowsNativeWriterTest {
                 hook.at(Stage.FLUSHED);
                 byte[] next=readOwned(handle);
                 if(!identity.equals(WindowsNativeIdentityTest.id(handle)) || next.length!=length+frame.length ||
-                    !Arrays.equals(prefix,sha(Arrays.copyOf(next,(int)length))) || validate(next)!=sequence+1)
+                    !Arrays.equals(prefix,sha(Arrays.copyOf(next,(int)length))) ||
+                    !Arrays.equals(frame,Arrays.copyOfRange(next,(int)length,next.length)) || validate(next)!=sequence+1)
                     throw new IOException("flushed original changed");
                 length=next.length;sequence++;prefix=sha(next);
                 return new Proof(identity,sequence,length,prefix);

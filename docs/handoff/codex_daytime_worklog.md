@@ -148,3 +148,9 @@
 
 - FLUSHED hook rewrites x→y and recomputes valid frame CRC. Expected: reject Proof, preserve CRC-valid y evidence, latch. Existing code is expected to FAIL this new assertion; not called an executed FAIL until Actions.
 - Product/runtime guards unchanged; only test fixture. Next: inspect PR36 real Windows failure, then compare new frame exactly to WriteFile bytes.
+
+## 2026-10-14 11:10 JST — 3a-writer-integrity actual RED / fix checkpoint
+
+- RED213fd22 PR CI38499434376: Windows17/x64 native fixture throws AssertionError “post-flush rewritten CRC-valid frame accepted as writer Proof” (raw job115642618293). Linux journal/SQLite steps success. x86 job fails during x64 baseline; Zulu8 install/runtime SKIPPED, so x86 RED NOT RUN.
+- Fix: post-flush owned bytes must match EXACT appended frame passed to WriteFile, in addition to retained old prefix/ID/size/CRC/sequence. Reject any CRC-recomputed payload rewrite and latch while preserving evidence. New GREEN runtime NOT RUN pending Actions.
+- Product has no native candidate wiring; RLC1/Worker/DB/ACK/sourceformat unchanged. Next exact: push fix; inspect latest PR36 x64/x86 jobs and raw counts; preserve RED/fix history; synchronize Server and report.
