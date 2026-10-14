@@ -348,3 +348,8 @@
 
 - 3小Phase Agent31/32/33とServer42/43/44全MERGED。コードmain Agentbd8e70b/Server5a9cdb3。Agent mainCI38498047914 attempt1はWindows依存JAR404でFAIL、attempt2実SQLite/native試験を含む全jobs success。Server main38498052348全適用steps success。
 - 現行VPS main566合成checks、Windows17/x64594、actualZulu8/x86subset154、WSLlegacy44 PASS。Windows old RLC1 full56/dir sync/実車などNOT RUN/BLOCKEDを保持。[最新日中報告](handoff/codex_daytime_report.md)を正本の区切りにする。
+
+## 3a-writer-integrity — 最終レビュー追加Phase / WORKING
+
+- [PR36](https://github.com/zawa356/RomRaider_agent/pull/36)、D-044。flush後new payload/CRCが改変された場合にmemory Proofを拒否するtest-only修正。RED213fd22をWindows17/x64 CI38499434376で実再現、x86 RED NOT RUN。
+- c72ad0dはexact written-frame比較を追加、GREEN/runtime結果待ち。過去のwriter44/45 PASSにはこの新負試験を含めない。RLC1/full56/dir/highwater/製品配線のゲートはそのまま。

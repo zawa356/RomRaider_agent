@@ -1,5 +1,7 @@
 # RomLogger Codex日中開発報告 — 2026-10-14
 
+**11:10 JST追加検証中:** 最終レビューでtest-only native writerのpost-flush CRC-valid payload rewrite拒否が不足。新Phase3a-writer-integrity/PR36でWindows17 x64 REDを実再現し、exact written-frame比較へ修正。GREEN/mergeは確認中。以下の3Phase/594・154等は追加前の合格範囲であり、この修正の合格ではない。最新worklogを優先。
+
 ## 今回の結果
 
 3つの小Phaseを自律実装・試験・通常mergeし、Server正本へ同期した。製品用ライブジャーナルの完成宣言ではない。

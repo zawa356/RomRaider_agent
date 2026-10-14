@@ -338,3 +338,8 @@
 
 - Agent33/Server44通常merge後main Agentbd8e70b/Server5a9cdb3。Agent mainCI38498047914 attempt1はWindows SQLite依存JAR404でFAIL、compile/test前の取得障害。Failed-job rerunを要求しattempt2は全実steps/jobs success。同一version/試験条件を維持しskipで隠していない。
 - VPS merged mainjournal222+SQLite344=566 PASS。実Windows17/x64594、Zulu8 1.8.0_504/x86subset154、WSLlegacy44。Server mainCI38498052348success。詳細は日中report/worklog、最終docs-only PRへ保存。
+
+## 2026-10-14 11:10 JST — 3a-writer-integrityのレビュー再現と修正
+
+- 最終レビューでTEST writerにpost-flush payload+CRC rewriteの不足を発見し、新Phase/worktree/checkpoint19f7081からRED213fd22を保存。実Windows x64 CI38499434376/rawjob115642618293でexpected AssertionErrorを再現。x86 runtimeはbaseline失敗でSKIPPED/NOT RUN、Linux journal/SQLite成功。
+- c72ad0dでnew frameをWriteFileのexact bytesと照合し、Proof拒否/latch/CRC-valid evidence保全へ修正。GREENは確認中。製品writer/DB/ACKは本PoCと接続しておらず影響なし。
