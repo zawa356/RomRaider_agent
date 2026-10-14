@@ -351,3 +351,15 @@
 - B: native NTFS volume/file indexをテスト専用JNA5.14.0で比較。次実験の推奨候補だが所有handle binding、永続expected identity、index再利用、dir永続化、x86実行が必要。製品採用ではない。
 - C: in-band UUID/headerもコピーでき、物理原本同一性にならない。旧RLJ1互換破壊を伴う変更は実施しない。
 - [比較詳細・一次資料・移行ゲート](phase_4b_2d_2b_3a_identity_comparison.md)。3b/3c/3dはBLOCKED。Windows/Linux実結果はworklogへ追記し、未実施をPASSにしない。
+
+## D-042 — 原本IDと読取bytesは同一native handleで診断する（2026-10-14）
+
+- 3bゲート未達の代替3a-compatで、NTFS native READの期待ID/SHA/容量を検証。pathnameの属性と別handleのbytesを混ぜない。
+- データはNOT_COMMITTED診断のみ。fsync/DB/ACKの証明や製品path条件解除に使わない。writer側binding、dir永続化、expected ledgerは未成立。
+- 実Zulu8/x86 Actionsを追加しdata-model32をassert。Java17 --release8だけでは32bit成功と報告しない。X270/RomRaider同JVMは別のNOT RUN。
+- [設計・正確な実行手順](phase_4b_2d_2b_3a_compatibility.md)、実試験結果はworklogに追記。
+
+### D-042試験結果（2026-10-14）
+
+- Actual Zulu8 1.8.0_504 x86/Windows2025で同じnative handleのID/bytes診断成功。Java17/x64も成功。原本のコピー・in-place改変・旧writer lockを安全拒否。
+- writer側fsync handleのbindingは残るため、次は独立test-only writer/FlushFileBuffers/identity試験。dir永続化とpersistent highwaterはまだ別ゲート。
