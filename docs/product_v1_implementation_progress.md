@@ -353,3 +353,7 @@
 
 - [PR36](https://github.com/zawa356/RomRaider_agent/pull/36)、D-044。flush後new payload/CRCが改変された場合にmemory Proofを拒否するtest-only修正。RED213fd22をWindows17/x64 CI38499434376で実再現、x86 RED NOT RUN。
 - c72ad0dはexact written-frame比較を追加、GREEN/runtime結果待ち。過去のwriter44/45 PASSにはこの新負試験を含めない。RLC1/full56/dir/highwater/製品配線のゲートはそのまま。
+
+### 3a-writer-integrity actual GREEN
+
+- c72ad0d CI38499593483 all3jobs success。post-flush CRC-valid rewriteを拒否/保全/latchする新2項目PASS、x64 writer46、actualZulu8/x86writer47。combined x64596/x86subset156、Linux566。RED証跡と旧44/45範囲を保存。最新head/mainはworklog参照。

@@ -154,3 +154,10 @@
 - RED213fd22 PR CI38499434376: Windows17/x64 native fixture throws AssertionError “post-flush rewritten CRC-valid frame accepted as writer Proof” (raw job115642618293). Linux journal/SQLite steps success. x86 job fails during x64 baseline; Zulu8 install/runtime SKIPPED, so x86 RED NOT RUN.
 - Fix: post-flush owned bytes must match EXACT appended frame passed to WriteFile, in addition to retained old prefix/ID/size/CRC/sequence. Reject any CRC-recomputed payload rewrite and latch while preserving evidence. New GREEN runtime NOT RUN pending Actions.
 - Product has no native candidate wiring; RLC1/Worker/DB/ACK/sourceformat unchanged. Next exact: push fix; inspect latest PR36 x64/x86 jobs and raw counts; preserve RED/fix history; synchronize Server and report.
+
+## 2026-10-14 11:13 JST — 3a-writer-integrity GREEN / synthetic
+
+- Fixc72ad0d pushCI38499593483 all3jobs success. Raw jobs115643128338/115643128598 show CRC-valid post-flush rewrite Proof拒否・retained evidence・latch実成功。Actual x64writer46 / actualZulu8 1.8.0_504 x86writer47 PASS。
+- New combined totals Windows17/x64596 (168+344+18+20+46), x86subset156 (18+21+47+25+39+6); Linux remains222+344=566. Earlier594/154/writer44/45 are historical pre-fix fixture scopes, not this regression proof.
+- Latest docs07e2aaa PRCI38499710764 in progress. RED213fd22/CI38499434376 retained (x64 FAILURE, x86 NOT RUN). Duplicate c72ad0d PR run38499596633 cancelled by newer head, not considered a passing run.
+- Next exact: inspect latest PR36 jobs, normal merge/main CI, Server progress sync and report fourth-phase results. No product/marker/DB/ACK changes.

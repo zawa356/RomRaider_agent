@@ -1,6 +1,6 @@
 # RomLogger Codex日中開発報告 — 2026-10-14
 
-**11:10 JST追加検証中:** 最終レビューでtest-only native writerのpost-flush CRC-valid payload rewrite拒否が不足。新Phase3a-writer-integrity/PR36でWindows17 x64 REDを実再現し、exact written-frame比較へ修正。GREEN/mergeは確認中。以下の3Phase/594・154等は追加前の合格範囲であり、この修正の合格ではない。最新worklogを優先。
+**11:13 JST追加修正:** Phase3a-writer-integrity/PR36でpost-flush CRC-valid payload rewriteをWindows x64 REDとして実再現し、exact written-frame比較へ修正。c72ad0d CI38499593483でx64 writer46/actualZulu8 x86writer47がGREEN。最新docs-head/main統合は確認中。以下の594・154など旧3Phaseの結果は修正前のfixture範囲。最新合計はx64596/x86subset156、worklogを優先。
 
 ## 今回の結果
 

@@ -343,3 +343,7 @@
 
 - 最終レビューでTEST writerにpost-flush payload+CRC rewriteの不足を発見し、新Phase/worktree/checkpoint19f7081からRED213fd22を保存。実Windows x64 CI38499434376/rawjob115642618293でexpected AssertionErrorを再現。x86 runtimeはbaseline失敗でSKIPPED/NOT RUN、Linux journal/SQLite成功。
 - c72ad0dでnew frameをWriteFileのexact bytesと照合し、Proof拒否/latch/CRC-valid evidence保全へ修正。GREENは確認中。製品writer/DB/ACKは本PoCと接続しておらず影響なし。
+
+### 2026-10-14 11:13 JST — exact-byte integrity GREEN
+
+- c72ad0d pushCI38499593483実x64/x86成功。rawjobs115643128338/115643128598でafter-flush改変拒否・原本保全・latchを照合。writer46/47、combined596/156。REDを削除せず別commitからfixまで追跡可能。

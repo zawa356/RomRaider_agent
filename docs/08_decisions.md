@@ -381,3 +381,7 @@
 - 最終レビューでTEST候補に不足を発見。old prefix SHA+new CRC/sequenceだけでは、flush直後にnew payloadとCRCを同時改変しても新Proofを返してしまう。新負試験でWindows17/x64実再現（RED213fd22、CI38499434376）。x86 REDはx64 baseline失敗でNOT RUN。
 - 同じnative handleで読み戻したnew frameを、実際にWriteFileへ渡したframe byte[]と完全照合する。CRC/hashの再計算を物理fsyncの代替にしない。改変はProofなし/terminal latch/原本保全。
 - c72ad0dで修正、x64/x86 GREENは実CI確認後worklogへ保存。private TEST writerの改修のみ、製品/marker/DB/ACKは非変更。D-043の初回合格は当時の44/45fixtureの範囲であり、この負試験の合格を含まない。
+
+### D-044 actual GREEN確認
+
+- c72ad0dのWindows17/x64とactualZulu8 1.8.0_504/x86で改変拒否/保全/latch成功。writer46/47。flush後に観測したvalid CRCを、実際のWriteFile bytesの代替にしない。製品・marker・ledgerへの非配線は維持。
