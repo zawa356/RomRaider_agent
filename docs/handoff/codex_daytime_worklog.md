@@ -53,3 +53,12 @@
 - Recommendation D-041: B native ID is next test candidate; A/C insufficient standalone. 3b/3c/3d still BLOCKED by owned-handle/expected-ID persistence/directory durability gates. Next safe phase: x86 Java8 + bound native read diagnostic, test-only.
 - Next exact: gh pr checks 31 -R zawa356/RomRaider_agent; inspect latest job steps; gh pr merge 31 -R zawa356/RomRaider_agent --merge; inspect main run; synchronize Server docs PR.
 - No production/service/credential changes; all own test children exited by harness, original synthetic evidence retained in TEMP.
+
+## 2026-10-14 10:35 JST / 01:35 UTC — 3a MERGED / 3a-compat START CHECKPOINT
+
+- Agent PR31 merged c58a4ba39e1d81a50aa7a5b8b47fcf4c3c29827e; Server PR42 merged 31ac365985cf7c2c0c98d9c81fc70efc5639be32. Both current open PR=0. PR latest CI38496282039/38496286708 applicable steps success. Main runs38496452266/38496457020 queued; verify before further implementation.
+- WSL legacy selftest44 PASS/0 FAIL using preexisting ignored RomRaider.jar/SQLite test dependency copied only into dedicated worktree.
+- New safe alternative phase 3a-compat (not 3b): test/day-3a-compat, worktree /home/zawa/git/romlogger-day-3a-compat-agent; Server docs/day-3a-compat. Same personal noreply author.
+- Hypothesis: native identity+bounded bytes queried from the SAME read handle avoids path-vs-reader mismatch, but is diagnostic NOT_COMMITTED, not fsync evidence. Compare Java17/x64 and actual Zulu8/x86 on disposable Windows Actions.
+- New tests NOT RUN. Next exact: gh run view 38496452266 -R zawa356/RomRaider_agent --json jobs; verify main steps, then extend test-only native reader and add x86 runtime job.
+- No service/production/writer/DB/ACK changes. All VPS test jobs completed.

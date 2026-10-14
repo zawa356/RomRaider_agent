@@ -1,17 +1,8 @@
-# Codex日中自律開発 最終報告（2026-10-14）
+# Codex日中開発報告 — 2026-10-14（途中チェックポイント）
 
-**初期状態：CODEX DAY SESSION NOT STARTED／実装と試験はNOT RUN。** 引継ぎ文書の準備による初期テンプレート。Codex自身が各小Phase完了時・途中停止直前に更新・commit/pushする。
-
-- 最終Phase／判定 PASS・FAIL・BLOCKED・NOT RUN：
-- 更新日時（JST）：
-- 最新Agent main SHA／Server main SHA：
-- 実装/変更ファイルと理由：
-- 最終commit一覧とPR URL（open/merged）：
-- CloudPC利用有無／Linux・Windows実試験コマンド／PASS・FAIL件数：
-- GitHub Actions run URL、各workflow内実ステップのsuccess/failure/skipped：
-- Windows watermark本体のBLOCKEDが解消したか／証拠：
-- 本番/実車/X270/ECU/物理電源断／Zulu8 32bitのNOT RUN：
-- 重要な失敗と修正コミット・元原本/未ACK保全：
-- 安全な次Phase候補・ユーザー承認待ち：
-- 次セッションで打つ正確なコマンド／未マージPR：
-- Caddy/MCP/SSH/既存DBへの影響と自分の残存テストプロセス：
+- Phase3a比較をAgent PR31/main c58a4ba、Server同期PR42/main31ac365へ通常merge。PR両OS試験成功、main CI38496452266/38496457020は確認中。
+- Linux VPS journal222+SQLite/receipt344=566 unique checks PASS。Windows Actions journal168+SQLite344+native18=530 PASS。WSL legacy44 PASS。追加spool322は既存subsetを再試験したため二重加算しない。
+- A/C単独識別を反例で否決し、native NTFS identityを次独立実験の候補へ。3b/3c/3dは所有handle/永続expected ID/dir耐久ゲートでBLOCKED。Windows watermark56 NOT RUN、dir UNCONFIRMED。
+- 3a-compatのcheckpointをtest/day-3a-compatへ保存。新実装/試験NOT RUN。Java8/x86＋同一read handleのidentity/bytes診断を次に試験する。
+- CloudPC MCP利用成功、専用clone /home/jr2twt/git/romlogger-day-3a-agent-20261014。既存認証・サービス・本番DB変更なし。実車/X270/ECU/物理電源断/実ENOSPC/OS再起動はNOT RUN。
+- 詳細/正確な次コマンドはcodex_daytime_worklog.mdの最終項目。
