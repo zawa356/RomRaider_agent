@@ -136,3 +136,28 @@
 - Report: docs/handoff/codex_daytime_report.md is published on main. Its final Git commands and next gate replace older preparation commands above; do NOT recreate the completed final-report PR34/45.
 - **Next exact** (new Phase3b DESIGN/test-only, not production): git fetch origin; git status --porcelain=v1 --branch; gh pr list --state open; cat docs/handoff/codex_daytime_report.md; cat docs/phase_4b_2d_2b_3a_writer_binding.md; git worktree add ../romlogger-day-3b-watermark-v2 -b feat/day-3b-watermark-v2 origin/main (inspect/preserve if name already exists). Save a fresh start checkpoint before coding. Design new marker version/identity-tag and directory UNKNOWN gating; never reinterpret RLC1 or feed SQLite/ACK until 3b cross-OS safety gates hold.
 - VPS latest writer-phase verification branch verification/native-writer-main testedbd8e70b, all own Java children exited. Own test resources are TEMP fixtures retained as evidence; no own service/DB to stop. Read-only service observations remained active/running. No ECU/X270/production/services/auth changes.
+
+## 2026-10-14 11:07 JST — 3a-writer-integrity STARTED / review finding
+
+- Prior metadata PR35/branch d1c1bda CI38499146051 all3 applicable jobs success; report/main snapshot provenance preserved. New fix/day-native-postflush-integrity worktree /home/zawa/git/romlogger-day-native-integrity-agent; Server docs/day-native-postflush-integrity.
+- Review found TEST writer validates old prefix and new CRC/sequence but does not compare post-flush new frame to EXACT bytes passed to WriteFile. A FLUSHED hook can replace x→y with recomputed CRC and produce an incorrect memory Proof for y, though y was not the bytes flushed by this writer. Product has no wiring/marker/ACK and is unaffected.
+- Reproducer not executed yet: add FLUSHED-stage rewrite of payload+CRC; expect no Proof and latched writer. Save RED fixture, run actual Windows x64/x86, then compare entire new frame against written frame and rerun.
+- Next exact: commit/push RED fixture; create PR; inspect actual native job failures; fix and save expected-byte comparison. Keep current watermark/dir/SQLite safety gates.
+
+### 3a-writer-integrity RED fixture saved / NOT YET EXECUTED
+
+- FLUSHED hook rewrites x→y and recomputes valid frame CRC. Expected: reject Proof, preserve CRC-valid y evidence, latch. Existing code is expected to FAIL this new assertion; not called an executed FAIL until Actions.
+- Product/runtime guards unchanged; only test fixture. Next: inspect PR36 real Windows failure, then compare new frame exactly to WriteFile bytes.
+
+## 2026-10-14 11:10 JST — 3a-writer-integrity actual RED / fix checkpoint
+
+- RED213fd22 PR CI38499434376: Windows17/x64 native fixture throws AssertionError “post-flush rewritten CRC-valid frame accepted as writer Proof” (raw job115642618293). Linux journal/SQLite steps success. x86 job fails during x64 baseline; Zulu8 install/runtime SKIPPED, so x86 RED NOT RUN.
+- Fix: post-flush owned bytes must match EXACT appended frame passed to WriteFile, in addition to retained old prefix/ID/size/CRC/sequence. Reject any CRC-recomputed payload rewrite and latch while preserving evidence. New GREEN runtime NOT RUN pending Actions.
+- Product has no native candidate wiring; RLC1/Worker/DB/ACK/sourceformat unchanged. Next exact: push fix; inspect latest PR36 x64/x86 jobs and raw counts; preserve RED/fix history; synchronize Server and report.
+
+## 2026-10-14 11:13 JST — 3a-writer-integrity GREEN / synthetic
+
+- Fixc72ad0d pushCI38499593483 all3jobs success. Raw jobs115643128338/115643128598 show CRC-valid post-flush rewrite Proof拒否・retained evidence・latch実成功。Actual x64writer46 / actualZulu8 1.8.0_504 x86writer47 PASS。
+- New combined totals Windows17/x64596 (168+344+18+20+46), x86subset156 (18+21+47+25+39+6); Linux remains222+344=566. Earlier594/154/writer44/45 are historical pre-fix fixture scopes, not this regression proof.
+- Latest docs07e2aaa PRCI38499710764 in progress. RED213fd22/CI38499434376 retained (x64 FAILURE, x86 NOT RUN). Duplicate c72ad0d PR run38499596633 cancelled by newer head, not considered a passing run.
+- Next exact: inspect latest PR36 jobs, normal merge/main CI, Server progress sync and report fourth-phase results. No product/marker/DB/ACK changes.

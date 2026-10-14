@@ -150,7 +150,8 @@ public final class WindowsNativeWriterTest {
                 hook.at(Stage.FLUSHED);
                 byte[] next=readOwned(handle);
                 if(!identity.equals(WindowsNativeIdentityTest.id(handle)) || next.length!=length+frame.length ||
-                    !Arrays.equals(prefix,sha(Arrays.copyOf(next,(int)length))) || validate(next)!=sequence+1)
+                    !Arrays.equals(prefix,sha(Arrays.copyOf(next,(int)length))) ||
+                    !Arrays.equals(frame,Arrays.copyOfRange(next,(int)length,next.length)) || validate(next)!=sequence+1)
                     throw new IOException("flushed original changed");
                 length=next.length;sequence++;prefix=sha(next);
                 return new Proof(identity,sequence,length,prefix);
@@ -251,6 +252,24 @@ public final class WindowsNativeWriterTest {
             w.append("x",NONE);byte[] modified=Files.readAllBytes(tamper);modified[modified.length-1]^=1;Files.write(tamper,modified);
             try{w.append("y",NONE);throw new AssertionError("modified prefix accepted");}
             catch(IOException denied){check(Arrays.equals(modified,Files.readAllBytes(tamper)),"native writer rejects in-place prefix tamper and retains evidence");}
+        }
+        final Path rewrittenDir=seed("post-flush-rewrite");final Path rewritten=rewrittenDir.resolve("source.rlj");
+        try(Writer w=new Writer(rewritten,1024)){
+            try{
+                w.append("x",new Hook(){public void at(Stage stage)throws IOException{
+                    if(stage==Stage.FLUSHED){
+                        byte[] bytes=Files.readAllBytes(rewritten);bytes[20]=(byte)'y';
+                        CRC32 crc=new CRC32();crc.update(bytes,20,bytes.length-20);
+                        ByteBuffer.wrap(bytes).putInt(16,(int)crc.getValue());Files.write(rewritten,bytes);
+                    }
+                }});
+                throw new AssertionError("post-flush rewritten CRC-valid frame accepted as writer Proof");
+            }catch(IOException denied){
+                byte[] retained=Files.readAllBytes(rewritten);
+                check(validate(retained)==1 && retained[20]==(byte)'y',"CRC-valid post-flush rewrite retained but never accepted as writer Proof");
+                try{w.append("z",NONE);throw new AssertionError("post-flush rewrite did not latch");}
+                catch(IOException stopped){check(true,"post-flush CRC-valid rewrite latches writer for review");}
+            }
         }
         Path invalidDir=seed("invalid-row");Path invalid=invalidDir.resolve("source.rlj");
         try(Writer w=new Writer(invalid,1024)){

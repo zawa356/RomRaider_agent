@@ -13,7 +13,7 @@
    CRC/sequence/UTF8を検証。writerの初期prefix SHAをメモリ保持する。
 4. append前に同じhandleで既読prefix/長さ/IDを再検証。native `WriteFile`でframeを
    書き、成功・完全byte数を確認。続けて同じhandleの`FlushFileBuffers`を呼ぶ。
-5. flush成功後に再読込して同じID/旧prefix/新sequence/長さを確認し、メモリ内
+5. flush成功後に再読込して同じID/旧prefix/新sequence/長さと**WriteFileへ渡したnew frame exact bytes**を確認し、メモリ内
    `Proof`候補（ID/seq/offset/hash）を返す。markerやDBへ保存しない。
 6. 書込/flush/検証/容量/入力失敗はwriterをlatchし後続appendを拒否。曖昧なbyteを
    truncate/rollback/削除しない。閉鎖時のみ自分のlock/handleを解放。
@@ -58,3 +58,11 @@ Windows durable directory条件を満たさない結果はUNKNOWN/BLOCKEDとし�
 一次資料：[FlushFileBuffers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)、
 [LockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex)。
 実行commit/結果/run/次コマンドは[日中worklog](handoff/codex_daytime_worklog.md)。
+
+## 追加レビューによる修正（3a-writer-integrity / D-044）
+
+初回44/45fixtureの成功後、flush直後にnew payloadとCRCを同時改変する負試験を追加。
+CRC/sequence/old prefix検査だけではProofを拒否できなかったため、REDを実Windows
+x64で再現・保存し、new frameをWriteFileへ渡したbyte[]と完全比較する修正を追加。
+この負試験は物理電源断ではなく、原本改変検知のsyntheticケース。CRC-validに書換えた
+原本を削除/修復せず保持し、Proofを返さずwriterをlatchする。最新結果はworklog参照。
