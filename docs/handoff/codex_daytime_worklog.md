@@ -36,3 +36,10 @@
 - New tests NOT RUN; previous Windows full watermark56 remains BLOCKED/NOT RUN.
 - Next exact: inspect SplitLockJournalPrototype/JournalIdentityPrototype/ProductJournalScanner and add independent anchor copy/replacement/restart fixtures; bash scripts/test-ingress-journal-prototype.sh.
 - Gates: no ECU/X270/Caddy/MCP configuration/SSH/service/production DB/source deletion/Worker wiring. No test processes started.
+
+## 2026-10-14 10:30 JST — 3a / EXPERIMENT CHECKPOINT
+
+- Start checkpoint 4fa9d43 pushed. Timestamp in first entry 10:27 was approximate; remote observation was 10:24-10:26 JST.
+- Linux WSL JDK17: existing journal197 + comparison25 = 222 PASS. Whole anchor-set copy and in-band/sidecar UUID copies are counterexamples; Linux extra same-inode handle close loses guard as expected.
+- Added Windows native NTFS read-attributes/volume-index fixture, JNA5.14.0 core pinned SHA256 in build-only directory; native Windows test NOT RUN until Actions. Product source/format/DB unchanged.
+- Next: push fixtures, run VPS journal/SQLite/spool, create PR, inspect Windows native test job. 3b authorization gate still NOT MET (directory durability/owned-handle integration unresolved).
