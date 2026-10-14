@@ -313,3 +313,8 @@
 
 - [比較設計](phase_4b_2d_2b_3a_identity_comparison.md)、D-041、[PR #31](https://github.com/zawa356/RomRaider_agent/pull/31)。A/C単独識別の反例を再現し、B native NTFS identityをテスト専用に比較。
 - Linux journal222 PASS（旧197+比較25）。Windows実runner結果/SQLite最終結果はworklog追記待ち。3b/3c/3dは所有handle/永続ledger/directory durabilityゲート未達でBLOCKED。製品Worker/SQLite/ACKへ配線していない。
+
+### 3a実試験 — 2026-10-14 10:31 JST
+
+- Linux WSL/VPS journal222、VPS SQLite/receipt344（重複除外合計566）PASS。Windows Actions CI38495966977: journal168+SQLite344+native18=530 PASS。JNA bindingはtest-only x64/NTFS。Linux Windows-native stepは意図したSKIPPED。
+- A/C反例を確定しBを次独立実験の候補へ。Windows watermark full56/dir永続化/x86は未成立、3b/3c/3dはBLOCKED。最新docs headのCI/main統合はworklog参照。

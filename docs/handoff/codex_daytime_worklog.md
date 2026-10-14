@@ -43,3 +43,13 @@
 - Linux WSL JDK17: existing journal197 + comparison25 = 222 PASS. Whole anchor-set copy and in-band/sidecar UUID copies are counterexamples; Linux extra same-inode handle close loses guard as expected.
 - Added Windows native NTFS read-attributes/volume-index fixture, JNA5.14.0 core pinned SHA256 in build-only directory; native Windows test NOT RUN until Actions. Product source/format/DB unchanged.
 - Next: push fixtures, run VPS journal/SQLite/spool, create PR, inspect Windows native test job. 3b authorization gate still NOT MET (directory durability/owned-handle integration unresolved).
+
+## 2026-10-14 10:31 JST / 01:31 UTC — 3a / TEST RESULTS (independent PoC)
+
+- Agent PR31 https://github.com/zawa356/RomRaider_agent/pull/31 open; head721ad34 docs-only after tested f5d87af. Latest CI38496133401 in progress; prior f5d87af CI38495966977 both jobs/all applicable test steps success. Linux native Windows-only step skipped intentionally.
+- WSL Linux OpenJDK17 --release8: journal222 PASS. CloudPC MCP dedicated jr2twt clone OpenJDK17.0.20.1: journal222 + SQLite/receipt344 = 566 unique checks PASS; standalone spool322 repeats the product subset (do NOT add duplicate checks). job-55BieZRPWi43M0zc completed exit0.
+- Windows Server2025 Temurin17 x64 CI38495966977: journal168 (143+comparison25) + SQLite/receipt344 + native18 = 530 unique checks PASS. Native runtime data-model64/JNA5.14.0 verified via job115631673065 raw API log.
+- Windows full watermark56 BLOCKED/NOT RUN; directory UNCONFIRMED. Linux same-JVM close counterexample reproduced. OS reboot/physical power loss/real disk-full/ECU/Zulu8 x86 NOT RUN.
+- Recommendation D-041: B native ID is next test candidate; A/C insufficient standalone. 3b/3c/3d still BLOCKED by owned-handle/expected-ID persistence/directory durability gates. Next safe phase: x86 Java8 + bound native read diagnostic, test-only.
+- Next exact: gh pr checks 31 -R zawa356/RomRaider_agent; inspect latest job steps; gh pr merge 31 -R zawa356/RomRaider_agent --merge; inspect main run; synchronize Server docs PR.
+- No production/service/credential changes; all own test children exited by harness, original synthetic evidence retained in TEMP.
