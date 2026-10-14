@@ -99,3 +99,11 @@
 - legacy bash test.sh: 最初RomRaider.jar欠落でcompile失敗。公式RomRaider 1.1.0-NOV26-2025 linux.zipからcompile-only jarをignored lib/へ導入後、WSLで44 PASS/0 FAIL。binaryはcommitせず、ECU/GUI/本番配備なし。
 - PR40 PoC CI38410796178 compose smoke/supervisor実ステップsuccess。
 - Next: 報告書/ADR/progress更新をpush→PR28最新版CI確認→通常merge→main CI→PR40同期merge/main CI→VPS両cloneを最新mainへff-only同期し最終journal/SQLite試験。2b-3はBLOCKEDのまま。
+
+## 2026-10-14 09:51 JST — 4b-2d-2b-2 FINAL / 2b-3 BLOCKED
+
+- PR28 merged/main e3d76c22fba8fce7f41ad03f6f7c0b386a5794d9。PR38492040774/38492040888、main38492256469/38492256464両OS全jobs/実ステップsuccess。Windows full56は未実行、143+344の停止/回帰のみ成功。
+- VPS final tested f90f103: journal197+SQLite344=541 PASS。ソース同一の実装main e3d76c2へ同期、origin/mainもbundle経由ff更新、clean。caddy/ssh active、mcp-ssh/ssh-mcp-chatgpt running、codex Java試験残存なし。API healthはNOT RUN。
+- Final docs branch docs/overnight-final-verification: report/進捗/履歴/入口リンクを最新化。コード差分なし。
+- Next exact closure: 文書PR作成→branch explicit journal/spool CI→merge→main CI→Server PR40へ最終証跡追記→CI/merge→両VPS clone最新mainへff-only同期・clean確認。既存サービスは触らない。
+- 再開候補はWindows原本識別方式の独立比較。2b-3/製品配線/運用採用はBLOCKED/未承認を保持。

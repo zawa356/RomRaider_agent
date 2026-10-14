@@ -1,5 +1,7 @@
 # docs/ 索引
 
+**2026-10-14の終了・再開点:** [夜間開発報告](handoff/codex_overnight_report.md)、[追記worklog](handoff/codex_overnight_worklog.md)。4b-2d-2b-1は合成PoC統合済み、2b-2はLinux成立/Windows watermark BLOCKED、2b-3結合は未実装。運用Workerへは配線していない。
+
 **最新Codex夜間開発の入口:** [Agent側引継ぎ](handoff/2026-10-13_codex_overnight.md)、[Server側全文・正本](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-13_codex_overnight.md)。[旧チャット引継ぎ](handoff/2026-10-13_chat_handoff.md)は過去の基準点。次回は最新main・open PR・CI・夜間worklogを必ず照合。
 
 | ファイル | 内容 | 主な読者 |

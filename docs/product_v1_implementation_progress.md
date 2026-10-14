@@ -35,7 +35,7 @@
 | 2.1-D2b-2c-4b-2d-1 | オフライン限定の明示Worker選択、SQLite持続停止、状態確認CLI | **CloudPC419チェック＋実PostgreSQL E2E合成7件/3profiles PASS、PR Windows/Linux CI PASS。GitHub実ServerステップSKIPPED** | [PR #24](https://github.com/zawa356/RomRaider_agent/pull/24)／[CI #38391573311](https://github.com/zawa356/RomRaider_agent/actions/runs/38391573311)／[設計/試験](phase_2_1_d2b_2c_4b_2d_1_offline_worker.md) |
 | 2.1-D2b-2c-4b-2d-2a | live writerと並行するlock-free/read-only RLJ1診断、existing-only identity | **CloudPC/Linux443項目PASS、Windowsライブ読取はFileLockでBLOCKED、PR両OS CI PASS（遮断検証）・製品cursor/ACK非接続** | [Agent PR #25](https://github.com/zawa356/RomRaider_agent/pull/25)／[journal CI #38401119395](https://github.com/zawa356/RomRaider_agent/actions/runs/38401119395)／[設計・検証](phase_2_1_d2b_2c_4b_2d_2a_live_readonly_probe.md) |
 | 2.1-D2b-2c-4b-2d-2b-1 | 別writer lock＋8MiB外guardの独立PoC・新旧別JVM競合 | **PR #27 merged、Windows/Linux CI PASS、運用非接続** | [PR #27](https://github.com/zawa356/RomRaider_agent/pull/27) |
-| 2.1-D2b-2c-4b-2d-2b-2 | fsync確定watermarkとprefix検証・別JVM故障注入 | **Linux PoC PASS、Windows fileKey未提供でBLOCKED、安全拒否CI確認中** | [PR #28](https://github.com/zawa356/RomRaider_agent/pull/28) |
+| 2.1-D2b-2c-4b-2d-2b-2 | fsync確定watermarkとprefix検証・別JVM故障注入 | **PR #28 merged、Linux PoC PASS、Windows BLOCKED（拒否/保全CI PASS）** | [PR #28](https://github.com/zawa356/RomRaider_agent/pull/28) |
 | 2.1-D2b-2c-4b-2d-2b-3 | 新writer/reader/SQLite合成結合とrotation | **BLOCKED（両OSwatermark成立ゲート未達）、設計境界のみ** | [設計/ゲート](phase_4b_2d_2b_lock_watermark.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
@@ -302,3 +302,9 @@
 - PR28最新CI38410669443/38410669276両OSsuccess。Linux journal197/SQLite344、Windows journal143/SQLite344。ただしWindows watermark56シナリオはBLOCKED/NOT RUN、storage primitive3+拒否/保全3のみ。directory force Windows UNCONFIRMED、Linux SYNCED観測 (物理電源断保証なし)。
 - WSL legacy test.shは公式1.1.0-NOV26-2025 compile-only jarをignored lib/へ置いて44 PASS/0 FAIL。最初のjar欠落compile失敗も保存。実車/ECU/GUI/本番は未試験。
 - 利用制限中断後、両repo cleanとPR28/40を確認して統合・VPS更新・報告書整備まで完了させる。新設計/2b-3結合へは進めない。
+
+### 2026-10-14 09:51 JST — 最終検証済みの区切り
+
+- Agent PR28 merged/main e3d76c22fba8fce7f41ad03f6f7c0b386a5794d9。main journal CI38492256469/spool CI38492256464の両OS全jobs/実ステップsuccess。
+- VPS1最新テストf90f103でjournal197+SQLite/receipt344=541 PASS、実装main e3d76c2へ同期・clean。WSL legacy44 PASS。Windows journal143+SQLite344=487 PASS（watermark full56 BLOCKED/NOT RUN）。
+- 実装はこのPoCまでで終了。2b-3 BLOCKED、次はWindows識別方式の独立設計/合成検証。設計/安全境界とreport/worklogを最終文書PRで同期。

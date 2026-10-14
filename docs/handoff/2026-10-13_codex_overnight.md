@@ -1,5 +1,9 @@
 # RomLogger Codex夜間開発 — Agent側必読入口（2026-10-13）
 
+## 2026-10-14 終了時点の再開案内
+
+[夜間報告](codex_overnight_report.md)と[最新worklog](codex_overnight_worklog.md)を最初に確認する。PR #27/#28で独立lock/watermark PoCを統合。**Windows watermarkはfileKey取得不可でBLOCKED、2b-3結合へは進めない**。Worker/SQLite/ACK配線・運用採用は未承認。以下の22時頃のSHA/Phaseは初期スナップショットとして保持し、現在地は最新main・PR・進捗・CIで判断する。
+
 > **全体の運用規約・禁止事項・CloudPC/Git手順・今夜のPhase・中断復帰フローの正本**：
 > [Server「Codex無人開発・再開指示書」](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-13_codex_overnight.md)
 >

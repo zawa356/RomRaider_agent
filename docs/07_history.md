@@ -300,3 +300,8 @@
 - PR28最新CI38410669443/38410669276両OSsuccess。Linux journal197/SQLite344、Windows journal143/SQLite344。ただしWindows watermark56シナリオはBLOCKED/NOT RUN、storage primitive3+拒否/保全3のみ。directory force Windows UNCONFIRMED、Linux SYNCED観測 (物理電源断保証なし)。
 - WSL legacy test.shは公式1.1.0-NOV26-2025 compile-only jarをignored lib/へ置いて44 PASS/0 FAIL。最初のjar欠落compile失敗も保存。実車/ECU/GUI/本番は未試験。
 - 利用制限中断後、両repo cleanとPR28/40を確認して統合・VPS更新・報告書整備まで完了させる。新設計/2b-3結合へは進めない。
+
+### 2026-10-14 09:51 JST — PoC PR28統合と終了検証
+
+- main e3d76c2、main journal38492256469/spool38492256464両OS試験とjobs success。VPS final f90f103は197+344=541 PASS、mainへ同期。Caddy/SSH/MCPサービスrunning、codex試験Java残存なし。既存サービス変更は実行せず、API機能healthはNOT RUN。
+- ドキュメント入口に最終報告・再開点とWindows blockerを追加。2b-3へは進まない。
