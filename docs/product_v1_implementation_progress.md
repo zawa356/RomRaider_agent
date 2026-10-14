@@ -308,3 +308,13 @@
 - Agent PR28 merged/main e3d76c22fba8fce7f41ad03f6f7c0b386a5794d9。main journal CI38492256469/spool CI38492256464の両OS全jobs/実ステップsuccess。
 - VPS1最新テストf90f103でjournal197+SQLite/receipt344=541 PASS、実装main e3d76c2へ同期・clean。WSL legacy44 PASS。Windows journal143+SQLite344=487 PASS（watermark full56 BLOCKED/NOT RUN）。
 - 実装はこのPoCまでで終了。2b-3 BLOCKED、次はWindows識別方式の独立設計/合成検証。設計/安全境界とreport/worklogを最終文書PRで同期。
+
+## 2026-10-14 日中 — Phase 4b-2d-2b-3a / 比較中
+
+- [比較設計](phase_4b_2d_2b_3a_identity_comparison.md)、D-041、[PR #31](https://github.com/zawa356/RomRaider_agent/pull/31)。A/C単独識別の反例を再現し、B native NTFS identityをテスト専用に比較。
+- Linux journal222 PASS（旧197+比較25）。Windows実runner結果/SQLite最終結果はworklog追記待ち。3b/3c/3dは所有handle/永続ledger/directory durabilityゲート未達でBLOCKED。製品Worker/SQLite/ACKへ配線していない。
+
+### 3a実試験 — 2026-10-14 10:31 JST
+
+- Linux WSL/VPS journal222、VPS SQLite/receipt344（重複除外合計566）PASS。Windows Actions CI38495966977: journal168+SQLite344+native18=530 PASS。JNA bindingはtest-only x64/NTFS。Linux Windows-native stepは意図したSKIPPED。
+- A/C反例を確定しBを次独立実験の候補へ。Windows watermark full56/dir永続化/x86は未成立、3b/3c/3dはBLOCKED。最新docs headのCI/main統合はworklog参照。

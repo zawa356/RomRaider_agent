@@ -344,3 +344,10 @@
 
 - 採用範囲は独立PoC/故障fixtureのみ。Linux full watermark56+storage primitive3 PASS、Windows watermark発行/読取拒否3+storage primitive3 PASS (full56 BLOCKED)。Windows directory force UNCONFIRMED。CI successを製品ライブ機能の成立と解釈しない。
 - 2b-3は承認済み順序の両OS成立ゲートが未達でBLOCKED。別方式の識別とsession/source claimのrotation契約をレビューするまでWorker/SQLiteへの配線を実施しない。
+
+## D-041 — Windows原本識別3案の比較（2026-10-14、独立試験）
+
+- A: retained hardlinkへの同内容置換を区別するが、whole-set copyは関係を再構築できる。同JVM別handle closeはLinux guardを失う。単独採用しない。
+- B: native NTFS volume/file indexをテスト専用JNA5.14.0で比較。次実験の推奨候補だが所有handle binding、永続expected identity、index再利用、dir永続化、x86実行が必要。製品採用ではない。
+- C: in-band UUID/headerもコピーでき、物理原本同一性にならない。旧RLJ1互換破壊を伴う変更は実施しない。
+- [比較詳細・一次資料・移行ゲート](phase_4b_2d_2b_3a_identity_comparison.md)。3b/3c/3dはBLOCKED。Windows/Linux実結果はworklogへ追記し、未実施をPASSにしない。
