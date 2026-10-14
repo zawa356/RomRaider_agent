@@ -26,3 +26,13 @@
 - 失敗・要承認事項／別Phaseへ切替した理由：
 - **途中で止まった場合、他セッションが次に打つ正確なコマンド**：
 - 自分で起動したテストリソースの状態：
+
+## 2026-10-14 10:27 JST / 01:27 UTC — 4b-2d-2b-3a / STARTED
+
+- Base Agent d83e16dd1f40ebce657278fda70cb779f2d52a86 / Server fcda82b655b16f6e2bf80b25a4e4df9149873e2a; both open PR=0, original worktrees clean.
+- Branch feat/day-3a-identity; worktree /home/zawa/git/romlogger-day-3a-agent; author 220358247+zawa356@users.noreply.github.com. Server docs/day-3a-identity, separate worktree.
+- CloudPC MCP SSH available; existing sudo -n -H -u jr2twt gh identity zawa356 verified; authentication/services unchanged.
+- Hypothesis: hardlink anchor can compare two existing names on Windows, but copied whole source+anchor sets and path/handle races must reject or remain BLOCKED. Compare native handle identity and UUID/header; production formats unchanged.
+- New tests NOT RUN; previous Windows full watermark56 remains BLOCKED/NOT RUN.
+- Next exact: inspect SplitLockJournalPrototype/JournalIdentityPrototype/ProductJournalScanner and add independent anchor copy/replacement/restart fixtures; bash scripts/test-ingress-journal-prototype.sh.
+- Gates: no ECU/X270/Caddy/MCP configuration/SSH/service/production DB/source deletion/Worker wiring. No test processes started.
