@@ -76,3 +76,7 @@ gh run view 38498047914 -R zawa356/RomRaider_agent --json headSha,conclusion,job
 ```
 
 次の安全な開発は**別branchのPhase3b：新version/identity-tagのcross-platform watermark候補の設計と独立負試験**。まずWindows directory UNKNOWNを明示する契約、native/POSIX ID encoding、copy/古いmarker/退行/発行各段階の中断を設計する。3bのcross-OS厳格ゲートが成立するまで3c/3d/製品Workerへ進まない。新しい質問や本番適用を要せずtest-only設計・試験は続けられるが、本報告は今回完了した3小Phaseの実績を区切る。
+
+## 最終公開確認（2026-10-14 11:03 JST）
+
+最終報告Agent [PR34](https://github.com/zawa356/RomRaider_agent/pull/34)、Server [PR45](https://github.com/zawa356/RomRaiderServer/pull/45)はMERGED。公開main Agent96a6afb／Servera65e219で、[Agent main38498916558](https://github.com/zawa356/RomRaider_agent/actions/runs/38498916558)のWindows/Linux/actualZulu8 x86全適用stepsと全jobs success、[Server main38498917172](https://github.com/zawa356/RomRaiderServer/actions/runs/38498917172)の適用steps successを確認した。最後のメタデータ追記は`docs/daytime-published-checkpoint`のみで、実行コード差分なし。最終HEADは上記再取得コマンドで確認する。**次は新しいPhase3bの設計/checkpointであり、完了したreport PRを再作成しない。**
