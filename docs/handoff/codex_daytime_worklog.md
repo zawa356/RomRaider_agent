@@ -87,3 +87,10 @@
 - Target: standalone Windows native handle identity+WriteFile+FlushFileBuffers and native compatibility guard, actual x64/x86 synthetic trials. This removes writer-handle binding uncertainty in the TEST candidate only. No RLC1 reinterpretation/marker/DB/product migration.
 - New tests NOT RUN. Next exact: gh run view 38497117325 -R zawa356/RomRaider_agent --json jobs; implement isolated writer fixture only after main CI.
 - Directory durability/highwater/atomic marker migration remain BLOCKED; no real ECU/X270/production/services/credentials changes.
+
+## 2026-10-14 10:46 JST — 3a-writer-binding implementation / Windows NOT RUN
+
+- Main38497117325/38497121453 all applicable steps success checked before coding.
+- test-only native existing-file writer obtains coordination lock + native 8MiB guard, native ID/read/write/FlushFileBuffers on same handle; old/split/native child JVM competition; no SHARE_DELETE while held, retained prefix/sequence validation, quota/fault latch, halt before/after flush.
+- WSL --release8 compilation PASS; runtime Windows-only NOT RUN pending Actions. Existing source/identity/marker formats and product paths unchanged.
+- Next exact: push; create PR; inspect native x64/x86 stages and fix failures. Directory durability/highwater/version migration still BLOCKED.

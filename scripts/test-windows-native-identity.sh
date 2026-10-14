@@ -12,7 +12,8 @@ if [[ "${1:-}" != "--run-only" ]]; then
 javac --release 8 -encoding UTF-8 -cp "$jar;build/ingress-journal-prototype" \
   -d build/ingress-journal-prototype \
   src/test/java/net/neristal/rrbridge/prototype/ingress/WindowsNativeIdentityTest.java \
-  src/test/java/net/neristal/rrbridge/prototype/ingress/WindowsBoundReadTest.java
+  src/test/java/net/neristal/rrbridge/prototype/ingress/WindowsBoundReadTest.java \
+  src/test/java/net/neristal/rrbridge/prototype/ingress/WindowsNativeWriterTest.java
 fi
 # Java needs Windows classpath separator even inside Git Bash.
 java -cp "$jar;build/ingress-journal-prototype" \
@@ -20,3 +21,6 @@ java -cp "$jar;build/ingress-journal-prototype" \
 
 java -cp "$jar;build/ingress-journal-prototype" \
   net.neristal.rrbridge.prototype.ingress.WindowsBoundReadTest
+
+java -cp "$jar;build/ingress-journal-prototype" \
+  net.neristal.rrbridge.prototype.ingress.WindowsNativeWriterTest
