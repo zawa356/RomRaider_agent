@@ -21,19 +21,20 @@ public final class WindowsNativeIdentityTest {
         Pointer CreateFileW(WString path, int access, int sharing, Pointer security, int disposition, int flags, Pointer template);
         int GetFileInformationByHandle(Pointer handle, Info information);
         int CloseHandle(Pointer handle);
+        int ReadFile(Pointer handle, byte[] data, int bytes, com.sun.jna.ptr.IntByReference read, Pointer overlapped);
     }
     // BY_HANDLE_FILE_INFORMATION: 13 DWORDs, fixed 52 bytes on both x86/x64.
     public static final class Info extends Structure {
         public int[] words = new int[13];
         protected List<String> getFieldOrder() { return Collections.singletonList("words"); }
     }
-    private static final Api API = Native.load("kernel32", Api.class);
+    static final Api API = Native.load("kernel32", Api.class);
     private static int checks;
     private static void check(boolean value, String name) {
         if (!value) throw new AssertionError(name);
         checks++; System.out.println("PASS " + name);
     }
-    private static String id(Pointer handle) throws IOException {
+    static String id(Pointer handle) throws IOException {
         Info info = new Info();
         if (API.GetFileInformationByHandle(handle, info) == 0) throw new IOException("file identity unavailable, error=" + Native.getLastError());
         info.read();
@@ -41,21 +42,56 @@ public final class WindowsNativeIdentityTest {
         if (info.words[11] == 0 && info.words[12] == 0) throw new IOException("empty file index rejected");
         return String.format(java.util.Locale.ROOT, "%08x:%08x:%08x", info.words[7], info.words[11], info.words[12]);
     }
-    private static final class Handle implements AutoCloseable {
+    static final class Handle implements AutoCloseable {
         private Pointer value;
-        Handle(Path path) throws IOException {
+        Handle(Path path) throws IOException { this(path, false); }
+        Handle(Path path, boolean dataRead) throws IOException {
             for (Path p = path.toAbsolutePath(); p != null; p = p.getParent())
                 if (Files.isSymbolicLink(p)) throw new IOException("symlink path rejected");
             if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) throw new IOException("existing regular file required");
             if (!"NTFS".equalsIgnoreCase(Files.getFileStore(path).type())) throw new IOException("unreviewed filesystem");
             // FILE_READ_ATTRIBUTES; share READ|WRITE|DELETE; OPEN_EXISTING;
             // FILE_FLAG_OPEN_REPARSE_POINT. No creation, write, lock, or repair.
-            value = API.CreateFileW(new WString(path.toAbsolutePath().toString()), 0x80, 7, null, 3, 0x00200000, null);
+            value = API.CreateFileW(new WString(path.toAbsolutePath().toString()), dataRead ? 0x80000000 : 0x80, 7, null, 3, 0x00200000, null);
             if (value == null || Pointer.nativeValue(value) == -1L ||
                     (Native.POINTER_SIZE == 4 && Pointer.nativeValue(value) == 0xffffffffL))
                 throw new IOException("open failed, error=" + Native.getLastError());
         }
-        String identity() throws IOException { return id(value); }
+        String identity() throws IOException {
+            if (value == null) throw new IOException("closed handle");
+            return id(value);
+        }
+        byte[] readPrefix(String expectedId, int bytes, byte[] expectedHash) throws IOException {
+            if (value == null || bytes < 0 || bytes > IngressJournalPrototype.MAX_JOURNAL_BYTES)
+                throw new IOException("closed handle or bounded quota");
+            Info before = new Info();
+            if (API.GetFileInformationByHandle(value, before) == 0) throw new IOException("size unavailable");
+            before.read();
+            long size = ((long) before.words[8] << 32) | (before.words[9] & 0xffffffffL);
+            if (size < bytes || size > IngressJournalPrototype.MAX_JOURNAL_BYTES || !expectedId.equals(identity()))
+                throw new IOException("expected source/size mismatch");
+            byte[] result = new byte[bytes]; int offset = 0;
+            while (offset < bytes) {
+                byte[] chunk = new byte[Math.min(4096, bytes - offset)];
+                com.sun.jna.ptr.IntByReference read = new com.sun.jna.ptr.IntByReference();
+                if (API.ReadFile(value, chunk, chunk.length, read, null) == 0)
+                    throw new IOException("native read denied, error=" + Native.getLastError());
+                int count = read.getValue();
+                if (count < 1 || count > chunk.length) throw new IOException("short/stalled native read");
+                System.arraycopy(chunk, 0, result, offset, count); offset += count;
+            }
+            Info after = new Info();
+            if (API.GetFileInformationByHandle(value, after) == 0) throw new IOException("final size unavailable");
+            after.read();
+            long finalSize = ((long) after.words[8] << 32) | (after.words[9] & 0xffffffffL);
+            if (finalSize < bytes || finalSize > IngressJournalPrototype.MAX_JOURNAL_BYTES || !expectedId.equals(identity()))
+                throw new IOException("source changed");
+            try {
+                if (!Arrays.equals(expectedHash, java.security.MessageDigest.getInstance("SHA-256").digest(result)))
+                    throw new IOException("prefix content changed");
+            } catch (java.security.NoSuchAlgorithmException impossible) { throw new AssertionError(impossible); }
+            return result; // DIAGNOSTIC ONLY; no fsync/commit proof or production cursor.
+        }
         public void close() throws IOException {
             if (value != null) { Pointer owned = value; value = null;
                 if (API.CloseHandle(owned) == 0) throw new IOException("close failed"); }

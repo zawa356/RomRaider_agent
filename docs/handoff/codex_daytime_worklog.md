@@ -62,3 +62,10 @@
 - Hypothesis: native identity+bounded bytes queried from the SAME read handle avoids path-vs-reader mismatch, but is diagnostic NOT_COMMITTED, not fsync evidence. Compare Java17/x64 and actual Zulu8/x86 on disposable Windows Actions.
 - New tests NOT RUN. Next exact: gh run view 38496452266 -R zawa356/RomRaider_agent --json jobs; verify main steps, then extend test-only native reader and add x86 runtime job.
 - No service/production/writer/DB/ACK changes. All VPS test jobs completed.
+
+## 2026-10-14 10:38 JST — 3a-compat / IMPLEMENTATION CHECKPOINT (NOT VERIFIED)
+
+- Both main runs38496452266/38496457020 completed success; applicable Windows/Linux journal/native/SQLite and Server unit/compose test steps verified.
+- Test-only Native READ now obtains identity and bounded prefix bytes from SAME handle, checks expected identity/hash, rejects invalid/closed/oversized handles, retains tampered fixtures; native read cannot bypass legacy whole-file lock.
+- Added actual Zulu8/x86 runner step after Java17 --release8 compilation; asserts data-model32. No production dependencies/format/DB/ACK changes.
+- New Windows x64/x86 test NOT RUN until PR Actions. Next: push; gh pr create --head test/day-3a-compat; inspect jobs/raw logs; fix failures.

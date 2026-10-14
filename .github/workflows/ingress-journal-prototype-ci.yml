@@ -51,3 +51,35 @@ jobs:
       - name: Assert no production RomRaider.jar is needed
         shell: bash
         run: test ! -f lib/RomRaider.jar
+
+  windows-java8-x86-identity:
+    name: Test-only native identity and bound READ (Zulu8 x86)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Compile Java8 bytecode and verify x64 baseline
+        shell: bash
+        run: |
+          bash scripts/test-ingress-journal-prototype.sh
+          bash scripts/test-windows-native-identity.sh
+      - name: Install isolated Zulu8 32bit runtime
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '8'
+          architecture: x86
+      - name: Run native identity and bound read in actual 32bit JVM
+        shell: bash
+        env:
+          ROMLOGGER_EXPECT_DATA_MODEL: '32'
+        run: |
+          java -version
+          bash scripts/test-windows-native-identity.sh --run-only
+          java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.JournalIdentityComparisonTest
+          java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.SplitLockJournalPrototypeTest
+          java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.DurableWatermarkPrototypeTest
