@@ -294,3 +294,9 @@
 
 - CI38409471808/38409589169でWindows fileKey常時nullによるFAIL。Linux/VPSは194+344=538 PASS。既存lock-only PoCの任意key互換へ戻し、watermarkのfileKey必須は緩めずdefault Windowsで3件の安全停止を確認する試験へ変更。Windows watermark56ケースは未実行として明記。
 - メタデータ内部設定で解決できる推測は公式ソースのfileKey()常時nullにより撤回。製品起動設定非変更。2b-3結合はBLOCKEDとして安全なOS primitive試験/rotation設計へ進む。
+
+### 2026-10-14 09:46 JST — 中断復帰・最終区切り
+
+- PR28最新CI38410669443/38410669276両OSsuccess。Linux journal197/SQLite344、Windows journal143/SQLite344。ただしWindows watermark56シナリオはBLOCKED/NOT RUN、storage primitive3+拒否/保全3のみ。directory force Windows UNCONFIRMED、Linux SYNCED観測 (物理電源断保証なし)。
+- WSL legacy test.shは公式1.1.0-NOV26-2025 compile-only jarをignored lib/へ置いて44 PASS/0 FAIL。最初のjar欠落compile失敗も保存。実車/ECU/GUI/本番は未試験。
+- 利用制限中断後、両repo cleanとPR28/40を確認して統合・VPS更新・報告書整備まで完了させる。新設計/2b-3結合へは進めない。

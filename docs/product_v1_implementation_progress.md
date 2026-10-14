@@ -296,3 +296,9 @@
 
 - 初回journal Windows CI38409471808/38409589169 FAIL (fileKey null)。Linux full watermark56ケースPASS、Windowsはpublic fileKeyがないのでfullケースを実行できない。安全側に拒否し3件の停止/保全試験を追加。
 - Phase 4b-2d-2b-3の合成SQLite結合はBLOCKED (両OS成立ゲート未達)。production foreground/rotation/DB/ACKに導入しない。代替設計とファイルセット保全条件を文書化する。
+
+### 2026-10-14 09:46 JST — 中断復帰・最終区切り
+
+- PR28最新CI38410669443/38410669276両OSsuccess。Linux journal197/SQLite344、Windows journal143/SQLite344。ただしWindows watermark56シナリオはBLOCKED/NOT RUN、storage primitive3+拒否/保全3のみ。directory force Windows UNCONFIRMED、Linux SYNCED観測 (物理電源断保証なし)。
+- WSL legacy test.shは公式1.1.0-NOV26-2025 compile-only jarをignored lib/へ置いて44 PASS/0 FAIL。最初のjar欠落compile失敗も保存。実車/ECU/GUI/本番は未試験。
+- 利用制限中断後、両repo cleanとPR28/40を確認して統合・VPS更新・報告書整備まで完了させる。新設計/2b-3結合へは進めない。

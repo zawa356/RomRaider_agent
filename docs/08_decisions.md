@@ -339,3 +339,8 @@
 - Windows Actions journal CI38409471808/38409589169でfileKey nullによる初回FAIL。OpenJDK17 WindowsFileAttributes.fileKey()は常にnullを返す公式実装を確認。内部ensureAccurateMetadata設定でもpublic APIのkeyは得られない。設定案は推測を訂正し未採用。
 - SplitLockのlock-only機能はfileKey任意で前Phase互換を維持、watermarkはnon-null必須を維持。Windowsで3件のfail-closed/原本保全を試験、watermark56シナリオはBLOCKED/NOT RUNと表示する。Windows/Linux atomic stagingとdirectory forceは別の合成試験を追加。
 - 2b-3結合は両OSでwatermark成立のゲート未達としてBLOCKED。代替候補: 公開APIのhardlink anchor+isSameFile、Windows native file identity、原本内UUIDを含む新形式。いずれもlock/互換/dir耐久の追加検証と運用採用承認が必要。夜間は配線せずこの候補を保持。
+
+### D-040最終区切り — 2026-10-14
+
+- 採用範囲は独立PoC/故障fixtureのみ。Linux full watermark56+storage primitive3 PASS、Windows watermark発行/読取拒否3+storage primitive3 PASS (full56 BLOCKED)。Windows directory force UNCONFIRMED。CI successを製品ライブ機能の成立と解釈しない。
+- 2b-3は承認済み順序の両OS成立ゲートが未達でBLOCKED。別方式の識別とsession/source claimのrotation契約をレビューするまでWorker/SQLiteへの配線を実施しない。

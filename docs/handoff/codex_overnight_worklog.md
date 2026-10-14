@@ -90,3 +90,12 @@
 - OpenJDK公式WindowsFileAttributes.fileKey()は常にnullを返す (同source lines391–394)。ensureAccurateMetadataは内部nativeindexを取得してもpublic fileKeyを公開しない。前節の「高速経路が原因/設定で解消」の推測は撤回、独立設定比較の未実行コードも除去。製品設定変更なし。
 - Windows水準: lock-only PoCは成立、watermark候補はfileKey取得不可でBLOCKED。key条件を弱めず3件の拒否/原本保全を検証。atomic move/dir forceは別の合成primitive試験として両OSで観測し、full watermark56件をWindows PASSと呼ばない。
 - 2b-3のwriter/reader/SQLite結合は両OS成立ゲート未達のためBLOCKED。安全な代替: marker故障注入/OS primitive/設計・rotation境界記録を継続。
+
+## 2026-10-14 09:46 JST — 利用制限から再開 / 4b-2d-2b-2 FINALIZING
+
+- User: 新Phaseへ拡張せず、きりのよいところまで完了して文書を最新化。
+- Base: Agent main60ae43cb366e2d2141905526af3675f0ceb0a759、Server main50ff71ce3ba719d86b14b99db8ba4e1c162e8473。Agent branch headad1a570、Server branch head07db7fe、両作業ツリーclean。open PR28/40を保全して再開。
+- PR28最新ad1a570: journal38410669443/spool38410669276、両OS全jobと実compile/crash/SQLiteステップsuccess。Linux journal197/SQLite344。Windows journal143/SQLite344 (watermark56ケースBLOCKED/NOT RUN、primitive3+安全拒否3のみ)。Windows directory force UNCONFIRMED。
+- legacy bash test.sh: 最初RomRaider.jar欠落でcompile失敗。公式RomRaider 1.1.0-NOV26-2025 linux.zipからcompile-only jarをignored lib/へ導入後、WSLで44 PASS/0 FAIL。binaryはcommitせず、ECU/GUI/本番配備なし。
+- PR40 PoC CI38410796178 compose smoke/supervisor実ステップsuccess。
+- Next: 報告書/ADR/progress更新をpush→PR28最新版CI確認→通常merge→main CI→PR40同期merge/main CI→VPS両cloneを最新mainへff-only同期し最終journal/SQLite試験。2b-3はBLOCKEDのまま。
