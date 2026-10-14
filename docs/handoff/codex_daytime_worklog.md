@@ -136,3 +136,10 @@
 - Report: docs/handoff/codex_daytime_report.md is published on main. Its final Git commands and next gate replace older preparation commands above; do NOT recreate the completed final-report PR34/45.
 - **Next exact** (new Phase3b DESIGN/test-only, not production): git fetch origin; git status --porcelain=v1 --branch; gh pr list --state open; cat docs/handoff/codex_daytime_report.md; cat docs/phase_4b_2d_2b_3a_writer_binding.md; git worktree add ../romlogger-day-3b-watermark-v2 -b feat/day-3b-watermark-v2 origin/main (inspect/preserve if name already exists). Save a fresh start checkpoint before coding. Design new marker version/identity-tag and directory UNKNOWN gating; never reinterpret RLC1 or feed SQLite/ACK until 3b cross-OS safety gates hold.
 - VPS latest writer-phase verification branch verification/native-writer-main testedbd8e70b, all own Java children exited. Own test resources are TEMP fixtures retained as evidence; no own service/DB to stop. Read-only service observations remained active/running. No ECU/X270/production/services/auth changes.
+
+## 2026-10-14 11:07 JST — 3a-writer-integrity STARTED / review finding
+
+- Prior metadata PR35/branch d1c1bda CI38499146051 all3 applicable jobs success; report/main snapshot provenance preserved. New fix/day-native-postflush-integrity worktree /home/zawa/git/romlogger-day-native-integrity-agent; Server docs/day-native-postflush-integrity.
+- Review found TEST writer validates old prefix and new CRC/sequence but does not compare post-flush new frame to EXACT bytes passed to WriteFile. A FLUSHED hook can replace x→y with recomputed CRC and produce an incorrect memory Proof for y, though y was not the bytes flushed by this writer. Product has no wiring/marker/ACK and is unaffected.
+- Reproducer not executed yet: add FLUSHED-stage rewrite of payload+CRC; expect no Proof and latched writer. Save RED fixture, run actual Windows x64/x86, then compare entire new frame against written frame and rerun.
+- Next exact: commit/push RED fixture; create PR; inspect actual native job failures; fix and save expected-byte comparison. Keep current watermark/dir/SQLite safety gates.
