@@ -1,6 +1,6 @@
 # docs/ 索引
 
-**2026-10-14 日中の最新結果:** [日中報告](handoff/codex_daytime_report.md)／[worklog](handoff/codex_daytime_worklog.md)。3a比較・actual Zulu8/x86・native owned-handle flushの3小Phase統合。旧RLC1 Windows watermarkとdirectory durabilityは未成立、製品配線なし。
+**2026-10-14 日中の最新結果:** [日中報告](handoff/codex_daytime_report.md)／[worklog](handoff/codex_daytime_worklog.md)。3a比較・actual Zulu8/x86・native owned-handle flush・post-flush integrity修正の4小Phase統合。旧RLC1 Windows watermarkとdirectory durabilityは未成立、製品配線なし。
 
 **2026-10-14 Codex日中最新版**：[Agent引継ぎ](handoff/2026-10-14_codex_day_autonomy.md)／[Server全文](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-14_codex_day_autonomy.md)／[worklog](handoff/codex_daytime_worklog.md)。旧夜間文書は履歴。
 
