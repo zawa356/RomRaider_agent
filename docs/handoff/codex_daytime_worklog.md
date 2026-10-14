@@ -79,3 +79,33 @@
 - Held native reader returns original bytes after same-content path replacement; old writer mandatory lock remains BLOCKED; in-place tampering preserves ID but expected SHA rejects. No fsync proof/DB/ACK.
 - Next exact: gh pr checks 32 -R zawa356/RomRaider_agent; inspect latest head jobs; merge normally; main CI; Server sync. Then safe alternative 3a-writer-binding for same native write/FlushFileBuffers/identity handle (not product migration).
 - Gates unchanged: native writer fsync binding/directory durability/expected ledger not complete, 3b/3c/3d integration BLOCKED. All test child JVMs exited; no existing services modified.
+
+## 2026-10-14 10:41 JST — 3a-compat MERGED / 3a-writer-binding CHECKPOINT
+
+- Agent PR32/main535929d4074169a04910997e039b8d4b34159b1e; Server PR43/maina9bf1a008252294d3ad2f29495b5f20a99e34645. Latest PR CI38497003668/38497005902 all applicable steps success. Main38497117325/38497121453 in progress; verify before implementation.
+- New alternative phase test/day-3a-writer-binding, /home/zawa/git/romlogger-day-3a-writer-agent; Server docs/day-3a-writer-binding. Personal noreply author unchanged.
+- Target: standalone Windows native handle identity+WriteFile+FlushFileBuffers and native compatibility guard, actual x64/x86 synthetic trials. This removes writer-handle binding uncertainty in the TEST candidate only. No RLC1 reinterpretation/marker/DB/product migration.
+- New tests NOT RUN. Next exact: gh run view 38497117325 -R zawa356/RomRaider_agent --json jobs; implement isolated writer fixture only after main CI.
+- Directory durability/highwater/atomic marker migration remain BLOCKED; no real ECU/X270/production/services/credentials changes.
+
+## 2026-10-14 10:46 JST — 3a-writer-binding implementation / Windows NOT RUN
+
+- Main38497117325/38497121453 all applicable steps success checked before coding.
+- test-only native existing-file writer obtains coordination lock + native 8MiB guard, native ID/read/write/FlushFileBuffers on same handle; old/split/native child JVM competition; no SHARE_DELETE while held, retained prefix/sequence validation, quota/fault latch, halt before/after flush.
+- WSL --release8 compilation PASS; runtime Windows-only NOT RUN pending Actions. Existing source/identity/marker formats and product paths unchanged.
+- Next exact: push; create PR; inspect native x64/x86 stages and fix failures. Directory durability/highwater/version migration still BLOCKED.
+
+### 3a-writer-binding negative-fixture checkpoint
+
+- Added real native flush failure on read-only handle, partial-original constructor rejection without repair, in-place tampering preservation, malformed UTF16 rejection before write, closed-writer rejection. Windows runtime validation pending; simulated hooks remain distinct from real ENOSPC/power loss.
+- Next exact: inspect PR33 native x64/x86 CI; do not merge until latest head checks finish.
+
+## 2026-10-14 10:49 JST / 01:49 UTC — 3a-writer-binding / PASS (native primitive)
+
+- PR33 https://github.com/zawa356/RomRaider_agent/pull/33; code96e4f15 CI38497582903 all3jobs success; raw Windows jobs115636791172/x86 and115636790933/x64 read. Latest docs c2007c6 CI pending.
+- Windows17 x64 nativewriter44 PASS; actual Zulu8 1.8.0_504 x86 nativewriter45 PASS (includes actual data-model32 assertion). Same-handle native write/flush/ID, 5 old/split/native ownership orders, quota/partial/tamper/UTF16/native-flush-denial/halt-before-after verified.
+- Combined runtime totals: Windows17 journal168 + SQLite344 + native18 + READ20 + writer44 =594 unique checks; x86 subset native18+READ21+writer45+comparison25+split39+watermark safety6=154 checks. Duplicate x64 baseline in x86 job is not added.
+- VPS dedicated phase clone /home/jr2twt/git/romlogger-day-3a-writer-agent-20261014 code639ca9e: journal222+SQLite/receipt344=566 PASS; job-wZWJdfTVtFLDQJ7N exit0. Native negative additions are Windows-only; Linux/native source not a runtime test.
+- Handles bound in the native TEST candidate only. Original RLC1 watermark full56 remains Windows BLOCKED/NOT RUN; dirUNCONFIRMED, newversion marker/expected ledger/atomic highwater/rotation remain unimplemented. Physical power loss/real ENOSPC/OS reboot/ECU/X270 NOT RUN.
+- Next exact: gh pr checks 33 -R zawa356/RomRaider_agent; verify latest head jobs, normal merge, main jobs; Server sync PR. Then separate new Phase3b can DESIGN a tagged newversion marker using these TEST primitives, with Windows directory UNKNOWN and no SQLite admission until durability gates are met. Do not silently reinterpret RLC1.
+- Code/ADR/history/progress checkpoints pushed; current test processes ended.

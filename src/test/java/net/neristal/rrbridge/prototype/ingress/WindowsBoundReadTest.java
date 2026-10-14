@@ -46,7 +46,7 @@ public final class WindowsBoundReadTest {
             try (WindowsNativeIdentityTest.Handle h = new WindowsNativeIdentityTest.Handle(source, true)) {
                 if (blocked) {
                     try { h.readPrefix(expected, original.length, hash(original)); throw new AssertionError("old lock read bypassed"); }
-                    catch (IOException valid) { check(true, "native READ remains BLOCKED by old writer in separate JVM"); }
+                    catch (IOException valid) { check(valid.getMessage().contains("native read denied, error=33"), "native READ remains BLOCKED by old writer with ERROR_LOCK_VIOLATION=33"); }
                 } else {
                     check(Arrays.equals(original, h.readPrefix(expected, original.length, hash(original))),
                         "native same-handle READ succeeds below split guard in separate JVM");
