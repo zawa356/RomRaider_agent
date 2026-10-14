@@ -314,3 +314,8 @@
 ### 2026-10-14 10:31 JST — 3a比較結果
 
 - PR31 f5d87af CI38495966977両OS実ステップsuccess。Windows native18、A/C25 PASS。VPS222+344=566 unique checks PASS、追加spool322は重複回帰。Windows168+344+18=530。全56 watermarkは依然BLOCKED/NOT RUN、dir UNCONFIRMED。gh run view --logが空だったためGitHub jobs/logs APIで実ログを取得して件数確認。
+
+## 2026-10-14 — 3a-compat独立診断・32bit試験準備
+
+- 3a PR31/main c58a4ba、Server PR42/main31ac365のmain CI38496452266/38496457020適用steps成功を確認。
+- 同一native READ handleのidentity/bytes、copy/tamper/quota/legacy-lock負試験、実Zulu8/x86 ActionsをPR32へ保存。新Windows実行結果は確認中。製品配線・watermarkversion変更なし。

@@ -318,3 +318,8 @@
 
 - Linux WSL/VPS journal222、VPS SQLite/receipt344（重複除外合計566）PASS。Windows Actions CI38495966977: journal168+SQLite344+native18=530 PASS。JNA bindingはtest-only x64/NTFS。Linux Windows-native stepは意図したSKIPPED。
 - A/C反例を確定しBを次独立実験の候補へ。Windows watermark full56/dir永続化/x86は未成立、3b/3c/3dはBLOCKED。最新docs headのCI/main統合はworklog参照。
+
+## Phase 4b-2d-2b-3a-compat — 安全な代替小Phase / WORKING
+
+- [PR32](https://github.com/zawa356/RomRaider_agent/pull/32)、[設計](phase_4b_2d_2b_3a_compatibility.md)、D-042。同じnative READ handleにID/bytesを結び付けるtest-only診断と実Zulu8/x86試験を追加。Windows結果はworklog参照。
+- 3a PR31/Server42 main CI38496452266/38496457020適用steps成功。3b/3c/3dは引き続きBLOCKED、製品DB/ACK/Workerへ配線なし。
