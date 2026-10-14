@@ -305,3 +305,8 @@
 
 - main e3d76c2、main journal38492256469/spool38492256464両OS試験とjobs success。VPS final f90f103は197+344=541 PASS、mainへ同期。Caddy/SSH/MCPサービスrunning、codex試験Java残存なし。既存サービス変更は実行せず、API機能healthはNOT RUN。
 - ドキュメント入口に最終報告・再開点とWindows blockerを追加。2b-3へは進まない。
+
+## 2026-10-14 日中 — 4b-2d-2b-3a原本識別の比較開始
+
+- checkpoint4fa9d43を先にpushし、test-only A/C比較とWindows native B fixtureを追加。Linux WSL/VPS journal222（旧197+比較25）PASS。whole-set/UUID copyの反例と同JVManchor handle closeによるguard喪失を再現。
+- Windows native test、CIの最終結果は後続worklogへ追記。CloudPC MCP接続とjr2twt既存gh利用成功。既存認証/サービス/製品形式変更なし。
