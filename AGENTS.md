@@ -1,5 +1,8 @@
 # AGENTS.md — AIエージェント向け作業ガイド
 
+> **2026-10-14 最新Codex日中指示の入口**：[Agent日中引継ぎ](docs/handoff/2026-10-14_codex_day_autonomy.md)と[Server日中指示全文](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-14_codex_day_autonomy.md)を最初に読む。勤務中のユーザー確認なしで安全な合成開発・試験・PR・CI・マージを自律継続。実車、既存MCP/Caddy、不可逆操作は禁止。[追記式worklog](docs/handoff/codex_daytime_worklog.md)を先に更新してcommit/push。以下の2026-10-12の状態表は歴史資料であり、現在地ではない。
+
+
 > **2026-10-13夜からのCodex開発**：先に [Codex夜間Agent入口](docs/handoff/2026-10-13_codex_overnight.md) と [Server側Codex引継ぎ正本](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-13_codex_overnight.md) を全文確認する。以下の「現在の状態（2026-10-12時点）」は歴史的スナップショットであり最新版ではない。**現在地はAgent製品進捗、Server進捗、最新GitHub main・PR・CIで確認**すること。作業中はworklog、履歴、ADR、commitをこまめにpushし、中断後の再開点をGitへ残す。ECU/本番/Caddy/MCPの夜間無断変更は禁止。
 
 このファイルは、このリポジトリで作業するAI（Claude、ChatGPT/Codex など）が最初に読むためのものです。
