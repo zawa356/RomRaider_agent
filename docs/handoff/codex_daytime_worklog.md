@@ -79,3 +79,11 @@
 - Held native reader returns original bytes after same-content path replacement; old writer mandatory lock remains BLOCKED; in-place tampering preserves ID but expected SHA rejects. No fsync proof/DB/ACK.
 - Next exact: gh pr checks 32 -R zawa356/RomRaider_agent; inspect latest head jobs; merge normally; main CI; Server sync. Then safe alternative 3a-writer-binding for same native write/FlushFileBuffers/identity handle (not product migration).
 - Gates unchanged: native writer fsync binding/directory durability/expected ledger not complete, 3b/3c/3d integration BLOCKED. All test child JVMs exited; no existing services modified.
+
+## 2026-10-14 10:41 JST — 3a-compat MERGED / 3a-writer-binding CHECKPOINT
+
+- Agent PR32/main535929d4074169a04910997e039b8d4b34159b1e; Server PR43/maina9bf1a008252294d3ad2f29495b5f20a99e34645. Latest PR CI38497003668/38497005902 all applicable steps success. Main38497117325/38497121453 in progress; verify before implementation.
+- New alternative phase test/day-3a-writer-binding, /home/zawa/git/romlogger-day-3a-writer-agent; Server docs/day-3a-writer-binding. Personal noreply author unchanged.
+- Target: standalone Windows native handle identity+WriteFile+FlushFileBuffers and native compatibility guard, actual x64/x86 synthetic trials. This removes writer-handle binding uncertainty in the TEST candidate only. No RLC1 reinterpretation/marker/DB/product migration.
+- New tests NOT RUN. Next exact: gh run view 38497117325 -R zawa356/RomRaider_agent --json jobs; implement isolated writer fixture only after main CI.
+- Directory durability/highwater/atomic marker migration remain BLOCKED; no real ECU/X270/production/services/credentials changes.
