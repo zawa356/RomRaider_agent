@@ -24,13 +24,47 @@ public final class LiveJournalReadProbeTest {
         try{operation.run();}catch(IOException|IllegalArgumentException expected){error=true;}
         ok(name,error);
     }
+    /** Localized Windows ERROR_LOCK_VIOLATION text, captured from a controlled lock conflict. */
+    private static String calibratedLockViolation;
+    private static boolean windows(){
+        return System.getProperty("os.name","").toLowerCase(java.util.Locale.ROOT).contains("win");
+    }
+    /**
+     * The JDK exposes only the OS-localized message, so English substrings fail on
+     * non-English Windows. Instead, provoke a known byte-range lock conflict on a
+     * throwaway file and record the exact message this OS/language produces.
+     */
+    private static void calibrateWindowsLockViolation(File directory)throws Exception {
+        if(!windows())return;
+        File probe=new File(directory,"lock-violation-calibration.bin");
+        try(RandomAccessFile owner=new RandomAccessFile(probe,"rw")){
+            owner.write(new byte[64]);owner.getFD().sync();
+            try(java.nio.channels.FileLock held=owner.getChannel().lock(0,64,false);
+                java.nio.channels.FileChannel reader=java.nio.channels.FileChannel.open(
+                    probe.toPath(),java.nio.file.StandardOpenOption.READ)){
+                try{
+                    reader.read(ByteBuffer.allocate(64),0);
+                }catch(IOException violation){
+                    if(violation.getClass()!=IOException.class||violation.getMessage()==null)
+                        throw new AssertionError("Unexpected lock calibration failure "+violation);
+                    calibratedLockViolation=violation.getMessage();
+                }
+            }
+        }
+        if(!probe.delete())throw new AssertionError("Cannot remove lock calibration file");
+        if(calibratedLockViolation==null)
+            throw new AssertionError("Windows byte-range lock did not block a second handle");
+    }
+    /** Only the exact calibrated lock violation (or known English text) counts; other I/O errors propagate. */
     private static boolean windowsFileLock(IOException problem){
-        String platform=System.getProperty("os.name","").toLowerCase(java.util.Locale.ROOT);
-        String message=String.valueOf(problem.getMessage()).toLowerCase(java.util.Locale.ROOT);
-        return platform.contains("win") &&
-            (message.contains("locked a portion")||
-             message.contains("used by another process")||
-             message.contains("being used by another process"));
+        if(!windows())return false;
+        String exact=problem.getMessage();
+        if(calibratedLockViolation!=null&&problem.getClass()==IOException.class&&
+            calibratedLockViolation.equals(exact))return true;
+        String message=String.valueOf(exact).toLowerCase(java.util.Locale.ROOT);
+        return message.contains("locked a portion")||
+            message.contains("used by another process")||
+            message.contains("being used by another process");
     }
     private static File source(File directory,String stem)throws Exception {
         File file=new File(directory,stem+".rlj");
@@ -61,6 +95,7 @@ public final class LiveJournalReadProbeTest {
     }
     public static void main(String[] args)throws Exception {
         File root=Files.createTempDirectory("journal-live-probe-only").toFile();
+        calibrateWindowsLockViolation(root);
         File file=source(root,"live");
         LiveJournalReadProbe.Result empty=LiveJournalReadProbe.inspect(file);
         ok("empty journal is complete and has no records",

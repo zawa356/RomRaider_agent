@@ -32,6 +32,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    env:
+      # Hosted runners can create symlinks; a skipped symlink rejection must fail CI.
+      ROMLOGGER_REQUIRE_SYMLINK_TESTS: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
