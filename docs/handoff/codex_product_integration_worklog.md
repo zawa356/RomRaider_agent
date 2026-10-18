@@ -25,3 +25,7 @@
 ## I-3 START — snapshot boundary
 - Base engine0c5139a, branch fix/rlc2-integration-snapshot. Reproduce a writer publishing/advancing ledger in the BEFORE_COMMIT hook after projection; old engine may commit a stale projection. Keep mandatory external quiescence; add bounded input fingerprint evidence from before projection through immediately before SQLite commit, not a claim of atomicity against uncooperative writers.
 - No source locks acquired by reader; output SQLite IMMEDIATE lock acquired only after projection, input checks do not wait on writer locks. Mutation causes output rollback and preserved inputs. Test source/marker, manifest, ledger and legacy changes independently.
+
+## I-3 RED/GREEN checkpoint
+- RED d08860d reproduced source+ledger advance after projection accepted at commit. Streaming bounded snapshot evidence now checked before/after projection, before output writes and immediately precommit; changes roll back output without repair. Quiescence and non-live contract remain mandatory.
+- Initial Windows x64 RED->GREEN3 checks; expanded independent manifest/ledger/legacy/unpublished-tail scenarios running (15 total expected). Next actual x86, Linux and PR. GitHub scheduling still billing-blocked; main unchanged.

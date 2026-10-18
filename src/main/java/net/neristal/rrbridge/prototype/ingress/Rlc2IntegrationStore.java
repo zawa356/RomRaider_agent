@@ -24,8 +24,10 @@ public final class Rlc2IntegrationStore {
         }
     }
     private final Rlc2PreviewStore backend;
+    private final File output;
     public Rlc2IntegrationStore(boolean enable,File output)throws Exception {
         if(!enable)throw new IllegalStateException("integration disabled");
+        this.output=output;
         backend=new Rlc2PreviewStore(true,output,true);
     }
     public Rlc2PreviewStore.Result ingest(boolean externallyQuiescent,final Admission admission,final Path directory,final File ledger,
@@ -36,7 +38,10 @@ public final class Rlc2IntegrationStore {
             final File legacy,final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader,Rlc2PreviewStore.Hook hook)throws Exception {
         if(!externallyQuiescent)throw new IOException("external quiescence required throughout transaction");
         if(admission==null||!directory.toFile().getCanonicalPath().equals(admission.directory))throw new IOException("session directory not admitted");
+        if(output.getCanonicalFile().toPath().startsWith(directory.toFile().getCanonicalFile().toPath())||output.getCanonicalFile().equals(ledger.getCanonicalFile())||output.getCanonicalFile().equals(legacy.getCanonicalFile()))throw new IOException("output must be separate from all input snapshots");
+        final Rlc2InputSnapshot snapshot=Rlc2InputSnapshot.capture(directory,ledger,legacy);
         final Rlc2ProductAdapter.Projection p=Rlc2ProductAdapter.project(true,directory,ledger,device,vehicle,reader);
+        snapshot.verify();
         if(!p.manifestSession.equals(admission.manifestSession))throw new IOException("manifest session not admitted");
         final Set<String> actual=new HashSet<String>();for(Rlc2ProductAdapter.Source s:p.sources)actual.add(s.uuid);
         if(!actual.equals(admission.sourceUuids))throw new IOException("every physical source requires explicit admission");
@@ -44,6 +49,7 @@ public final class Rlc2IntegrationStore {
         Rlc2IntegrationSchema.requireUnclaimed(legacy,p.device,p.vehicle,p.payloadSession,run);
         return backend.ingest(p,hook,new Rlc2PreviewStore.TransactionGuard(){
             public void beforeWrite(Connection db)throws Exception{
+                snapshot.verify();
                 try(PreparedStatement q=db.prepareStatement("SELECT session_path,run_id FROM integration_bindings WHERE session_uuid=?")){
                     q.setString(1,p.manifestSession);try(ResultSet r=q.executeQuery()){
                         if(r.next()&&(!admission.directory.equals(r.getString(1))||!run.equals(r.getString(2))))throw new IOException("logical session moved or rebound");
@@ -66,6 +72,7 @@ public final class Rlc2IntegrationStore {
             }
             public void beforeCommit(Connection db)throws Exception{
                 Rlc2IntegrationSchema.requireUnclaimed(legacy,p.device,p.vehicle,p.payloadSession,run);
+                snapshot.verify();
             }
         });
     }
