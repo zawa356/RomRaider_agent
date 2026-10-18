@@ -67,3 +67,9 @@
 - Plan four transaction-stage halts, exclusive lock/DB failure, competing CLI processes and exact replay/no duplicate/no ACK proof. Existing rename/manifest/stale/UUID/CRC/quota faults remain in regression; Runtime.halt remains non-physical-power-loss.
 - Next: implement separate-JVM fault harness and reproduce before fixing recovery gate.
 
+
+## 2026-10-18 12:20:07 +09:00 — Phase E RED reproduced (Windows17 x64)
+- Added four-stage separate-JVM halt, competing CLI, exclusive lock and real SQLite ABORT-trigger fault tests. Existing preview34 checks PASS, then child halted at CLAIMS_WRITTEN and store constructor failed with active database requires closed checkpointed snapshot.
+- Root cause: output-store preflight reused immutable input-ledger quiescence, rejecting SQLite's own rollback journal after abrupt exit. Original files preserved; no ACK or partial-success claim. New fault test opens store before any direct SQL count so engine recovery cannot hide this bug.
+- Next: preserve strict input diagnostics, permit SQLite-managed rollback only for output with verified SQLite magic/RLP1 header and safe journal, verify owned schema after recovery. Add foreign product DB+journal negative case and rerun all fault stages.
+

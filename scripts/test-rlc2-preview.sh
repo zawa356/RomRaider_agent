@@ -5,7 +5,7 @@ sep=":"; windows=0
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) sep=";"; windows=1;; esac
 cp="lib/sqlite-jdbc.jar${sep}lib/slf4j-api.jar${sep}lib/slf4j-nop.jar"
 pkg=net/neristal/rrbridge/prototype/ingress
-entries=("src/main/java/$pkg/Rlc2PreviewCli.java" "src/test/java/$pkg/Rlc2PreviewStoreTest.java")
+entries=("src/main/java/$pkg/Rlc2PreviewCli.java" "src/test/java/$pkg/Rlc2PreviewStoreTest.java" "src/test/java/$pkg/Rlc2PreviewFaultTest.java")
 if [[ "$windows" == 1 ]]; then
   jna=build/identity-deps/jna-5.14.0.jar
   printf '%s  %s\n' 34ed1e1f27fa896bca50dbc4e99cf3732967cec387a7a0d5e3486c09673fe8c6 "$jna" | sha256sum -c -
@@ -17,3 +17,4 @@ if [[ "${1:-}" != "--run-only" ]]; then
   javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath "src/main/java${sep}src/test/java" -d build/rlc2-preview "${entries[@]}"
 fi
 java -cp "build/rlc2-preview${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Rlc2PreviewStoreTest build/rlc2-preview-fixture.path
+java -cp "build/rlc2-preview${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Rlc2PreviewFaultTest
