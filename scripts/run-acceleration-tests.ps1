@@ -6,9 +6,11 @@ param(
     [string]$BashPath = (Join-Path $env:ProgramFiles 'Git\bin\bash.exe'),
     [string]$Python = 'python',
     [switch]$Postgres,
+    [switch]$RealServerHttp,
     [string]$ServerPath
 )
 $ErrorActionPreference = 'Stop'
+if ($RealServerHttp -and (-not $Postgres -or -not $ServerPath)) { throw '-RealServerHttp requires -Postgres and an actual -ServerPath' }
 if (-not $IsWindows) { throw 'Use the Bash test entry points on Linux; this batch is for the Windows development VM.' }
 foreach ($exe in @((Join-Path $Jdk17 'bin\javac.exe'), (Join-Path $Java8x86 'bin\java.exe'), $BashPath)) {
     if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Required test tool missing: $exe" }
@@ -18,7 +20,7 @@ $logDirectory = Join-Path $repoRoot 'build'
 New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
 $logPath = Join-Path $logDirectory ('acceleration-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log')
 $priorEnvironment = @{}
-foreach ($key in @('JAVA_HOME','PATH','ROMLOGGER_EXPECT_DATA_MODEL','ROMLOGGER_RLC2_PREVIEW_ENABLE','ROMLOGGER_SERVER_PATH','ROMLOGGER_REQUIRE_SERVER_CONTRACT')) {
+foreach ($key in @('JAVA_HOME','PATH','ROMLOGGER_EXPECT_DATA_MODEL','ROMLOGGER_RLC2_PREVIEW_ENABLE','ROMLOGGER_SERVER_PATH','ROMLOGGER_REQUIRE_SERVER_CONTRACT','ROMLOGGER_RLC2_HTTP_ENABLE')) {
     $priorEnvironment[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
 }
 function Invoke-TestCommand {
@@ -47,11 +49,16 @@ try {
         Invoke-TestCommand "Zulu8 x86 $class" 'java' @('-cp','build/ingress-journal-prototype',"net.neristal.rrbridge.prototype.ingress.$class")
     }
     Invoke-TestCommand 'PostgreSQL destination safety guards' $Python @('scripts/test-rlc2-preview-postgres-guard.py')
+    Invoke-TestCommand 'real HTTP destination and opt-in guards' $Python @('scripts/test-rlc2-real-server-http-guard.py')
     if ($Postgres) {
         if (-not $env:DATABASE_URL) { throw 'Supply the disposable loopback DATABASE_URL through a protected process environment; it is never printed.' }
         $env:ROMLOGGER_RLC2_PREVIEW_ENABLE = '1'
         if ($ServerPath) { $env:ROMLOGGER_SERVER_PATH = $ServerPath; $env:ROMLOGGER_REQUIRE_SERVER_CONTRACT = '1' }
         Invoke-TestCommand 'isolated PostgreSQL preview and optional actual Server models' $Python @('scripts/test-rlc2-preview-postgres.py')
+        if ($RealServerHttp) {
+            $env:ROMLOGGER_RLC2_HTTP_ENABLE = '1'
+            Invoke-TestCommand 'actual loopback RLC2 Server HTTP and PostgreSQL' $Python @('scripts/test-rlc2-real-server-http.py')
+        } else { 'NOT RUN real RLC2 Server HTTP (use -RealServerHttp)' | Tee-Object -FilePath $logPath -Append }
     } else { 'NOT RUN PostgreSQL preview (use -Postgres with a protected test DSN)' | Tee-Object -FilePath $logPath -Append }
     $trackedBuild = & git ls-files -- build dist 'lib/*.jar' '*.class' '*.pyc'
     if ($LASTEXITCODE -ne 0 -or $trackedBuild) { throw 'Generated build artifacts are tracked; review Git before committing.' }

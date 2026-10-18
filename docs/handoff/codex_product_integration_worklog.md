@@ -64,3 +64,8 @@
 ## I-7 START — final automation and executable entry point
 - Base0eaccd7; branch feat/integration-verification-automation. Add explicit synthetic/quiescent/admission CLI (native Windows remains test-only), Windows one-command optional real HTTP and guard checks, gated CI reuse of both checkouts. No automatic Worker/sender wiring.
 - Run final Windows17/actualZulu8 complete batch, Linux full isolated suites/large load, actual Server regression57 and local HTTP34. Review latest stack as one coherent candidate with I-6 token fix. User authorized local verification basis; Actions NOT RUN due account limit, normal merges after local evidence/review.
+
+## I-7 automation implementation
+- Added explicit synthetic/quiescent/admission CLI; Windows native wrapper remains test-only. Windows full batch gains -RealServerHttp with strict -Postgres/-ServerPath prerequisites and guards, restores HTTP opt-in environment. Gated private-checkout CI includes new actual HTTP test and pinned observed PG16 digest; missing checkout remains NOT RUN, never a claimed pass.
+- Expanded bounded workload to exercise versioned candidate plus old preview across all sessions, exact bindings/admissions/records/receipts and no ACK. New CLI real-process import/replay included. Final whole Windows/x86 and fresh VPS test workspace will verify the exact source before merge.
+- Actual Server local regression57 PASS after migrations twice/check. I-6 Windows candidate JVM faults20/schema35 PASS. User local-validation authorization retained; Actions are supplementary and unavailable scheduling is not a code failure.

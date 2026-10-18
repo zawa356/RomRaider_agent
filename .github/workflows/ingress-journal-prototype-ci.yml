@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/main/java/net/neristal/rrbridge/prototype/ingress/**'
       - 'src/test/java/net/neristal/rrbridge/prototype/ingress/**'
+      - 'src/test/resources/**'
       - 'scripts/test-ingress-journal-prototype.sh'
       - 'scripts/test-windows-native-identity.sh'
       - 'scripts/test-ingress-sqlite-receipts.sh'
@@ -21,6 +22,7 @@ on:
     paths:
       - 'src/main/java/net/neristal/rrbridge/prototype/ingress/**'
       - 'src/test/java/net/neristal/rrbridge/prototype/ingress/**'
+      - 'src/test/resources/**'
       - 'scripts/test-ingress-journal-prototype.sh'
       - 'scripts/test-windows-native-identity.sh'
       - 'scripts/test-ingress-sqlite-receipts.sh'

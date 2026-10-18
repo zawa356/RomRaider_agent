@@ -16,6 +16,10 @@ public final class Rlc2PreviewLoadTest {
         if(n<min||n>max)throw new IllegalArgumentException("bounded synthetic load setting required");return n;
     }
     private static long ms(long nanos){return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(nanos);}
+    private static Rlc2IntegrationStore.Admission admission(Workload w,Rlc2ProductAdapter.Projection p)throws Exception{
+        java.util.Set<String> ids=new java.util.HashSet<String>();for(Rlc2ProductAdapter.Source s:p.sources)ids.add(s.uuid);
+        return new Rlc2IntegrationStore.Admission(w.dir,p.manifestSession,ids);
+    }
     private static final class Workload {
         final Path dir,ledger;final long writeMillis,ledgerMillis;
         Workload(Path d,Path l,long write,long ingest){dir=d;ledger=l;writeMillis=write;ledgerMillis=ingest;}
@@ -59,9 +63,15 @@ public final class Rlc2PreviewLoadTest {
         check(retry.recordsAdded==0&&retry.receiptsAdded==0,"fresh projection and reopened DB replay add no duplicates");
         check(fresh.records.get(0).id.equals(p.records.get(0).id)&&fresh.records.get(observations-1).json.equals(p.records.get(observations-1).json),"first and last product identities/content remain stable");
         check(Rlc2PreviewStoreTest.count(db,"SELECT count(DISTINCT record_id) FROM preview_records")==observations,"real SQL verifies every distinct record");
+        File candidateDb=Rlc2IntegrationStoreTest.target(),legacy=Rlc2IntegrationStoreTest.legacy();Rlc2IntegrationStore candidate=new Rlc2IntegrationStore(true,candidateDb);
+        start=System.nanoTime();Rlc2PreviewStore.Result admitted=candidate.ingest(true,admission(large,p),large.dir,large.ledger.toFile(),legacy,p.device,p.vehicle,env.reader());long candidateMillis=ms(System.nanoTime()-start);
+        check(admitted.recordsAdded==observations&&admitted.receiptsAdded==observations+1&&!admitted.ackEligible,"versioned candidate commits every large-workload source atomically");
+        check(candidate.ingest(true,admission(large,p),large.dir,large.ledger.toFile(),legacy,p.device,p.vehicle,env.reader()).recordsAdded==0,"large admitted candidate replay is exact");
         for(int i=0;i<additional;i++) {
             Workload small=create(env,"synthetic-load-session-"+i,10);Map<String,String> before=Rlc2PreviewStoreTest.hashes(small.dir);
             check(store.ingest(small.project(env)).recordsAdded==10,"independent session "+i+" owns a distinct record namespace");
+            Rlc2ProductAdapter.Projection smallProjection=small.project(env);
+            check(candidate.ingest(true,admission(small,smallProjection),small.dir,small.ledger.toFile(),legacy,p.device,p.vehicle,env.reader()).recordsAdded==10,"versioned candidate retains independent session "+i);
             check(before.equals(Rlc2PreviewStoreTest.hashes(small.dir)),"session "+i+" input bytes unchanged");
         }
         check(Rlc2PreviewStoreTest.count(db,"SELECT count(*) FROM preview_sessions")==1+additional&&Rlc2PreviewStoreTest.count(db,"SELECT count(*) FROM preview_claims")==1+additional,"separate manifest/session claims persist independently");
@@ -71,6 +81,10 @@ public final class Rlc2PreviewLoadTest {
         check(Rlc2PreviewStoreTest.count(db,"SELECT count(*) FROM preview_records WHERE ack_eligible<>0")==0,"no workload record becomes ACK-eligible");
         check(store.ingest(large.project(env)).recordsAdded==0,"other sessions do not disturb original session replay");
         check(originals.equals(Rlc2PreviewStoreTest.hashes(large.dir)),"large original journal/identity/marker/manifest/ledger bytes preserved");
+        check(Rlc2PreviewStoreTest.count(candidateDb,"SELECT count(*) FROM preview_records")==observations+10*additional&&Rlc2PreviewStoreTest.count(candidateDb,"SELECT count(*) FROM preview_receipts")==observations+1+11*additional,"candidate aggregate rows and receipts exactly match preview workload");
+        check(Rlc2PreviewStoreTest.count(candidateDb,"SELECT count(*) FROM integration_bindings")==1+additional&&Rlc2PreviewStoreTest.count(candidateDb,"SELECT count(*) FROM integration_admissions")==2*(1+additional),"candidate bindings and explicit admissions span all sessions");
+        check(Rlc2PreviewStoreTest.count(candidateDb,"SELECT count(*) FROM preview_records WHERE ack_eligible<>0")==0,"large candidate never promotes ACK");
+        System.out.println("CANDIDATE_LOAD_METRICS observations="+observations+" sessions="+(1+additional)+" snapshot_project_commit_ms="+candidateMillis);
         System.out.println("LOAD_METRICS observations="+observations+" sessions="+(1+additional)+" source_publish_ms="+large.writeMillis+" ledger_ms="+large.ledgerMillis+" project_ms="+projectMillis+" preview_commit_ms="+commitMillis+" replay_ms="+replayMillis+" java="+System.getProperty("java.version")+" bits="+System.getProperty("sun.arch.data.model"));
         System.out.println("RLC2 preview load "+env.name()+" passed "+checks+" checks; synthetic only; timings observational; ACK forbidden");
     }
