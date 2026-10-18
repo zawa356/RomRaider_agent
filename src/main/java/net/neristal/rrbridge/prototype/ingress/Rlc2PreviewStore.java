@@ -70,6 +70,7 @@ public final class Rlc2PreviewStore {
                 }
                 s.execute("PRAGMA application_id="+APPLICATION_ID);
                 createSchema(s);
+                owned(db);
                 s.execute("COMMIT");
             }catch(Exception e){try{s.execute("ROLLBACK");}catch(SQLException ignored){}throw e;}
         }
@@ -94,6 +95,7 @@ public final class Rlc2PreviewStore {
     }
     private void owned(Connection db)throws Exception {
         if(integration)Rlc2IntegrationSchema.verify(db);
+        else Rlc2SchemaVerifier.verify(db,false);
         try(Statement s=db.createStatement()) {
             try(ResultSet r=s.executeQuery("PRAGMA application_id")) { if(!r.next()||r.getInt(1)!=(integration?Rlc2IntegrationSchema.APPLICATION_ID:APPLICATION_ID))throw new IOException("not a store-owned database"); }
             try(ResultSet r=s.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT GLOB 'sqlite_*'")) {

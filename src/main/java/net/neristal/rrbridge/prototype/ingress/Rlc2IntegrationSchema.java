@@ -44,6 +44,7 @@ public final class Rlc2IntegrationSchema {
             try(ResultSet r=s.executeQuery("PRAGMA user_version")){if(!r.next()||r.getInt(1)!=VERSION)throw new IOException("unsupported integration migration version");}
             try(ResultSet r=s.executeQuery("SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('preview_sessions','preview_claims','preview_sources','preview_receipts','preview_profiles','preview_records','integration_bindings','integration_admissions')")){r.next();if(r.getInt(1)!=8)throw new IOException("incomplete integration schema");}
         }
+        Rlc2SchemaVerifier.verify(c,true);
     }
     /** Static, closed v1 compatibility inventory; no DDL, adoption or ACK mutation. */
     public static void requireUnclaimed(File legacy,String device,String vehicle,String session,String run)throws Exception {

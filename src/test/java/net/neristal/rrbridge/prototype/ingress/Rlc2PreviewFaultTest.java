@@ -64,8 +64,17 @@ public final class Rlc2PreviewFaultTest {
         final File failed=Rlc2PreviewStoreTest.target();new Rlc2PreviewStore(true,failed);
         Rlc2PreviewStoreTest.execute(failed,"CREATE TRIGGER synthetic_db_failure BEFORE INSERT ON preview_records BEGIN SELECT RAISE(ABORT,'synthetic database failure'); END");
         Process dbFailure=Rlc2PreviewStoreTest.cli(f,failed,failed.toPath().resolveSibling("db-failure.log"));
-        check(dbFailure.waitFor(40,TimeUnit.SECONDS)&&dbFailure.exitValue()==5,"real SQLite insert failure stops CLI");
+        check(dbFailure.waitFor(40,TimeUnit.SECONDS)&&dbFailure.exitValue()==5,"unexpected trigger schema stops CLI before ingestion");
         for(String table:new String[]{"preview_sessions","preview_claims","preview_sources","preview_receipts","preview_profiles","preview_records"})check(Rlc2PreviewStoreTest.count(failed,"SELECT count(*) FROM "+table)==0,"DB failure rolls back "+table);
+        final File constraint=Rlc2PreviewStoreTest.target();final Rlc2PreviewStore constrained=new Rlc2PreviewStore(true,constraint);
+        boolean sqlFailed=false;
+        try{constrained.ingest(f.project(),Rlc2PreviewStore.NO_FAULT,new Rlc2PreviewStore.TransactionGuard(){
+            public void beforeWrite(Connection db){}
+            public void claimsWritten(Connection db)throws Exception{try(Statement s=db.createStatement()){s.execute("INSERT INTO preview_claims VALUES(NULL,NULL,NULL,NULL,NULL)");}}
+            public void beforeCommit(Connection db){}
+        });}catch(java.sql.SQLException expected){sqlFailed=true;}
+        check(sqlFailed,"actual SQLite NOT NULL failure interrupts active transaction");
+        for(String table:new String[]{"preview_sessions","preview_claims","preview_sources","preview_receipts","preview_profiles","preview_records"})check(Rlc2PreviewStoreTest.count(constraint,"SELECT count(*) FROM "+table)==0,"actual constraint rollback includes "+table);
         check(originals.equals(Rlc2PreviewStoreTest.hashes(f.dir)),"all failure/competition scenarios preserve original source/marker/manifest/ledger bytes");
         final File foreign=Rlc2PreviewStoreTest.target();new net.neristal.rrbridge.product.v1.DurableSpool(foreign);
         File foreignJournal=new File(foreign.getPath()+"-journal");Files.write(foreignJournal.toPath(),new byte[]{1,2,3});

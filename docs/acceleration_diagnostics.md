@@ -63,3 +63,7 @@ session/ledger file, WAL rejection and preservation, no absent DB creation, orph
 manifest corruption/rollback, stale marker, highwater regression, receipt alteration/deletion,
 identity and TSV claims, seal growth, 16 real sealed segments, JSON/human CLI and exit codes.
 CI runs Linux, Windows x64 and actual Zulu8 x86; results are recorded in the worklog.
+
+## Supervisor contract v2 (additive)
+
+Legacy schema_version=1, status and CLI exit codes remain diagnostic compatibility fields. New supervisor_contract_version=2 adds inspection_status (COMPLETED/INCOMPLETE), source_integrity (VERIFIED_UNDER_QUIESCENCE/INVALID/UNDETERMINED), source_review_required, operational_ready=false and manual_intervention_required=true. Existing directory_durability=UNKNOWN, ack_eligible=false and automatic_repair_allowed=false remain independent gates. Inspection completion or exit0 cannot authorize sending, recovery or ACK. Manual intervention includes establishing the missing durability/operational evidence even when source review itself is not required. VERIFIED_UNDER_QUIESCENCE is conditional, never a concurrent snapshot proof.

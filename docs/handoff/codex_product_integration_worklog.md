@@ -34,3 +34,8 @@
 - Base109804c, branch fix/ingress-schema-supervisor-contract. I-3 Windows15 PASS; x86 running. I-2 x8624 PASS. CI still blocked by billing, all branches retained, no main merge.
 - Plan RED: rename ack_eligible column in a synthetic preview DB; current name/application-only ownership may accept it. Then compare complete SQLite schema signature against authoritative DDL (all columns/types/nullability/PK/UNIQUE/FK/CHECK/index/trigger/object/version), quick_check and FK consistency. Preserve actual legacy-v0 DDL compatibility. Replace trigger-based failure injection with real NOT NULL constraint failure inside transaction because untrusted triggers must be refused.
 - Diagnostic JSON v1/exit compatibility retained with independent supervisor contract v2 fields; exit0 never implies operational readiness, durability or ACK.
+
+## I-4 RED/GREEN
+- RED0a27d0d accepted renamed ack_eligible column. Strict authoritative-schema verifier now checks every table/index/object and constraint/type/version plus quick_check/FK. Windows schema33 PASS, including genuine pre-I v0 DDL bytes and malformed DB unchanged. Diagnostic additive Supervisor axes implemented; Windows diagnostic/migration suite exit0, final counts in raw log.
+- Full preview/fault/load/schema/integration regression running. Intentional trigger injection now stops before ingest; an actual NOT NULL SQL failure inside transaction separately verifies rollback. I-3 actual x86 snapshot15 PASS.
+- CI billing block retained; PRs52/53/54 not merged. Continue real loopback Server HTTP E2E next, using own schema/credentials and test ACK only.

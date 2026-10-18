@@ -478,3 +478,7 @@
 ## D-059 — Keep quiescence mandatory and detect stale projection before commit
 - RED d08860d: writer publishes and updates ledger in BEFORE_COMMIT after projection; candidate incorrectly commits the old state. Bounded input snapshot evidence from before projection through precommit now rejects the change and rolls back all output state.
 - Checks detect source/marker/manifest/ledger/legacy/tail changes but do not prove atomic FS/DB consistency against uncooperative writers. No input lock acquisition or automatic writer stop; live ingestion remains BLOCKED. Output must be outside inputs.
+
+## D-060 — Schema identity and independent Supervisor axes
+- RED0a27d0d reproduced renamed ACK column accepted by name/application-only check. Compare every schema object with authoritative DDL, preserving literal contents; quick_check/FK/version checks reject malformed output before writable use. Pre-I v0 DDL compatibility fixture retained.
+- Add supervisor_contract_version2 fields without changing legacy JSON/exit semantics: inspection success, conditional source integrity, review, durability, operational readiness, ACK and repair remain independent. Read-only success never grants operation. Unexpected triggers refused; real SQL constraint rollback remains tested.

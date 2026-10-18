@@ -62,6 +62,9 @@ public final class IngressDiagnostics {
         public final List<Finding> findings;
         public final boolean ackEligible = false;
         public final boolean automaticRepairAllowed = false;
+        /** Additive Supervisor contract v2; legacy exit/status remain diagnostic-only. */
+        public final boolean operationalReady=false;
+        public final boolean manualInterventionRequired=true;
         Report(List<Finding> f) { findings=Collections.unmodifiableList(new ArrayList<Finding>(f)); }
         public boolean has(Code code) { for(Finding f:findings) if(f.code==code)return true; return false; }
         public boolean requiresReview() {
@@ -69,8 +72,23 @@ public final class IngressDiagnostics {
             return false;
         }
         public int exitCode() { return requiresReview()?5:0; }
+        public String inspectionStatus(){
+            return has(Code.INVALID_PATH)||has(Code.DATABASE_UNAVAILABLE)||has(Code.MANIFEST_INVALID)||has(Code.LEDGER_REQUIRED)?"INCOMPLETE":"COMPLETED";
+        }
+        public String sourceIntegrity(){
+            if(!requiresReview())return "VERIFIED_UNDER_QUIESCENCE";
+            for(Finding f:findings)switch(f.code){
+                case IDENTITY_MISMATCH:case HIGHWATER_REGRESSION:case RECEIPT_INCONSISTENT:
+                case SEALED_SEGMENT_CHANGED:case WATERMARK_INVALID:case MANIFEST_HISTORY_CONFLICT:return "INVALID";
+                default:break;
+            }
+            return "UNDETERMINED";
+        }
         public String json() {
-            StringBuilder b=new StringBuilder("{\"schema_version\":1,\"ack_eligible\":false,\"automatic_repair_allowed\":false,\"directory_durability\":\"UNKNOWN\",\"status\":\"")
+            StringBuilder b=new StringBuilder("{\"schema_version\":1,\"supervisor_contract_version\":2,\"inspection_status\":\"")
+                .append(inspectionStatus()).append("\",\"source_integrity\":\"").append(sourceIntegrity())
+                .append("\",\"operational_ready\":false,\"manual_intervention_required\":true,\"source_review_required\":").append(requiresReview())
+                .append(",\"ack_eligible\":false,\"automatic_repair_allowed\":false,\"directory_durability\":\"UNKNOWN\",\"status\":\"")
                 .append(requiresReview()?"REVIEW_REQUIRED":"INSPECTED").append("\",\"findings\":[");
             int n=0;
             for(Finding f:findings) {
@@ -83,6 +101,7 @@ public final class IngressDiagnostics {
         public String human() {
             StringBuilder b=new StringBuilder("INGRESS_DIAGNOSTICS=").append(requiresReview()?"REVIEW_REQUIRED":"INSPECTED")
                 .append(" ACK_ELIGIBLE=false AUTO_REPAIR=false DIRECTORY_DURABILITY=UNKNOWN\n");
+            b.append("SUPERVISOR_CONTRACT=2 INSPECTION=").append(inspectionStatus()).append(" SOURCE_INTEGRITY=").append(sourceIntegrity()).append(" OPERATIONAL_READY=false MANUAL_INTERVENTION_REQUIRED=true\n");
             for(Finding f:findings)b.append(f.code).append(" segment=").append(f.segment).append(" cause=").append(f.cause).append(" next_action=").append(f.nextAction).append('\n');
             return b.toString();
         }
