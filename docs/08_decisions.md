@@ -450,3 +450,14 @@
 - Test accepts denial only after exact old marker/complete expected staged generation/writer byte checks, and requires reader refusal. Full25 progress is explicitly BLOCKED in that branch; successful branch still requires finalgen26. Deterministic held-marker pending-reader test guarantees rejection coverage. Core publisher/retention/retry behavior unchanged.
 - Fresh native-only script compilation includes common scenario source; Windows x64 RLC2 101 checks PASS with deterministic branch. See acceleration worklog/automation doc for full batch and CI evidence.
 
+
+## D-054 — Migration preflight is inspection, never an RLC1 identity reinterpretation (2026-10-18 13:18:30 +09:00)
+
+- Reuse existing RLC1 envelope codec and verify source UUID/prefix/hash/frame sequence through read-only handles. Legacy fileKey hash cannot become tagged native identity; even intact legacy input returns manual migration-contract review, ACK false and automatic repair false.
+- Report fixed manual next_action hints; reject mixed legacy/new marker paths in normal session projection, distinguish ledger lag from receipt damage and pending updates from corruption. No marker/ledger creation, checkpoint, repair or actuation. See ingress_preflight_load.md.
+
+## D-055 — Bounded multi-session replay validates data before performance (2026-10-18 13:18:30 +09:00)
+
+- Default CI1000 observations/4 sessions; opt-in executed10000+10 small sessions validates10100 records/10111 receipts/22 source cursors/11 claims, exact highwaters, duplicate-free replay and original bytes on actual x86 and Linux.
+- Replace per-byte Formatter allocation in ledger hex with identical lowercase digit lookup. New x64 inspector validates10001 old-formatter x86 receipts unchanged. Cold-process timings are recorded with all phases/variance, not a throughput/power-loss guarantee. No stored format or ACK semantics change.
+

@@ -40,6 +40,7 @@ public final class DurableWatermarkPrototype {
             fileKeyHash = key.clone(); prefixHash = hash.clone();
             this.entries = Collections.unmodifiableList(entries);
         }
+        public byte[] prefixHash() { return prefixHash.clone(); }
     }
     /** Directory force is observational, NOT a physical power-loss guarantee. */
     public enum DirectorySync { SYNCED, UNCONFIRMED }
@@ -94,6 +95,8 @@ public final class DurableWatermarkPrototype {
         byte[] key = new byte[32], hash = new byte[32]; b.get(key); b.get(hash);
         return new Snapshot(uuid, sequence, offset, key, hash, new ArrayList<IngressJournalPrototype.Entry>());
     }
+    /** Envelope only for read-only migration inspection; NOT native identity or durability proof. */
+    static Snapshot inspectEnvelope(File source) throws IOException { return decode(boundedRead(marker(source), BYTES)); }
     private static byte[] encode(Snapshot s) {
         UUID uuid = UUID.fromString(s.sourceUuid);
         ByteBuffer b = ByteBuffer.allocate(BYTES);

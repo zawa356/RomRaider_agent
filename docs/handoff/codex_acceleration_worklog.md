@@ -112,3 +112,34 @@
 - Corrected YAML now schedules all four CI jobs; Linux/Windows/PG jobs already success at0541317, x86 running. Superseded runs may cancel by design. Full Windows batch reruns after these actual corrections; prior failed batch remains recorded.
 - Valid wrong-JAR fixture replacement and wheel hash positive/negative checks PASS. No product publication/retry semantics changed.
 
+
+## 2026-10-18 12:57:57 +09:00 — Phase F COMPLETE; Phase G START
+- Agent PR47 merged202b9c95a77d7f07d28a6cb1d2a2c03927b13d98; PR39094810643/39094810652 and main39095250378/39095250377 success. Actual full local batch build/acceleration-20261018-124526.log exit0 includes test PG/actual Server models; native102 each explicit64/32, diagnostics35/projection21/preview35/fault37 per architecture. Local symlink/old Windows RLC156/physical power loss/real ENOSPC limitations retained.
+- Server PR54 merged60d33653da26ec5c796aae0fe44cf4094e9b9807; main39095397003 running (docs only).
+- Phase G base Agent202b9c9 / Server60d3365; branch feat/ingress-preflight-load. Add fixed manual next-action hints (never execute), source-only RLC1/RLC2 migration preflight without reinterpretation/repair, mixed-format refusal, ledger-lag diagnosis, and bounded multi-source/multi-session load/replay verification. Capture larger10k observations on VPS/actual x86 if feasible; CI uses bounded default.
+- Next: implement read-only preflight using existing codecs, then workload fixtures; preserve all ACK/durability/production gates.
+
+
+## 2026-10-18 13:03:31 +09:00 — Phase G preflight implementation/local GREEN; workload running
+- Diagnostic findings add fixed manual next_action and automatic_repair_allowed=false. Source-only --migration-preflight uses existing RLC1 codec plus raw prefix/CRC/UUID checks, never maps fileKey hash to native identity or creates an RLC2 marker/ledger. Mixed marker paths block session projection. Ledger lag is distinguished from corrupted receipts.
+- Windows x64 existing diagnostics34/projection20 and new migration preflight17 checks PASS (one additional shared rejection assertion also ran). New bounded load test defaults1000 observations +3 additional sessions, verifies two physical sources/session, exact receipts/rows/highwaters, new-process-style replay and input-byte preservation; running.
+- Next: x86/VPS; larger10k observations/10 additional sessions; measure existing implementation before any performance change. ACK/repair/durability limits retained.
+
+
+## 2026-10-18 13:05:38 +09:00 — Phase G Linux large workload baseline PASS
+- VPS Linux17.0.20.1 x64: new preflight and all diagnostics/preview/fault regression exit0; bounded1000-observation/4-session load23 checks PASS. Larger10000 observations +10 additional sessions (11 total) load44 checks PASS:10100 product records,10111 raw receipts,22 physical source cursors and11 logical claims; no duplicates/ACK, all highwaters and original bytes verified.
+- Cold-process exploratory large metrics: source297ms, ledger1423ms, projection1485ms, preview commit1159ms, full projection+store replay2086ms. Not a normalized benchmark. Original hex utility allocates a Formatter per byte for every receipt/hash; next replace with equivalent fixed lowercase nibble mapping, preserving exact stored string format, then remeasure and rerun independent hash/DB tests.
+- Actual Windows x86 migration/large baseline still running; baseline log will be retained before recompiling. No protocol or database format change planned.
+
+
+## 2026-10-18 13:12:40 +09:00 — Phase G load/performance after-change PASS
+- Actual Zulu8 x86 baseline: migration18 PASS;10000 observations/11 sessions load45 PASS, original bytes preserved. Baseline metrics source2151/ledger5572/project9856/commit6377/replay11433 ms, before hex recompilation.
+- VPS optimized implementation retains all migration/diagnostic/preview/fault proof and10k/11-session load44 PASS. Metrics source297/ledger949/project614/commit1675/replay939 ms versus baseline297/1423/1485/1159/2086. Commit timing increased while CPU-heavy phases decreased; these are single cold-process observations, not a normalized speed guarantee. Exact stored lowercase hex format retained.
+- Windows x64 after-change existing suites and default load23 PASS. Added precise pending-update preflight classification: known staged state is not falsely labelled corrupt; final added case awaiting fresh compile/CI. Next: optimized x8610k, backward compatibility scan of an old10k ledger, docs/PR/main CI.
+
+
+## 2026-10-18 13:18:30 +09:00 — Phase G final local proof and review
+- Final migration x64 18 / actual x86 19 PASS. Optimized x86 large10k/11-session load45 PASS; metrics source1722/ledger3653/project4359/commit4807/replay5010 ms. New x64 inspector read10001 receipts from original formatter/actual x86 dataset, exit0 INSPECTED, every input byte unchanged.
+- Existing source/ledger data format unchanged; all timing phases and limitations retained in ingress_preflight_load.md. Final pending-classification case passed locally; CI will run final source on Linux/Windows/x86 and guarded PostgreSQL. F Server main39095397003 success.
+- Next: PR with final CI, normal merge/main CI, Server progress synchronization, final acceleration report/resume commands. No remaining production gate is silently relaxed.
+
