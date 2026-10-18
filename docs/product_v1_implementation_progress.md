@@ -380,3 +380,8 @@ Executable Rlc2ProductAdapter projects validated source receipts through existin
 
 Executable isolated source→RLC2→ledger→RLM1→shared v1 projection→SQLite preview→restart/replay path added, plus loopback test PostgreSQL verification. Dedicated application/schema ownership, atomic history/claims/cursors/receipts/records, immutable replay and CHECK ACK false. Actual local Server model JSON validation PASS without endpoint calls. Production Worker/claim schema/ACK routing unchanged. See rlc2_preview_e2e.md and acceleration worklog for per-environment counts and Linux harness RED/GREEN.
 
+
+## 2026-10-18 12:22:40 +09:00 — acceleration Phase E (CI pending)
+
+Isolated output restart bug reproduced with abrupt JVM stop, then fixed with header/app-ID/schema-gated SQLite rollback recovery. No input repair or ACK routing. Faults cover all transaction stages, competing CLI, DB lock/insert failure, no partial rows and preserved source evidence. Windows x64 fault36 PASS; other environments/CI pending. Operator dry-run/retry boundaries documented in rlc2_preview_e2e.md.
+

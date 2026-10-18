@@ -60,3 +60,22 @@
 - VPS Linux preview reached 27 checks then separate-JVM CLI failed: launcher is referenced by class name string, so javac did not compile POSIX CLI implicitly. Windows wrapper compiled it transitively. This is a harness failure; next fix explicitly compiles Rlc2PreviewCli on both OSs and reruns Linux.
 - Server PR51 main CI39092090529 success. Next: fix Linux launcher compilation, CI proof, docs/PR.
 
+
+## 2026-10-18 12:18:17 +09:00 — Phase D COMPLETE; Phase E START
+- Agent PR45 merged a4a5a0ba06d8cd908d7908cd5e08f5f40891518a; PR39092722886 (all four jobs including actual PostgreSQL) /39092722876 and main39092940711/39092940692 success. Raw logs confirm preview34 Linux/Windows and35 actual Zulu8 x86. Server PR52 merged94b05a67ca5154916e7f9d9eddeb3f607eaadbda, main39093054991 success.
+- Phase E base Agenta4a5a0b / Server94b05a6; branch fix/rlc2-preview-crash-recovery. Hypothesis: abrupt pre-commit exit leaves a rollback journal that the output-store's overly strict immutable preflight may refuse. Need RED separate-JVM test first; recovery must be limited to a positively identified preview DB, never input ledger/original repair.
+- Plan four transaction-stage halts, exclusive lock/DB failure, competing CLI processes and exact replay/no duplicate/no ACK proof. Existing rename/manifest/stale/UUID/CRC/quota faults remain in regression; Runtime.halt remains non-physical-power-loss.
+- Next: implement separate-JVM fault harness and reproduce before fixing recovery gate.
+
+
+## 2026-10-18 12:20:07 +09:00 — Phase E RED reproduced (Windows17 x64)
+- Added four-stage separate-JVM halt, competing CLI, exclusive lock and real SQLite ABORT-trigger fault tests. Existing preview34 checks PASS, then child halted at CLAIMS_WRITTEN and store constructor failed with active database requires closed checkpointed snapshot.
+- Root cause: output-store preflight reused immutable input-ledger quiescence, rejecting SQLite's own rollback journal after abrupt exit. Original files preserved; no ACK or partial-success claim. New fault test opens store before any direct SQL count so engine recovery cannot hide this bug.
+- Next: preserve strict input diagnostics, permit SQLite-managed rollback only for output with verified SQLite magic/RLP1 header and safe journal, verify owned schema after recovery. Add foreign product DB+journal negative case and rerun all fault stages.
+
+
+## 2026-10-18 12:21:40 +09:00 — Phase E Windows x64 GREEN
+- Fixed output reopen gate: only a regular non-symlink rollback journal plus SQLite magic/RLP1 header permits mode=rw SQLite-managed recovery, followed by owned-schema verification. Foreign WAL/SHM or foreign application ID refuse. Input ledger diagnostics remain immutable/quiescent; no journal is manually removed.
+- Windows17 x64: existing preview34 PASS plus new faults36 PASS (four stage halts, all-or-none receipts/records, exact replay, competing CLI JVMs, exclusive lock review/no ACK, real insert ABORT with whole six-table rollback, original-byte preservation, foreign product DB+journal unchanged). RED778757d retained.
+- Next: actual x86/VPS, CI and manual dry-run recovery documentation. Physical power loss/real ENOSPC NOT RUN.
+

@@ -367,3 +367,8 @@ Shared v1 conversion sink and opt-in RLC2 adapter implemented. Windows x64 20 ch
 
 Dedicated preview persistence and explicit CLI implemented. Windows SQLite31/x8632 initially PASS; Linux launcher compile omission reproduced then fixed and Linux31 PASS. Additional deleted-record and foreign-table schema guards added (verification running). Local PostgreSQL two-connection replay and actual Server model validation PASS; no HTTP/ACK. PostgreSQL safety guard3 tests PASS. Python bytecode briefly entered WIP history and was removed in a normal follow-up commit with ignore rules; no secrets were in that artifact. CI pending.
 
+
+## 2026-10-18 12:22:40 +09:00 — acceleration Phase E output rollback-journal RED/GREEN
+
+Separate-JVM halt reproduced inability to reopen own preview rollback journal. Fixed only positively identified output recovery, preserving strict immutable input ledgers. Windows17 x64 preview34+fault36 PASS; actual x86 and VPS running. Added four transaction halts, concurrent workers, exclusive-lock review, real DB ABORT rollback, source-byte preservation and foreign product DB+journal refusal. RED and fix remain separate commits.
+

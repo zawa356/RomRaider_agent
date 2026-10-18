@@ -429,3 +429,10 @@
 - Replay compares persisted immutable bytes/counts/history and fails on deletion/tampering instead of repairing. SQL forbids ACK eligibility, and no sender uses the preview schema. Input quiescence remains external; UNKNOWN Windows directory durability is not upgraded.
 - Isolated PostgreSQL uses only a new randomly named test schema after strict destination guards; local actual Server models validate JSON without endpoint/ACK. See rlc2_preview_e2e.md.
 
+
+## D-051 — Preview output crash recovery is distinct from immutable input inspection (2026-10-18 12:22:40 +09:00)
+
+- Separate-JVM RED778757d found own rollback-journal refusal after CLAIMS_WRITTEN halt. Keep input ledger immutable/quiescent; do not loosen IngressDiagnostics or automatically checkpoint/repair originals.
+- For a dedicated output only, verify regular paths, SQLite header magic/RLP1 app ID and no unexpected WAL/SHM before mode=rw SQLite-managed recovery, then verify owned schema. Never manually remove journal; foreign product DB+journal remains unchanged/refused.
+- Four halt stages, concurrent CLI, exclusive lock and actual SQLite insert failure verify all-or-none receipts/records, restart idempotency and ACK refusal. No physical power-loss claim. See rlc2_preview_e2e.md.
+
