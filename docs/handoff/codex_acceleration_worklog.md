@@ -79,3 +79,10 @@
 - Windows17 x64: existing preview34 PASS plus new faults36 PASS (four stage halts, all-or-none receipts/records, exact replay, competing CLI JVMs, exclusive lock review/no ACK, real insert ABORT with whole six-table rollback, original-byte preservation, foreign product DB+journal unchanged). RED778757d retained.
 - Next: actual x86/VPS, CI and manual dry-run recovery documentation. Physical power loss/real ENOSPC NOT RUN.
 
+
+## 2026-10-18 12:31:54 +09:00 — Phase E COMPLETE; Phase F START
+- Agent PR46 merged9caa2486d7b4a9e256b68eb02835ed90cf09e0f7; PR39093449838/39093449961 and main39093698538/39093698530 success. Server PR53 merged2aaaeda93f39260c97534f52d463ace663b209fd, main39093791658 success. Fault36/37/36 and preview34/35/34 validated; no physical power loss/ENOSPC claim.
+- Phase F base Agent9caa248 / Server2aaaeda; branch feat/acceleration-test-automation. Add hash-verified Java dependencies, locked cp312 Win/Linux PostgreSQL driver wheels, pinned observed PostgreSQL image digest, Windows one-command batch with optional guarded PG/model validation, artifact guard and duplicate push/PR CI cancellation.
+- Preparation: isolated Windows Python venv installed psycopg3.3.6/binary3.3.6/typing-extensions4.16.0/tzdata2026.5 with full wheel hashes; deliberately wrong hash rejected before install. Wheel files remain workspace-only. Docker image digest observed from successful PostgreSQL CI, not guessed.
+- Next: implement automation and run the actual complete Windows batch with local disposable PG; CI verifies Linux hash lock and all test steps.
+
