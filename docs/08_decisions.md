@@ -385,3 +385,12 @@
 ### D-044 actual GREEN確認
 
 - c72ad0dのWindows17/x64とactualZulu8 1.8.0_504/x86で改変拒否/保全/latch成功。writer46/47。flush後に観測したvalid CRCを、実際のWriteFile bytesの代替にしない。製品・marker・ledgerへの非配線は維持。
+
+## D-045 — Phase 3bはRLC2（新version・identity tag）の独立PoCとし、RLC1を読み替えない（2026-10-18）
+
+- 新marker `.commit2`（RLC2, 144 bytes）。identityはtag付き（POSIX dev/inode、Windows NTFS volume serial/file index）で、tag違いは比較不能。原本UUID・generation・sequence・offset・prefix SHA-256を保持。SHA-256は整合性検査で認証ではない。
+- RLC1 `.commit`が存在すればRLC2発行を拒否しbytesを保持。RLC2位置のRLC1 bytesも拒否。移行契約は別承認。
+- 確定手順はwriter書込記録との完全一致→所有handle sync→同handle再検証→tmp CREATE_NEW/force→原子的置換（Windowsは`MoveFileExW` WRITE_THROUGH）→directory判定。Windows directory durabilityは常にUNKNOWN、`powerLossDurable()`は常にfalse。
+- POSIX identityはpath-sampled（Javaはfstat不可）でWindowsのhandle bindingより弱い。この差異を試験に`DIFFERENCE`として残す。
+- 反例: previousなしの新readerは古い安全markerを受理、digest再計算の偽造markerを受理。永続highwater/expected identityをSQLite receiptと同一transactionで持つ3c設計が前提。製品writer/Worker/DB/ACKへ配線しない。
+- [設計・試験](phase_3b_rlc2_watermark.md)、実行結果は[Claude worklog](handoff/claude_phase3b_worklog.md)。

@@ -42,3 +42,22 @@ cd /c/Dev/RomLogger/RomRaider_agent
 git fetch origin && git status -sb
 JAVA_HOME="/c/Program Files/Zulu/zulu-17" PATH="/c/Program Files/Zulu/zulu-17/bin:$PATH" bash scripts/test-ingress-journal-prototype.sh
 ```
+
+## 2026-10-18 10:40 JST — 環境: VPS / Dockerサーバー SSH（TOFU）
+
+- 接続helper `C:\Dev\tools\romlogger_ssh.py`（paramiko 5.0.0、venv `C:\Dev\tools\venv-ssh`）。hosts.envはデータとして解析しパスワードはメモリのみ。pinは `C:\Dev\secrets\romlogger_known_hosts.json`（ACL: 本人/SYSTEM）。ed25519のみ交渉。
+- **Docker**: 提示ed25519がユーザー提供の前回観測値と一致→TOFU登録→認証成功。Ubuntu 22.04.5 / 2 vCPU / RAM 3.8GiB（avail約2.3GiB）/ ディスク空き38GB。Docker 27.3.1・Compose v2.29.7、ユーザーはdocker+sudoグループ（sudoはパスワード要求）。Java/sqlite3/psqlなし。既存 `romraiderserver-*`（db/api/mcp/proxy/voice-demo）、immich、sluicery、portainer等が稼働 → **変更しない**。
+- **VPS**: ホスト鍵は観測値と一致しTOFU登録。許可方式は publickey,password。**hosts.envの資格情報でpassword認証失敗（1回のみ試行、ロックアウト回避のため再試行なし）**。VPS = BLOCKED（資格情報確認待ち）。Linux検証はGitHub ActionsとDockerサーバー上の隔離コンテナで代替。
+- 要改善: 両サーバーのSSHパスワードが短い（5/8文字）。鍵認証化またはパスワード強化を推奨（無断変更しない）。
+
+## 2026-10-18 11:20 JST — Phase 3b-1/3b-2/3b-3 実装・Windowsローカル試験
+
+- 状態: IMPLEMENTED（独立PoC、製品非接続）。設計 [phase_3b_rlc2_watermark.md](../phase_3b_rlc2_watermark.md)、ADR D-045。
+- 変更: `WatermarkV2Prototype.java`（main/prototype）、test `WatermarkV2Scenarios` / `WatermarkV2ContractTest` / `PosixWatermarkV2Test` / `WindowsWatermarkV2Test`、両scriptへ追加。
+- 途中の失敗と修正: 並行reader試験が `ok=0 closed=24` で失敗。理由集計で全件 fail-closed（staged残存/読取中変更）＝readerは安全側だが、publishが速く静止状態を観測しないまま停止していた。静止後の最終読取を必須にし、最終gen 26を検証する試験へ修正。
+- Windows 11 VM（ja-JP/NTFS）結果:
+  - JDK17 x64: `test-ingress-journal-prototype.sh` rc=0 PASS186 SKIP2（symlink、開発者モード無効）、Contract22、POSIX scenarios **NOT RUN**（unix viewなし、fail-closed 1 PASS）
+  - JDK17 x64: `test-windows-native-identity.sh` rc=0 PASS179（RLC2 Windows 96）
+  - Zulu8 1.8.0_504 x86（data-model32）: `--run-only` rc=0 PASS182（RLC2 Windows 97）
+  - Windows directory: `FlushFileBuffers(directory)` は成功を返したが **UNKNOWN** と報告（保証の文書化なし）
+- 次: commit/push → PR → Linux CI（POSIX scenarios実行）とWindows/x86 CI確認 → Docker隔離コンテナでLinux追加検証。
