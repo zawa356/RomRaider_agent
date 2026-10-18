@@ -398,3 +398,7 @@ Manual next-action diagnostics, non-mutating source-only migration preflight, mi
 
 ### 2026-10-18 — Preview checkpoint integrity follow-up
 - Phase H independently verifies committed source receipt boundaries and the exact projected record ID set before replay. Unknown/missing committed rows are retained for review, including unchanged-count event key replacement. Normal append/rotation remain supported. See rlc2_preview_e2e.md and D-056; no production ACK enablement.
+
+## 2026-10-18 — Codex acceleration final checkpoint
+- Phase A–H code baseline e1677c4 (PR43–49); final main journal39124576935/product39124576968 success. Read-only Supervisor diagnostics, default-off synthetic v1 projection, isolated SQLite/PG preview, recovery tests, pinned automation, migration preflight/load and checkpoint identity validation are complete within their documented scope.
+- Full report and next product integration design: [codex_acceleration_report.md](handoff/codex_acceleration_report.md). Product automatic send/formal ACK/schema migration remain gated; directory durability UNKNOWN and physical power loss/real ENOSPC NOT RUN.

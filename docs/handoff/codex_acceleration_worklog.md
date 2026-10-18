@@ -151,3 +151,8 @@
 ## 2026-10-18 — Phase H RED reproduced / fix under test
 - RED b032e04 changed one synthetic event key without changing row counts; replay accepted it and added the original row. New pre-write validation checks prior per-source receipt extents and exact record IDs derived from the old contiguous receipt prefix, independently of aggregate counters. Unknown/missing rows fail closed without reconstruction.
 - Regression adds original key replacement/byte preservation, deletion+adjusted counters, valid active append and third-source rotation/replay. Windows x64 RED became GREEN for new cases; full fault/load and actual x86/Linux running. No schema or formal ACK changes.
+
+## 2026-10-18 20:51 JST — Phase H COMPLETE / final report checkpoint
+- Agent PR49 merged e1677c4e8341b1d60d61bd2be11dd57a5e459a43; PR journal39097642181/product39097642133 and main39124576935/39124576968 all success. Actual four jobs, 32-bit batch and PG steps ran. Local final preview/fault/load42/36/23 x64,43/37/24 x86,42/36/23 VPS; VPS10k/11session44 PASS. Fresh local PG twice/actual Server models PASS.
+- Server PR56 merged a1bc6210159f6ee736f084b6f81d3da0d5f9f500; main39124675916 success. Docker14 existing services Up, own container absent; VPS dedicated test processes none; loopback test PG preview schemas0. Synthetic files retained intentionally; no real originals/ECU/X270/production services changed.
+- Final report codex_acceleration_report.md captures all phases/PRs/merge/main CI, RED/GREEN, limitations and detailed next integration gates/resume commands. Documentation-only final PR to follow; source baseline stays e1677c4. Next: final docs normal merge and Server final progress, clean synchronized main/openPR0 checks.
