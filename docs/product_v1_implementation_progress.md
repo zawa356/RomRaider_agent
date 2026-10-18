@@ -402,3 +402,8 @@ Manual next-action diagnostics, non-mutating source-only migration preflight, mi
 ## 2026-10-18 — Codex acceleration final checkpoint
 - Phase A–H code baseline e1677c4 (PR43–49); final main journal39124576935/product39124576968 success. Read-only Supervisor diagnostics, default-off synthetic v1 projection, isolated SQLite/PG preview, recovery tests, pinned automation, migration preflight/load and checkpoint identity validation are complete within their documented scope.
 - Full report and next product integration design: [codex_acceleration_report.md](handoff/codex_acceleration_report.md). Product automatic send/formal ACK/schema migration remain gated; directory durability UNKNOWN and physical power loss/real ENOSPC NOT RUN.
+
+## Phase I final candidate integration checkpoint — 2026-10-18
+- I-1–I-7 Agent PR52–58 normally merged; code main aa55dcd007b48728a320448fb827049254fcb6fd, tested tree be08629. Executable RLI2 versioned schema, admitted multi-source atomic engine, quiescence/snapshot guards, strict schema/Supervisor axes, explicit CLI and actual Server HTTP/owned PG process-failure verification.
+- Full Windows actual64/32 batch exit0; fresh VPS entire stack/10k and actualx86 10k PASS; actual HTTP35 including owned PG stop/restart and Server57 PASS. Actions could not schedule; user selected local/VPS verification, CI NOT RUN.
+- Full evidence/gates/resume: [codex_product_integration_report.md](handoff/codex_product_integration_report.md). Existing Worker/schema/send/ACK not automatically replaced; live coexistence and production adoption remain blocked, directory durability UNKNOWN.
