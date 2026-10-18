@@ -401,3 +401,10 @@
 - `BEGIN IMMEDIATE`の1トランザクションでlane排他、UUID/path claim、highwaterを`previouslyObserved`とした読取、expected identity照合、既存receipt完全照合、新receipt、highwater更新を行う。失敗時は全rollback。
 - receiptは常にACK対象外。Windows directory durabilityはUNKNOWNのまま。製品`v1_*`表、Worker、Server IFへは配線しない。ledger DB自体の改竄耐性は主張しない。
 - [設計・試験](phase_3c1_rlc2_ledger.md)。
+
+## D-047 — 3d-1はRLC2 segmentの独立seal/RLM1 rotation manifest PoC（2026-10-18）
+
+- 1 session=1 directory、segment-0001〜0016、`rotation.manifest`（RLM1）。sealedはRLC2が全長を確定したsegmentのみ（空segmentはseal不可）。sealed entryは不変で、以後のmanifestはbyte等価なprefixを保持する。
+- 16本で明示停止し、削除・retentionはしない。orphan・tmp残存・CREATE_NEW競合はreview待ちで停止し、自動採用・修復はしない。
+- session ingestはmanifest順で、前segmentがsealed最終seq/offsetまでledgerに記録されるまで次segmentへ進まない。
+- Windows directory durabilityはUNKNOWNのまま。製品writer/Worker/v1表/ACKへ配線しない。[設計・試験](phase_3d1_rotation_manifest.md)。

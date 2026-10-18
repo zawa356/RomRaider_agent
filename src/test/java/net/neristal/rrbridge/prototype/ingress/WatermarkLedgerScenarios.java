@@ -32,7 +32,7 @@ final class WatermarkLedgerScenarios {
         java.security.MessageDigest d = WatermarkV2Prototype.sha(); d.update(raw, 0, raw.length - 32);
         System.arraycopy(d.digest(), 0, raw, raw.length - 32, 32);
     }
-    private static Env withChild(final Env base, final String childMain) {
+    static Env withChild(final Env base, final String childMain) {
         return new Env() {
             public String name() { return base.name(); }
             public OwnedJournal openOwned(Path s) throws IOException { return base.openOwned(s); }

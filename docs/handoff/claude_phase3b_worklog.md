@@ -85,3 +85,22 @@ JAVA_HOME="/c/Program Files/Zulu/zulu-17" PATH="/c/Program Files/Zulu/zulu-17/bi
 - 途中の修正: sqlite-jdbcの`setAutoCommit(false)`と`BEGIN IMMEDIATE`は二重開始になるため、autocommitのまま明示的にBEGIN IMMEDIATE/COMMIT/ROLLBACKする実装へ変更（コンパイル前に修正）。
 - Windows 11 VM: JDK17 x64 ledger **27 PASS** rc=0、Zulu8 x86 **28 PASS** rc=0、POSIX ledger NOT RUN（unix viewなし）。拒否理由がすべて意図した原因（stale/UUID claim/identity/TSV lane/receipt改竄/世代退行）であることをログで確認。並行ingestは `a=added=3 b=added=0`。
 - 次: commit/push → PR → CI（Linux POSIX ledger実行）→ merge → main CI。
+
+## 2026-10-18 13:10 JST — Phase 3c-1 MERGED / Server .gitignore
+
+- PR [#40](https://github.com/zawa356/RomRaider_agent/pull/40) MERGED → main `ae443cb8abd8799f44412cc07f0ab2ef900a81ad`。PR CI [39085178875](https://github.com/zawa356/RomRaider_agent/actions/runs/39085178875) 全job success: ledger Windows x64 **27** / ubuntu POSIX **27** / actual Zulu8 x86 **28**（data-model32）。main CI [39085337766](https://github.com/zawa356/RomRaider_agent/actions/runs/39085337766)・[39085337773](https://github.com/zawa356/RomRaider_agent/actions/runs/39085337773) success。
+- Linux隔離コンテナ（`rl-claude-phase3c1-linux`）でledger 27 PASS。
+- Server PR [#48](https://github.com/zawa356/RomRaiderServer/pull/48)（`tests/e2e/agent_v1_snapshot/{build,lib}` を.gitignore）MERGED → Server main `6d90eba532747acd261b45cbd9e2567475ba230f`、PoC checks success。
+
+## 2026-10-18 13:40 JST — Phase 3d-1 実装・ローカル試験
+
+- 判断: 3cと同じく、Windows directory durability UNKNOWNのため製品統合はBLOCKED。seal/rotationの**独立PoC**として実施する（製品非接続）。
+- 記録上の注意: 3c-1・3d-1とも、worklogのSTART記録より先にコード編集を始めた（branch作成前のローカル編集）。結果記録と同じcommitでまとめて残す。
+- branch `claude/phase3d1-rotation-manifest`（main `ae443cb`起点）。変更: `RotationManifestPrototype.java`、test `RotationScenarios` / `PosixRotationTest` / `WindowsRotationTest`、`WatermarkLedgerScenarios.withChild`をpackage可視化、`scripts/test-watermark-ledger.sh`へrotationを追加。
+- 途中の修正:
+  - fault/halt試験の「next」でsegment 2を書いていなかったため、sealが空segment拒否で失敗していた。それを注入例外と誤認しうる作りだったので、segment 2を書くようにし、注入以外のIOExceptionは再throwする試験へ修正した。
+  - 空segmentのseal拒否が「marker未作成」という別理由で起きていたため、publish済みseq0の空segmentでの拒否ケースを追加した。
+- 結果:
+  - Windows 11 VM: JDK17 x64 script rc=0 PASS70（ledger27 + rotation43）、Zulu8 x86 `--run-only` rc=0 PASS72（28+44）、POSIX NOT RUN。
+  - Linux隔離コンテナ（`rl-claude-phase3d1-linux`、作業ツリー版）: rc=0 PASS70（ledger27 + rotation43）。
+- 次: commit/push → PR → CI → merge → main CI → 最終報告。
