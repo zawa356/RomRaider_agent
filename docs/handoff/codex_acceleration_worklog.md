@@ -60,3 +60,10 @@
 - VPS Linux preview reached 27 checks then separate-JVM CLI failed: launcher is referenced by class name string, so javac did not compile POSIX CLI implicitly. Windows wrapper compiled it transitively. This is a harness failure; next fix explicitly compiles Rlc2PreviewCli on both OSs and reruns Linux.
 - Server PR51 main CI39092090529 success. Next: fix Linux launcher compilation, CI proof, docs/PR.
 
+
+## 2026-10-18 12:18:17 +09:00 — Phase D COMPLETE; Phase E START
+- Agent PR45 merged a4a5a0ba06d8cd908d7908cd5e08f5f40891518a; PR39092722886 (all four jobs including actual PostgreSQL) /39092722876 and main39092940711/39092940692 success. Raw logs confirm preview34 Linux/Windows and35 actual Zulu8 x86. Server PR52 merged94b05a67ca5154916e7f9d9eddeb3f607eaadbda, main39093054991 success.
+- Phase E base Agenta4a5a0b / Server94b05a6; branch fix/rlc2-preview-crash-recovery. Hypothesis: abrupt pre-commit exit leaves a rollback journal that the output-store's overly strict immutable preflight may refuse. Need RED separate-JVM test first; recovery must be limited to a positively identified preview DB, never input ledger/original repair.
+- Plan four transaction-stage halts, exclusive lock/DB failure, competing CLI processes and exact replay/no duplicate/no ACK proof. Existing rename/manifest/stale/UUID/CRC/quota faults remain in regression; Runtime.halt remains non-physical-power-loss.
+- Next: implement separate-JVM fault harness and reproduce before fixing recovery gate.
+
