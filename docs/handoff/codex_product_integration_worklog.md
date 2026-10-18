@@ -11,3 +11,8 @@
 ## I-1 implementation checkpoint
 - New isolated RLI2/user_version1 schema reuses six preview transaction tables and adds session/run binding plus explicit child admissions. D-057/C20/storage contract v2 documented. Existing v1 is inspected read-only; live cross-DB coexistence remains BLOCKED, mandatory external quiescence.
 - Windows17 x64 schema13 PASS (migration rerun/rollback, unknown version, product DB unchanged, old-lane conflict); dedicated full preview/fault/load running. VPS pinned SSH/java and loopback PG16.15 read-only query PASS. Next actual x86/PR CI, then I-2 atomic candidate engine using this backend.
+
+## I-1 CI external BLOCK / I-2 START
+- Agent PR52 head50c0475 and Server PR58 created/attached. GitHub annotations: jobs not started due recent account payments/spending limit; steps empty. CI NOT RUN, no merge. PR52/58 remain reviewable. No billing/settings changes attempted.
+- I-2 branch feat/rlc2-integration-engine stacks on PR52; base50c0475. Reuse existing full transaction backend via an isolated format/transaction guard, explicit admission and external quiescence. Keep each phase in separate PR against prior phase until CI/main gate clears.
+- Local schema13 actual x86 PASS; VPS full suite still running. Next candidate engine checks canonical binding/admitted UUIDs/legacy lane within the shared transaction and preserves all original/checkpoint gates.
