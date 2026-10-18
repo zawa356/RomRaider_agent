@@ -73,3 +73,9 @@
 - Root cause: output-store preflight reused immutable input-ledger quiescence, rejecting SQLite's own rollback journal after abrupt exit. Original files preserved; no ACK or partial-success claim. New fault test opens store before any direct SQL count so engine recovery cannot hide this bug.
 - Next: preserve strict input diagnostics, permit SQLite-managed rollback only for output with verified SQLite magic/RLP1 header and safe journal, verify owned schema after recovery. Add foreign product DB+journal negative case and rerun all fault stages.
 
+
+## 2026-10-18 12:21:40 +09:00 — Phase E Windows x64 GREEN
+- Fixed output reopen gate: only a regular non-symlink rollback journal plus SQLite magic/RLP1 header permits mode=rw SQLite-managed recovery, followed by owned-schema verification. Foreign WAL/SHM or foreign application ID refuse. Input ledger diagnostics remain immutable/quiescent; no journal is manually removed.
+- Windows17 x64: existing preview34 PASS plus new faults36 PASS (four stage halts, all-or-none receipts/records, exact replay, competing CLI JVMs, exclusive lock review/no ACK, real insert ABORT with whole six-table rollback, original-byte preservation, foreign product DB+journal unchanged). RED778757d retained.
+- Next: actual x86/VPS, CI and manual dry-run recovery documentation. Physical power loss/real ENOSPC NOT RUN.
+

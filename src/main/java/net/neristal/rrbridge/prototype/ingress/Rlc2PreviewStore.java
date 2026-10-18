@@ -35,8 +35,16 @@ public final class Rlc2PreviewStore {
         boolean exists=Files.exists(path.toPath(),LinkOption.NOFOLLOW_LINKS);
         if(exists) {
             if(!Files.isRegularFile(path.toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("regular preview DB required");
-            // Verify ownership before any writable open/DDL, including a renamed product DB.
-            try(Connection db=IngressDiagnostics.readOnly(path)) { owned(db); }
+            // Input ledgers remain immutable/quiescent. An owned output may need SQLite's
+            // normal rollback recovery after a killed transaction; never delete its journal.
+            File journal=new File(path.getPath()+"-journal");
+            if(Files.exists(journal.toPath(),LinkOption.NOFOLLOW_LINKS)) {
+                verifyRecoveryOwner(path,journal);
+                try(Connection db=DriverManager.getConnection("jdbc:sqlite:"+path.toURI().toASCIIString()+"?mode=rw")) { owned(db); }
+            } else {
+                // Verify ownership before any writable open/DDL, including a renamed product DB.
+                try(Connection db=IngressDiagnostics.readOnly(path)) { owned(db); }
+            }
         }
         jdbc="jdbc:sqlite:"+path.getAbsolutePath();
         if(!exists)try(Connection db=open();Statement s=db.createStatement()) {
@@ -57,6 +65,15 @@ public final class Rlc2PreviewStore {
                 s.execute("COMMIT");
             }catch(Exception e){try{s.execute("ROLLBACK");}catch(SQLException ignored){}throw e;}
         }
+    }
+    private static void verifyRecoveryOwner(File path,File journal)throws Exception {
+        if(!Files.isRegularFile(journal.toPath(),LinkOption.NOFOLLOW_LINKS)||Files.isSymbolicLink(journal.toPath()))throw new IOException("unsafe preview rollback journal");
+        for(String suffix:new String[]{"-wal","-shm"})if(Files.exists(new File(path.getPath()+suffix).toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("unexpected WAL on rollback preview database");
+        byte[] header=new byte[100];
+        try(java.io.RandomAccessFile source=new java.io.RandomAccessFile(path,"r")){source.readFully(header);}
+        byte[] magic="SQLite format 3\u0000".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        if(!Arrays.equals(magic,Arrays.copyOf(header,16))||java.nio.ByteBuffer.wrap(header).getInt(68)!=APPLICATION_ID)
+            throw new IOException("rollback recovery requires positively identified preview output");
     }
     private static void owned(Connection db)throws Exception {
         try(Statement s=db.createStatement()) {

@@ -67,6 +67,11 @@ public final class Rlc2PreviewFaultTest {
         check(dbFailure.waitFor(40,TimeUnit.SECONDS)&&dbFailure.exitValue()==5,"real SQLite insert failure stops CLI");
         for(String table:new String[]{"preview_sessions","preview_claims","preview_sources","preview_receipts","preview_profiles","preview_records"})check(Rlc2PreviewStoreTest.count(failed,"SELECT count(*) FROM "+table)==0,"DB failure rolls back "+table);
         check(originals.equals(Rlc2PreviewStoreTest.hashes(f.dir)),"all failure/competition scenarios preserve original source/marker/manifest/ledger bytes");
+        final File foreign=Rlc2PreviewStoreTest.target();new net.neristal.rrbridge.product.v1.DurableSpool(foreign);
+        File foreignJournal=new File(foreign.getPath()+"-journal");Files.write(foreignJournal.toPath(),new byte[]{1,2,3});
+        Map<String,String> foreignBefore=Rlc2PreviewStoreTest.hashes(foreign.toPath().getParent());
+        Rlc2PreviewStoreTest.rejects("foreign product DB with journal never enters recovery",new Rlc2PreviewStoreTest.Action(){public void run()throws Exception{new Rlc2PreviewStore(true,foreign);}});
+        check(foreignBefore.equals(Rlc2PreviewStoreTest.hashes(foreign.toPath().getParent())),"foreign DB and journal remain byte-for-byte unchanged");
         System.out.println("RLC2 preview faults "+env.name()+" passed "+checks+" checks; Runtime.halt is not physical power loss; ACK forbidden");
     }
 }
