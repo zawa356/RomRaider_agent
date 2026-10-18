@@ -422,3 +422,10 @@
 - Manifest order carries metadata; payload session and monotonic run sample sequence must continue across physical sources. Persisted ledger must exactly cover every projected marker; original source receipts remain separate from v1 record IDs.
 - Current v1_source_claims permits a single source key per payload session, so direct multi-source product integration stays BLOCKED. Preview schema will own a manifest-session plus source children; no silent schema/ACK migration. Projection is explicitly enabled, synthetic only. See rlc2_product_projection.md.
 
+
+## D-050 — Quarantine RLC2 product projections in dedicated atomic preview storage (2026-10-18 12:10:37 +09:00)
+
+- Production v1 single-source claims/cursors remain unchanged. Preview owns a manifest-session and child source cursors, keeping original receipts and shared v1 JSON in one SQLite transaction. Existing DB application/schema ownership is verified before writing; absent opt-in creates nothing.
+- Replay compares persisted immutable bytes/counts/history and fails on deletion/tampering instead of repairing. SQL forbids ACK eligibility, and no sender uses the preview schema. Input quiescence remains external; UNKNOWN Windows directory durability is not upgraded.
+- Isolated PostgreSQL uses only a new randomly named test schema after strict destination guards; local actual Server models validate JSON without endpoint/ACK. See rlc2_preview_e2e.md.
+

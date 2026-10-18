@@ -40,3 +40,23 @@
 - Existing vs new model/mapping documented in rlc2_product_projection.md; interfaces/history/progress and D-049 updated. Product single-source claim migration is explicitly BLOCKED, while pure preview is implemented.
 - Next: PR CI, review diff, normal merge and main CI; then Phase D quarantined SQLite persistence with atomic receipts/cursors and separate-JVM E2E/faults.
 
+
+## 2026-10-18 12:01:11 +09:00 — Phase C COMPLETE; Phase D START
+- Agent PR44 merged b862651902ad25dc86a3233c00df77dddcaa3919; PR CI39091762536/39091762488 and main39091939531/39091939477 success. Actual Windows/Linux projection+diagnostics and Zulu8 x86 steps ran. Existing real-Server gated workflow succeeded but actual E2E SKIPPED (no private Server read secret).
+- Server progress PR51 merged3d574d52ce716b5c2733ba3bc9f77414f1bf58bd; main CI39092090529 running (docs only). Full local product suites PASS; projection20/21/20.
+- Phase D base Agentb862651 / Server3d574d5; branch feat/rlc2-preview-store. Build dedicated named .rlc2-preview.db storage with application ID and preview-only schema guard. One transaction for manifest history, lane/source claims, raw receipts, v1 projections and highwater. No v1 tables and CHECK ack_eligible=0. Add restart/CLI E2E and faults on synthetic fixtures; PostgreSQL direct isolated verification later.
+- Next: implement preview store and opt-in CLI, real SQLite tests including idempotency and original preservation; retain UNKNOWN durability and no Server ACK.
+
+
+## 2026-10-18 12:04:44 +09:00 — Phase D implementation checkpoint / SQLite tests running
+- Added Rlc2PreviewStore with dedicated extension/application ID/schema ownership check before writable access. Dedicated preview-only tables retain manifest bytes/history, source/lane claims, exact receipts/highwaters and shared v1 profiles/records in one IMMEDIATE transaction. Records enforce ack_eligible=0; no v1 table names.
+- Immutable replay verifies prior row counts and bytes, refusing deleted/tampered receipts or records. Added explicit synthetic CLI (fixed JSON status, no exception text/path disclosure), Windows test-only native wrapper, real CLI-process E2E and rollback/claim/schema/preservation tests.
+- Tests running Windows x64. Next: fix failures, x86/VPS, wire CI, isolated PostgreSQL verification without Server ACK.
+
+
+## 2026-10-18 12:08:22 +09:00 — Phase D cross-platform RED / PostgreSQL local PASS
+- Windows SQLite preview x64 31 and actual Zulu8 x86 32 PASS. Local PostgreSQL16.15 twice committed/reconnected: two sources/four receipts/one profile/three records, exact JSON/originals, no duplicates, CHECK blocks ACK, injected failure rollback PASS. Actual Server ProfileRevision/Batch model validation PASS locally; no endpoint invoked.
+- Added guarded PostgreSQL fixture test and CI job; 3 destination guard tests PASS (unsafe endpoints/overrides/opt-in rejected before fixture/database access).
+- VPS Linux preview reached 27 checks then separate-JVM CLI failed: launcher is referenced by class name string, so javac did not compile POSIX CLI implicitly. Windows wrapper compiled it transitively. This is a harness failure; next fix explicitly compiles Rlc2PreviewCli on both OSs and reruns Linux.
+- Server PR51 main CI39092090529 success. Next: fix Linux launcher compilation, CI proof, docs/PR.
+

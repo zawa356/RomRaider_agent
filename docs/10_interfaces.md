@@ -489,3 +489,8 @@ IngressDiagnostics.inspect(session, existing closed ledger snapshot, ReadOpener,
 
 Rlc2ProductAdapter.project requires enableSynthetic=true, synthetic-/TEST_ inputs and exact marker/ledger alignment. Returns immutable sources, original receipts, shared v1 profiles/records; ackEligible=false. IncrementalTsvBridge.projectRows/ProjectionSink expose the unchanged conversion independently of database I/O. No Worker or transport activation. Current v1 single-source claim/cursor format is unchanged; multi-source persistence must stay in preview tables. Mapping and limits: rlc2_product_projection.md.
 
+
+## C17. Isolated RLC2 preview store/CLI and test PostgreSQL — 2026-10-18 12:10:37 +09:00
+
+Rlc2PreviewStore requires explicit synthetic enable and a dedicated .rlc2-preview.db; existing files require RLP1 application ID and preview-only tables before writable access. Six preview tables atomically retain ownership/history/highwater/receipts/shared v1 JSON; CHECK ack_eligible=0. CLI: --enable-synthetic-preview SESSION LEDGER DEVICE VEHICLE OUTPUT; exits0 stored,5 review,2 usage. No transport command. PostgreSQL test has exact opt-in/loopback/test-name/URI override guards and uses only an invocation-owned random schema. See rlc2_preview_e2e.md.
+
