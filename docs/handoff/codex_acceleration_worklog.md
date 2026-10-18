@@ -143,3 +143,7 @@
 - Existing source/ledger data format unchanged; all timing phases and limitations retained in ingress_preflight_load.md. Final pending-classification case passed locally; CI will run final source on Linux/Windows/x86 and guarded PostgreSQL. F Server main39095397003 success.
 - Next: PR with final CI, normal merge/main CI, Server progress synchronization, final acceleration report/resume commands. No remaining production gate is silently relaxed.
 
+## 2026-10-18 — Phase G merged; Phase H checkpoint integrity review START
+- Agent PR48 merged33875a2e86dabb91f8b3a93441192595a2a7d08f, PR journal39096699520/product39096699522 success; main39097392309 running/product39097392286 success. Server PR55 mergedaf30941a4f0128a448389e3dd48d5003191bd2cd, main39097403278 success.
+- Phase H base33875a2/af30941; fix/preview-checkpoint-integrity. Probe replay after an event primary key is changed while aggregate counts remain valid. If reproduced, reject unknown/missing committed projection sets before adding rows; never silently reconstruct output evidence. Also verify prior source receipt extents independently of aggregate counts. Synthetic preview only, no schema migration or ACK.
+
