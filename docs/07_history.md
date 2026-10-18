@@ -387,3 +387,7 @@ Read-only manual hints/source-only RLC1/RLC2 inspection implemented. Final local
 - RED b032e04: an event key replacement with unchanged row counts was accepted and duplicated on replay.
 - Fix validates saved per-source receipt extent, contiguous old projection prefix and exact prior record IDs before writes; adjusted aggregate counters cannot hide a missing committed row. Evidence remains intact and requires manual review.
 - Active-source append and a third rotated source still import only new rows. No product schema/ACK changes.
+
+## Phase I-1 — versioned isolated multi-source schema
+- Implemented Rlc2IntegrationSchema and reused existing preview CREATE schema statements without changing preview behavior. Dedicated versioned migration, rerun/read-only verification, rollback, legacy lane inventory and preservation are real code.
+- Windows17 x64 schema13 PASS. Full preview/fault/load regression and x86/CI pending; no production migration.

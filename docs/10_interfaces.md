@@ -509,3 +509,6 @@ PowerShell7 scripts/run-acceleration-tests.ps1 selects configurable JDK17 x64/Zu
 
 IngressDiagnostics JSON schema1 additively includes automatic_repair_allowed=false and per-finding next_action (fixed manual hint only). --migration-preflight SOURCE.rlj [--json] inspects existing legacy/new envelopes and prefixes without opening/creating a ledger, creating markers, choosing mixed formats or migrating. Intact RLC1 still exits5 pending explicit identity/migration contract. Normal session diagnostics add mixed-format refusal and LEDGER_BEHIND. Load fixtures accept bounded ROMLOGGER_LOAD_OBSERVATIONS/ROMLOGGER_LOAD_SESSIONS; no runtime product activation. Details: ingress_preflight_load.md.
 
+
+## C20 — RLC2 integration storage contract v2 (candidate)
+- Dedicated opt-in .rlc2-integration.db, RLI2 application ID/user_version1, eight tables with logical session and explicit physical-source admissions. Existing product v1 DB/HTTP/Worker/ACK behavior unchanged. See interfaces/rlc2_integration_v2.md; requires offline/quiescent legacy inventory, no live cross-DB exclusion guarantee.
