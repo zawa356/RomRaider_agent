@@ -54,6 +54,16 @@ public final class Rlc2IntegrationStoreTest {
         check(Rlc2PreviewStoreTest.count(concurrent,"SELECT count(*) FROM preview_records")==4&&Rlc2PreviewStoreTest.count(concurrent,"SELECT count(*) FROM preview_receipts")==5,"two workers converge on exact record and receipt sets");
         check(Rlc2PreviewStoreTest.count(concurrent,"SELECT count(*) FROM preview_records WHERE ack_eligible<>0")==0,"candidate never promotes ACK");
         Files.write(new File("build/rlc2-integration-fixture.path").toPath(),concurrent.getAbsolutePath().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        check(Rlc2IntegrationCli.run(new String[0],null)==2,"CLI refuses missing explicit gates before source access");
+        boolean windows=System.getProperty("os.name").toLowerCase(java.util.Locale.ROOT).contains("win");
+        String executable=new File(new File(System.getProperty("java.home"),"bin"),windows?"java.exe":"java").toString();
+        File cliOutput=target();java.nio.file.Path log=cliOutput.toPath().resolveSibling("integration-cli.log");Rlc2IntegrationStore.Admission approved=admit(f);
+        String main="net.neristal.rrbridge.prototype.ingress."+(windows?"WindowsRlc2IntegrationCli":"Rlc2IntegrationCli");
+        ProcessBuilder cli=new ProcessBuilder(executable,"-cp",System.getProperty("java.class.path"),main,"--enable-synthetic-integration","--quiescent",f.dir.toString(),f.db.toString(),old.toString(),Rlc2ProductAdapterTest.DEVICE,Rlc2ProductAdapterTest.VEHICLE,cliOutput.toString(),approved.manifestSession,String.join(",",approved.sourceUuids)).redirectErrorStream(true).redirectOutput(log.toFile());
+        Process child=cli.start();check(child.waitFor(45,java.util.concurrent.TimeUnit.SECONDS)&&child.exitValue()==0,"real integration CLI imports explicitly admitted sources");
+        String text=new String(Files.readAllBytes(log),java.nio.charset.StandardCharsets.UTF_8);
+        check(text.contains("\"records_added\":4")&&text.contains("\"ack_eligible\":false")&&!text.contains(f.dir.toString()),"CLI emits fixed structured counts without source paths");
+        child=cli.start();check(child.waitFor(45,java.util.concurrent.TimeUnit.SECONDS)&&child.exitValue()==0&&new String(Files.readAllBytes(log),java.nio.charset.StandardCharsets.UTF_8).contains("\"records_added\":0"),"separate CLI replay is idempotent");
         System.out.println("RLC2 integration engine passed "+checks+" checks; explicit offline candidate; no Server ACK");
     }
 }

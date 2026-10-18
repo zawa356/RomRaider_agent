@@ -70,6 +70,8 @@ def pg_candidate_migration(url, ddl):
     statements = []
     for text in ddl:
         text = re.sub(r"\bBLOB\b", "BYTEA", text, flags=re.I)
+        # SQLite INTEGER stores signed64; PostgreSQL INTEGER would narrow cursors.
+        text = re.sub(r"\bINTEGER\b", "BIGINT", text, flags=re.I)
         text = re.sub(r"CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ", text, count=1, flags=re.I)
         text = re.sub(r"CREATE UNIQUE INDEX ", "CREATE UNIQUE INDEX IF NOT EXISTS ", text, count=1, flags=re.I)
         statements.append(text)
@@ -89,9 +91,13 @@ def pg_candidate_migration(url, ddl):
             db.execute("CREATE TABLE IF NOT EXISTS integration_schema_version(singleton int PRIMARY KEY CHECK(singleton=1),revision int NOT NULL CHECK(revision=1))")
             db.execute("INSERT INTO integration_schema_version VALUES(1,1) ON CONFLICT DO NOTHING")
             check(db.execute("SELECT revision FROM integration_schema_version").fetchone()[0] == 1, "PostgreSQL candidate explicit migration/replay revision1")
+    with psycopg.connect(url) as db:
+        db.execute("INSERT INTO preview_sessions VALUES('synthetic-64bit','synthetic','synthetic','synthetic',%s,%s,0,0)", (1 << 40, b"synthetic"))
+        check(db.execute("SELECT manifest_generation FROM preview_sessions WHERE session_uuid='synthetic-64bit'").fetchone()[0] == 1 << 40, "PostgreSQL candidate retains SQLite signed64 cursor range")
+        db.execute("DELETE FROM preview_sessions WHERE session_uuid='synthetic-64bit'")
 
 
-def main():
+def main(owned_pg=None):
     if os.environ.get("ROMLOGGER_RLC2_HTTP_ENABLE") != "1":
         raise ValueError("explicit HTTP test opt-in required")
     url = guard.destination()  # Strict loopback disposable DB, no caller URI overrides.
@@ -105,7 +111,7 @@ def main():
     import uvicorn
     schema = "rlc2_http_" + uuid4().hex
     assert re.fullmatch(r"rlc2_http_[0-9a-f]{32}", schema)
-    scoped = url + "?" + urlencode({"options": "-csearch_path=" + schema})
+    scoped = url + "?" + urlencode({"options": "-csearch_path=" + schema, "connect_timeout": "2"})
     prior_url = os.environ.get("DATABASE_URL")
     created = False
     server = thread = listener = None
@@ -214,15 +220,23 @@ def main():
             with psycopg.connect(scoped) as db:
                 db.execute("DROP TRIGGER synthetic_reject ON v1_records")
                 db.execute("DROP FUNCTION synthetic_reject()")
-        # Shared PG service is never stopped: make the test Server DB endpoint
-        # genuinely unavailable on an owned bound-but-non-listening loopback port.
-        with socket.socket() as unavailable:
+        # Optional wrapper owns an entire disposable cluster and can stop it.
+        # The normal runner never stops the existing shared test PG service.
+        if owned_pg is not None:
+            owned_pg.stop()
+            try:
+                status, error = request(port, "POST", "/api/agent/v1/telemetry/batches", fresh, token)
+                check(status == 503 and error.get("status") != "committed", "owned PostgreSQL process stopped: real HTTP503 without ACK")
+            finally:
+                owned_pg.start()
+        else:
+          with socket.socket() as unavailable:
             unavailable.bind(("127.0.0.1", 0))
             bad_port = unavailable.getsockname()[1]
             from urllib.parse import urlsplit, urlunsplit
             parts = urlsplit(scoped)
             auth = parts.netloc.rsplit("@", 1)[0]
-            os.environ["DATABASE_URL"] = urlunsplit((parts.scheme, auth + "@127.0.0.1:" + str(bad_port), parts.path, parts.query + "&connect_timeout=2", ""))
+            os.environ["DATABASE_URL"] = urlunsplit((parts.scheme, auth + "@127.0.0.1:" + str(bad_port), parts.path, parts.query, ""))
             try:
                 status, error = request(port, "POST", "/api/agent/v1/telemetry/batches", fresh, token)
                 check(status == 503 and error.get("status") != "committed", "actual unavailable DB endpoint HTTP503 without ACK")

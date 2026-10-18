@@ -9,6 +9,9 @@ on:
       - 'scripts/test-product-v1-real-server.sh'
       - 'scripts/test-product-v1-real-server-guard.sh'
       - 'scripts/test-product-v1-spool.sh'
+      - 'scripts/test-rlc2-*http*.py'
+      - 'src/main/java/net/neristal/rrbridge/prototype/ingress/**'
+      - 'src/test/java/net/neristal/rrbridge/prototype/ingress/**'
       - '.github/workflows/product-v1-real-server-e2e.yml'
   push:
     branches: [main, 'feat/**']
@@ -17,6 +20,9 @@ on:
       - 'src/test/java/net/neristal/rrbridge/product/v1/**'
       - 'scripts/test-product-v1-real-server.sh'
       - 'scripts/test-product-v1-real-server-guard.sh'
+      - 'scripts/test-rlc2-*http*.py'
+      - 'src/main/java/net/neristal/rrbridge/prototype/ingress/**'
+      - 'src/test/java/net/neristal/rrbridge/prototype/ingress/**'
       - '.github/workflows/product-v1-real-server-e2e.yml'
 
 permissions:
@@ -33,7 +39,7 @@ jobs:
       DATABASE_URL: postgresql://romlogger:ci_disposable_agent_e2e@127.0.0.1:5432/romlogger_agent_e2e
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
         env:
           POSTGRES_USER: romlogger
           POSTGRES_DB: romlogger_agent_e2e
@@ -84,3 +90,14 @@ jobs:
         run: |
           bash scripts/test-product-v1-real-server.sh
           echo "### Real Server E2E: PASS (disposable synthetic DB)" >> "$GITHUB_STEP_SUMMARY"
+      - name: RLC2 admitted candidate REAL HTTP with test-only ACK
+        if: env.SERVER_READ_TOKEN != ''
+        env:
+          ROMLOGGER_SERVER_PATH: .real-server-source
+          ROMLOGGER_RLC2_PREVIEW_ENABLE: '1'
+          ROMLOGGER_RLC2_HTTP_ENABLE: '1'
+        run: |
+          bash scripts/test-rlc2-preview.sh
+          python scripts/test-rlc2-real-server-http-guard.py
+          python scripts/test-rlc2-real-server-http.py
+          echo "### RLC2 real HTTP: PASS (test ACK only; Agent ACK unchanged)" >> "$GITHUB_STEP_SUMMARY"

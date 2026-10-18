@@ -519,3 +519,11 @@ IngressDiagnostics JSON schema1 additively includes automatic_repair_allowed=fal
 ## C22 — Supervisor axes and strict output ownership
 - Additive diagnostic Supervisor contract v2 keeps legacy schema_version1/exit codes; operational_ready=false, manual_intervention_required=true, independent inspection/source_integrity/source_review fields. ACK false/repair false/durability UNKNOWN unchanged. See acceleration_diagnostics.md.
 - Output schema verification includes full SQLite objects/constraints/indexes/version/quick_check/FK check; old legitimate v0 DDL supported. No schema repair or production migration.
+
+## C23 — Explicit integration CLI and optional real HTTP test
+- CLI requires both --enable-synthetic-integration/--quiescent plus exact session/source admissions and separate dedicated output; exit0 STORED_OFFLINE never permits ACK. Windows native wrapper stays test-only. Contract: interfaces/rlc2_integration_v2.md.
+- Windows batch -RealServerHttp requires -Postgres/-ServerPath and protected disposable DSN. Actual own Uvicorn/PG schema plus response-drop/faults; test ACK never updates Agent. Existing Worker/HTTP/Server production schema remain unchanged.
+
+## C24 — Owned PostgreSQL process-stop test contract
+- scripts/test-rlc2-owned-postgres-http.py requires ROMLOGGER_OWNED_PG_HTTP_ENABLE=1, verified ROMLOGGER_OWNED_PG_BIN and actual ROMLOGGER_SERVER_PATH. Only a newly created build/romlogger-http-pg-* data directory is initialized/stopped/restarted; synthetic credentials stay internal, initialization password file removed. No shared or production PostgreSQL process is stopped.
+- Real HTTP test uses an invocation-owned schema and connect_timeout=2 only in its constructed test DSN. Actual daemon-stop503, restart/persisted-record verification and unchanged Agent ACK bytes remain test-only. This is process crash recovery, not physical power loss.
