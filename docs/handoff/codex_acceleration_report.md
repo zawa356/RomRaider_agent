@@ -98,3 +98,7 @@ gh pr list --state open
 ```
 
 診断やCLIの実引数は各専用文書を参照し、原本・ledgerが静止したsynthetic fixtureのみ使用。次branchでworklogに基準SHAと目的をcheckpointしてから実装する。
+
+### 旧自己試験の追加制約
+
+リポジトリ直下の test.sh は必須入力 lib/RomRaider.jar がこの開発checkoutに存在しないため NOT RUN。今回実行した製品v1 spool・ingress・native・ledger・diagnostics・preview各suiteとは別であり、30項目の旧SelfTestを実行済みとは扱わない。RomRaider連携部分は実機未検証のまま。最終報告PR50後のこの注記は文書のみで、e1677c4の検証済みコードを変更しない。
