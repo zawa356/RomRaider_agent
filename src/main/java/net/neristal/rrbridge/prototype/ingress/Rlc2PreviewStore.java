@@ -11,8 +11,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /** Quarantined synthetic SQLite sink. Its tables cannot be consumed by a v1 sender. */
 public final class Rlc2PreviewStore {
@@ -118,6 +121,32 @@ public final class Rlc2PreviewStore {
                         }
                     }
                 }
+                // Verify the OLD committed set before upserting cursors or inserting any rows.
+                // Aggregate counts alone cannot detect a replaced event key (sequence is NULL).
+                Map<String,Long> previous=new HashMap<String,Long>();
+                try(PreparedStatement q=sql(db,"SELECT source_uuid,seq FROM preview_sources WHERE session_uuid=?",p.manifestSession);ResultSet r=q.executeQuery()) {
+                    while(r.next())previous.put(r.getString(1),r.getLong(2));
+                }
+                Set<String> projectedSources=new HashSet<String>();
+                for(Rlc2ProductAdapter.Source source:p.sources)projectedSources.add(source.uuid);
+                if(!projectedSources.containsAll(previous.keySet()))throw new IOException("unknown persisted preview source");
+                for(Map.Entry<String,Long> old:previous.entrySet())try(PreparedStatement q=sql(db,"SELECT count(*),coalesce(min(seq),0),coalesce(max(seq),0) FROM preview_receipts WHERE source_uuid=?",old.getKey());ResultSet r=q.executeQuery()) {
+                    r.next();long n=old.getValue();
+                    if(n<0||r.getLong(1)!=n||r.getLong(2)!=(n==0?0:1)||r.getLong(3)!=n)throw new IOException("persisted receipt extent differs from saved highwater");
+                }
+                int priorRecords=0;boolean newReceipt=false;
+                for(Rlc2ProductAdapter.Receipt receipt:p.receipts) {
+                    Long seq=previous.get(receipt.sourceUuid);boolean old=seq!=null&&receipt.sequence<=seq.longValue();
+                    if(old&&newReceipt)throw new IOException("persisted receipt set is not a projection prefix");
+                    if(!old)newReceipt=true;
+                    if(old&&(receipt.body.startsWith("S\t")||receipt.body.startsWith("E\t")))priorRecords++;
+                }
+                Set<String> priorIds=new HashSet<String>();
+                for(int i=0;i<priorRecords;i++)priorIds.add(p.records.get(i).id);
+                try(PreparedStatement q=sql(db,"SELECT record_id FROM preview_records WHERE session_uuid=?",p.manifestSession);ResultSet r=q.executeQuery()) {
+                    while(r.next())if(!priorIds.remove(r.getString(1)))throw new IOException("unknown persisted preview record");
+                }
+                if(!priorIds.isEmpty())throw new IOException("committed preview record missing; manual review required");
                 update(db,"INSERT INTO preview_sessions VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(session_uuid) DO UPDATE SET manifest_generation=excluded.manifest_generation,manifest=excluded.manifest,record_count=excluded.record_count,receipt_count=excluded.receipt_count",p.manifestSession,p.device,p.vehicle,p.payloadSession,p.manifestGeneration,p.manifestBytes(),p.records.size(),p.receipts.size());
                 update(db,"INSERT OR IGNORE INTO preview_claims VALUES(?,?,?,'rlc2-preview',?)",p.device,p.vehicle,p.payloadSession,p.manifestSession);
                 for(Rlc2ProductAdapter.Source source:p.sources) {

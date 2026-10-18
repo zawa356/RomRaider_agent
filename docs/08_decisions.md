@@ -461,3 +461,8 @@
 - Default CI1000 observations/4 sessions; opt-in executed10000+10 small sessions validates10100 records/10111 receipts/22 source cursors/11 claims, exact highwaters, duplicate-free replay and original bytes on actual x86 and Linux.
 - Replace per-byte Formatter allocation in ledger hex with identical lowercase digit lookup. New x64 inspector validates10001 old-formatter x86 receipts unchanged. Cold-process timings are recorded with all phases/variance, not a throughput/power-loss guarantee. No stored format or ACK semantics change.
 
+
+### D-056 — Validate committed preview identity sets before replay
+- Context: changing an event primary key left aggregate counts unchanged; replay silently inserted the original ID (RED b032e04).
+- Decision: independently validate prior source receipt extents, the ordered committed prefix, and its exact projected record ID set before any checkpoint update. Existing per-receipt/per-record content comparisons remain. Refuse inconsistent evidence without reconstruction; no schema or product sender change.
+- Validation: synthetic key replacement and coordinated counter/deletion cases, normal append/rotation/replay, Windows/Linux/actual x86 suites. This is consistency checking, not authenticated protection from coordinated database replacement.
