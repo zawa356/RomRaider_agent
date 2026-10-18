@@ -14,3 +14,9 @@
 - Initial diagnostics API/CLI and real SQLite scenarios implemented. Windows x64 RED: read-only SQL connection creates WAL/SHM companion files, violating zero-file-mutation test. No production/original data touched; test fixture only. Fix will require a quiescent SQLite snapshot, reject WAL/journal companions, and use immutable read-only mode; active DB fails closed.
 - Phase A targeted review found no critical regression requiring a core fix; prior limitations retained. Next: fix diagnostic read-only DB opening, extend DB-active rejection test, rerun x64/x86/Linux.
 
+
+## 2026-10-18 12:00 JST — Phase B x64 GREEN / other environments running
+- Fixed RED SQLite side effect with immutable closed snapshot and WAL/SHM/journal refusal. Test fixture error (zero/incorrect-length identity is invalid rather than mismatched) corrected to a valid different native identity.
+- Windows JDK17 x64: diagnostics 34 PASS, real SQLite/file-byte preservation/CLI/quota. Zulu8 x86 and VPS Linux running. Java17, SQLite3 and python3-venv provisioned on VPS successfully; no production deployment.
+- CI adds explicit Linux/Windows and Zulu8 x86 diagnostics steps. API and caveats documented in acceleration_diagnostics.md; ADR D-048 and interfaces/history/progress updated. Next: x86/Linux results, PR+CI, normal merge; then isolated adapter mapping design.
+

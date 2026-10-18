@@ -479,3 +479,8 @@ WHERE x.session = '20261012_125843' AND p.name = 'Engine Speed' ORDER BY x.t_ms
 3. **冪等性を壊さない。** `(session, seq)` の一意性、E行の `(session, t_ms, text)` の一意性を前提に再送している。
 4. **セキュリティ上の既定値を弱めない。** 操作系HTTPを外部に公開しない（127.0.0.1固定）。MCPに車両・ロガーを操作するツールを足さない。`profile.maxParams` とガードを弱める変更はユーザーの確認を取る。
 5. **時刻**: 機械向けは epoch ms、人向け（status の `time` など）は ISO 8601＋オフセット。
+
+## C15. Isolated RLC2 Supervisor diagnostics (2026-10-18)
+
+IngressDiagnostics.inspect(session, existing closed ledger snapshot, ReadOpener, previous manifest) returns immutable structured findings. CLI arguments: SESSION LEDGER [--json]; schema_version=1, stable code/segment/cause, ack_eligible=false, directory_durability=UNKNOWN. Exit 0 inspected (not ACK authorization), 5 review/unknown, 2 usage. Active SQLite WAL/SHM/journal is refused; immutable read-only query avoids companion creation. Windows isolated CLI uses existing test-only native reader. Details: docs/acceleration_diagnostics.md. Existing product CLI/Worker are unchanged.
+

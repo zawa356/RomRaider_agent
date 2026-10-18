@@ -351,3 +351,9 @@
 ## 日中追加integrity修正の最終統合
 
 - PR36/Server46 MERGED、Agent main126c174/Server8804caa。mainCI38500236200/38500240744の全適用steps成功、raw Windows main logsでwriter46/47とactual x86を照合。RED→exact-byte fix→GREEN→mainまで追跡可能。4小Phaseのreportを最新化し、次Phase3b設計の再開コマンドを保存。
+
+## 2026-10-18 — Codex acceleration Phase A/B
+
+- Targeted review of PR39–41 found no new critical core defect; existing limitations retained. Read-only Supervisor API/JSON/human CLI added over RLC2, RLM1 and real SQLite, with stable failure codes and no ACK authority.
+- RED caught mode=ro WAL/SHM creation; fixed using immutable closed snapshots and explicit active-DB refusal. Native Windows x64 diagnostic scenarios 34 PASS; x86/Linux verification in progress. See handoff/codex_acceleration_worklog.md for current facts.
+

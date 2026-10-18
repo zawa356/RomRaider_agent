@@ -57,6 +57,11 @@ public final class IngressDiagnosticsTest {
         check(!r.requiresReview()&&r.has(Code.DURABILITY_UNKNOWN)&&!r.ackEligible,"healthy inspection never certifies durability or ACK");
         check(r.json().contains("\"schema_version\":1")&&!r.json().contains("synthetic-secret-fixture")&&!r.human().contains(healthy.dir.toString()),"output is structured and source-content/path free");
         same(before,snapshot(healthy.dir));
+        Files.write(new java.io.File(healthy.db.toString()+"-wal").toPath(),new byte[]{1});
+        Map<String,byte[]> activeBefore=snapshot(healthy.dir);
+        check(healthy.inspect().has(Code.DATABASE_UNAVAILABLE),"WAL snapshot rejected rather than silently ignoring committed WAL data");
+        same(activeBefore,snapshot(healthy.dir));
+        Files.delete(new java.io.File(healthy.db.toString()+"-wal").toPath());
         Fixture orphan=new Fixture(env,false);Files.write(orphan.dir.resolve("segment-0015.rlj"),new byte[0]);
         check(orphan.inspect().has(Code.ORPHAN_SEGMENT),"orphan detected without adoption");
         Fixture tmp=new Fixture(env,false);Files.write(WatermarkV2Prototype.staged(tmp.source.toFile()),new byte[]{1});
@@ -75,10 +80,18 @@ public final class IngressDiagnosticsTest {
         check(missing.inspect().has(Code.RECEIPT_INCONSISTENT),"missing receipt detected");
         Fixture lane=new Fixture(env,false);lane.ledger.execute("UPDATE proto_lane_claims SET lane='tsv'");
         check(lane.inspect().has(Code.SOURCE_CLAIM_CONFLICT),"legacy lane collision detected");
-        Fixture identity=new Fixture(env,false);identity.ledger.execute("UPDATE proto_rlc2_sources SET identity_hex='00000000000000000000000000000000'");
+        Fixture identity=new Fixture(env,false);identity.ledger.execute("UPDATE proto_rlc2_sources SET identity_hex=(CASE substr(identity_hex,1,1) WHEN 'f' THEN 'e' ELSE 'f' END)||substr(identity_hex,2)");
         check(identity.inspect().has(Code.IDENTITY_MISMATCH),"persisted expected identity mismatch detected");
         Fixture growth=new Fixture(env,true);try(OwnedJournal w=env.openOwned(growth.source)) { w.append("S\tsynthetic\tlate\tTEST_RPM=2"); }
         check(growth.inspect().has(Code.SEALED_SEGMENT_CHANGED),"sealed growth detected");
+        Fixture quota=new Fixture(env,true);
+        for(int i=2;i<=RotationManifestPrototype.MAX_SEGMENTS;i++) {
+            RotationManifestPrototype.startNext(quota.dir,env.reader(),env.platform(),RotationManifestPrototype.NO_FAULT);
+            Path seg=RotationManifestPrototype.segment(quota.dir,i);
+            try(OwnedJournal w=env.openOwned(seg)) { w.append("S\tsynthetic\tquota\tTEST_RPM=1");WatermarkV2Scenarios.publish(env,seg,w,WatermarkV2Prototype.NO_FAULT); }
+            RotationManifestPrototype.seal(quota.dir,env.reader(),env.platform(),RotationManifestPrototype.NO_FAULT);
+        }
+        check(quota.inspect().has(Code.QUOTA_REACHED),"sixteen actual sealed segments report quota without deleting originals");
         Fixture history=new Fixture(env,false);RotationManifestPrototype.State prior=RotationManifestPrototype.read(history.dir,null);
         byte[] priorBytes=Files.readAllBytes(RotationManifestPrototype.manifest(history.dir));
         RotationManifestPrototype.State newer=RotationManifestPrototype.seal(history.dir,env.reader(),env.platform(),RotationManifestPrototype.NO_FAULT);

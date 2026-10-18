@@ -365,3 +365,8 @@
 
 - Agent36/Server46 MERGED、コードmain126c174/8804caa、mainCI38500236200/38500240744全適用steps success。latest Windows17/x64596、actualZulu8/x86subset156、VPS/Linux566、legacy44。writerは46/47。
 - 4小Phase（3a比較/compat/nativewriter/integrity）統合、D-041〜044。最新report/worklogは追加修正を含む。旧594/154は歴史的scope。次Phase3b設計へ、directory UNKNOWN/full old watermark56/ledger/highwater/rotation/本番配線は未成立。
+
+## 2026-10-18 acceleration Phase A/B — isolated diagnostics (CI pending)
+
+Read-only RLC2/ledger/RLM1 Supervisor diagnostics implemented; product Worker/ACK paths unchanged. Real SQLite preservation test caught and fixed WAL/SHM side effects. Windows x64 34 PASS; x86/Linux/CI pending. Closed checkpointed DB prerequisite; active DB fails closed. Details: acceleration_diagnostics.md / handoff/codex_acceleration_worklog.md.
+

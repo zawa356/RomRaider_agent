@@ -408,3 +408,10 @@
 - 16本で明示停止し、削除・retentionはしない。orphan・tmp残存・CREATE_NEW競合はreview待ちで停止し、自動採用・修復はしない。
 - session ingestはmanifest順で、前segmentがsealed最終seq/offsetまでledgerに記録されるまで次segmentへ進まない。
 - Windows directory durabilityはUNKNOWNのまま。製品writer/Worker/v1表/ACKへ配線しない。[設計・試験](phase_3d1_rotation_manifest.md)。
+
+## D-048 — Read-only Supervisor diagnostics require a closed SQLite snapshot (2026-10-18)
+
+- SQLite mode=ro alone was RED: it created WAL/SHM files. Diagnostic opens existing checkpointed snapshots with mode=ro plus immutable=1 and query_only, rejecting WAL/SHM/journal before and after inspection. Caller must externally quiesce writers; no checkpoint/repair is attempted.
+- Fixed codes and content-free causes distinguish identity/claim/receipt/manifest/highwater/seal/quota failures. ACK is always ineligible; directory durability UNKNOWN. Stable filesystem+DB snapshot cannot be certified by this inspector.
+- Windows native opener remains test-only JNA; no dependency added to rrbridge.jar. See acceleration_diagnostics.md and acceleration worklog.
+

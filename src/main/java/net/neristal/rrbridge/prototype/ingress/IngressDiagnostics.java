@@ -72,12 +72,18 @@ public final class IngressDiagnostics {
         for(int i=0;i<out.length;i++)out[i]=(byte)Integer.parseInt(s.substring(i*2,i*2+2),16);
         return out;
     }
-    /** Opens only an existing database, with SQLite mode=ro and query_only. No ledger constructor/DDL. */
+    private static void quiescent(File file) throws IOException {
+        for(String suffix:new String[]{"-wal","-shm","-journal"})
+            if(Files.exists(new File(file.getPath()+suffix).toPath(),LinkOption.NOFOLLOW_LINKS))
+                throw new IOException("active database requires a closed checkpointed snapshot");
+    }
+    /** Only a closed checkpointed snapshot: immutable avoids even WAL/SHM creation. */
     static Connection readOnly(File file) throws Exception {
         safePath(file.toPath());
         if(!Files.isRegularFile(file.toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("database missing");
+        quiescent(file);
         Class.forName("org.sqlite.JDBC");
-        Connection db=DriverManager.getConnection("jdbc:sqlite:"+file.toURI().toASCIIString()+"?mode=ro");
+        Connection db=DriverManager.getConnection("jdbc:sqlite:"+file.toURI().toASCIIString()+"?mode=ro&immutable=1");
         try {
             try(Statement s=db.createStatement()) { s.execute("PRAGMA query_only=ON"); s.execute("PRAGMA busy_timeout=1000"); }
             db.setAutoCommit(false);
@@ -113,6 +119,7 @@ public final class IngressDiagnostics {
         // One read transaction provides a consistent persisted ledger snapshot across segments.
         try(Connection db=readOnly(ledger)) {
             for(RotationManifestPrototype.Segment g:segments)inspectSegment(dir,g,state.sealed.contains(g),db,opener,out);
+            quiescent(ledger);
         } catch(Exception unavailable) { add(out,Code.DATABASE_UNAVAILABLE,0,"existing_ledger_snapshot_unavailable"); }
         try {
             if(!java.util.Arrays.equals(state.raw,RotationManifestPrototype.read(dir,null).raw))
