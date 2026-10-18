@@ -391,3 +391,7 @@ Read-only manual hints/source-only RLC1/RLC2 inspection implemented. Final local
 ## Phase I-1 — versioned isolated multi-source schema
 - Implemented Rlc2IntegrationSchema and reused existing preview CREATE schema statements without changing preview behavior. Dedicated versioned migration, rerun/read-only verification, rollback, legacy lane inventory and preservation are real code.
 - Windows17 x64 schema13 PASS. Full preview/fault/load regression and x86/CI pending; no production migration.
+
+## 2026-10-18 Phase I final implementation record
+- PR52–58 integrate isolated multi-source storage contract/schema and shared atomic backend, snapshot-to-commit change detection, full output schema validation, independent Supervisor axes, actual loopback Server HTTP/private PG and owned process-stop faults, CLI and automated platform/load verification. D-057–D-061 and C20–C24 capture decisions/contracts.
+- RED d08860d/0a27d0d/15f04f3 were fixed and verified in the final stack. Actual Windows64/32/Linux and SQLite/PG/HTTP results are in handoff/codex_product_integration_report.md, with NOT RUN/blocked product adoption and Actions quota constraints explicitly retained. No production runtime migration, ECU operation or persistent new-path ACK enabled.

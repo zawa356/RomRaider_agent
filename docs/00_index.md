@@ -35,3 +35,5 @@
 - **[推測]** 根拠はあるが未確認のこと
 
 - [Codex acceleration final report (2026-10-18)](handoff/codex_acceleration_report.md): Phase A–H code/PR/CI evidence, limits and resume plan.
+
+- [Phase I product integration final report (2026-10-18)](handoff/codex_product_integration_report.md): versioned multi-source candidate, actual Server HTTP/PG outages, platform evidence and exact resume/gates.
