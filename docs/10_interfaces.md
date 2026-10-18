@@ -484,3 +484,8 @@ WHERE x.session = '20261012_125843' AND p.name = 'Engine Speed' ORDER BY x.t_ms
 
 IngressDiagnostics.inspect(session, existing closed ledger snapshot, ReadOpener, previous manifest) returns immutable structured findings. CLI arguments: SESSION LEDGER [--json]; schema_version=1, stable code/segment/cause, ack_eligible=false, directory_durability=UNKNOWN. Exit 0 inspected (not ACK authorization), 5 review/unknown, 2 usage. Active SQLite WAL/SHM/journal is refused; immutable read-only query avoids companion creation. Windows isolated CLI uses existing test-only native reader. Details: docs/acceleration_diagnostics.md. Existing product CLI/Worker are unchanged.
 
+
+## C16. RLC2 synthetic product projection — 2026-10-18 11:54:12 +09:00
+
+Rlc2ProductAdapter.project requires enableSynthetic=true, synthetic-/TEST_ inputs and exact marker/ledger alignment. Returns immutable sources, original receipts, shared v1 profiles/records; ackEligible=false. IncrementalTsvBridge.projectRows/ProjectionSink expose the unchanged conversion independently of database I/O. No Worker or transport activation. Current v1 single-source claim/cursor format is unchanged; multi-source persistence must stay in preview tables. Mapping and limits: rlc2_product_projection.md.
+

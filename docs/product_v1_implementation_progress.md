@@ -370,3 +370,8 @@
 
 Read-only RLC2/ledger/RLM1 Supervisor diagnostics implemented; product Worker/ACK paths unchanged. Real SQLite preservation test caught and fixed WAL/SHM side effects. Windows x64 34 PASS; x86/Linux/CI pending. Closed checkpointed DB prerequisite; active DB fails closed. Details: acceleration_diagnostics.md / handoff/codex_acceleration_worklog.md.
 
+
+## 2026-10-18 11:54:12 +09:00 — acceleration Phase C (verification in progress)
+
+Executable Rlc2ProductAdapter projects validated source receipts through existing v1 converter in memory. Explicit synthetic gate; no Worker/outbox/HTTP/ACK integration. Windows x64 20 PASS, other environments pending. Current single-source product claim is incompatible with physical rotation; quarantine persistence planned in Phase D. Details: rlc2_product_projection.md.
+

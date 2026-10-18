@@ -34,3 +34,9 @@
 - Rlc2ProductAdapter requires explicit enableSynthetic and synthetic-/TEST_ input. Requires clean diagnostics plus exact persisted marker/highwater alignment. Projects manifest-order metadata, stable v1 JSON and original source receipts in memory only. Rejects payload session/sequence reset, claim conflicts, changed snapshots and capacity overflow; no sender/outbox.
 - New real-platform scenario compares projected IDs/JSON/profile against independently invoked existing TSV importer, plus rotation/metadata/tail/ledger/gating cases. Windows tests running; Linux/x86 pending. Next: verify results and product regression, document source-claim migration boundary, push PR.
 
+
+## 2026-10-18 11:54:40 +09:00 — Phase C local GREEN
+- Projection: Windows17 x64 20, actual Zulu8 x86 21, VPS Linux17 20 checks PASS. Diagnostics remain 34/35/34 PASS. Full scripts/test-product-v1-spool.sh exited0 on Windows and VPS Linux. No Server transport tests were added to this new path; ACK remains disabled.
+- Existing vs new model/mapping documented in rlc2_product_projection.md; interfaces/history/progress and D-049 updated. Product single-source claim migration is explicitly BLOCKED, while pure preview is implemented.
+- Next: PR CI, review diff, normal merge and main CI; then Phase D quarantined SQLite persistence with atomic receipts/cursors and separate-JVM E2E/faults.
+

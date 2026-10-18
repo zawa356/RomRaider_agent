@@ -357,3 +357,8 @@
 - Targeted review of PR39–41 found no new critical core defect; existing limitations retained. Read-only Supervisor API/JSON/human CLI added over RLC2, RLM1 and real SQLite, with stable failure codes and no ACK authority.
 - RED caught mode=ro WAL/SHM creation; fixed using immutable closed snapshots and explicit active-DB refusal. Native Windows x64 diagnostic scenarios 34 PASS; x86/Linux verification in progress. See handoff/codex_acceleration_worklog.md for current facts.
 
+
+## 2026-10-18 11:54:12 +09:00 — acceleration Phase C executable projection
+
+Shared v1 conversion sink and opt-in RLC2 adapter implemented. Windows x64 20 checks PASS, including exact legacy JSON/ID/profile comparison, two-source metadata continuity, uncommitted tail exclusion, highwater lag/session/sequence/lane refusal. Linux/x86 and full product regressions running. Source claims remain a documented product-integration gate, not a silently changed v1 contract.
+
