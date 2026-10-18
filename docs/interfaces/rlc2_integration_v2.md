@@ -28,3 +28,9 @@ This is an OFFLINE/quiescent integration contract. The existing old Worker does 
 ## Acceptance
 
 Real SQLite creation/reexecution/rollback, old v1 byte preservation and lane rejection are executable in Rlc2IntegrationSchemaTest. I-2 reuses the existing transaction engine and shared converter rather than creating an alternate importer. I-3 binds the immutable projection to input snapshot evidence and repeats checks before commit, while retaining the external quiescence requirement. Windows directory durability UNKNOWN, no physical-power-loss guarantee, no original repair/delete.
+
+## I-2 atomic candidate backend
+
+Rlc2IntegrationStore requires explicit enable, externallyQuiescent=true, exact canonical directory/manifest UUID and exact admitted source UUID set, closed ledger and a closed legacy v1 inventory. It projects through Rlc2ProductAdapter and invokes the same Rlc2PreviewStore transactional backend using the isolated integration format. A transaction guard validates prior admissions before writes and commits bindings/admissions alongside all claims/cursors/receipts/profiles/records. Removed admissions are not reconstructed. Existing preview API/default behavior stays separate.
+
+The candidate remains a read/convert/store entry point only, not a sender or Worker replacement. Two workers serialize through SQLite BEGIN IMMEDIATE, preserving whole-set replay. External quiescence is mandatory; the next snapshot phase strengthens change detection around the commit interval without claiming filesystem/SQLite atomicity against a non-cooperating writer.

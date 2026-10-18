@@ -512,3 +512,6 @@ IngressDiagnostics JSON schema1 additively includes automatic_repair_allowed=fal
 
 ## C20 — RLC2 integration storage contract v2 (candidate)
 - Dedicated opt-in .rlc2-integration.db, RLI2 application ID/user_version1, eight tables with logical session and explicit physical-source admissions. Existing product v1 DB/HTTP/Worker/ACK behavior unchanged. See interfaces/rlc2_integration_v2.md; requires offline/quiescent legacy inventory, no live cross-DB exclusion guarantee.
+
+## C21 — Offline integration engine API
+- Rlc2IntegrationStore.ingest requires explicit external quiescence, Admission(directory,manifestSession,sourceUuids), closed ledger and legacy inventory. It writes only dedicated integration format through shared atomic preview backend, returns recordsAdded/receiptsAdded/ackEligible=false. No persistent ACK transition.
