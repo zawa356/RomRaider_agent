@@ -125,3 +125,9 @@
 - Windows x64 existing diagnostics34/projection20 and new migration preflight17 checks PASS (one additional shared rejection assertion also ran). New bounded load test defaults1000 observations +3 additional sessions, verifies two physical sources/session, exact receipts/rows/highwaters, new-process-style replay and input-byte preservation; running.
 - Next: x86/VPS; larger10k observations/10 additional sessions; measure existing implementation before any performance change. ACK/repair/durability limits retained.
 
+
+## 2026-10-18 13:05:38 +09:00 — Phase G Linux large workload baseline PASS
+- VPS Linux17.0.20.1 x64: new preflight and all diagnostics/preview/fault regression exit0; bounded1000-observation/4-session load23 checks PASS. Larger10000 observations +10 additional sessions (11 total) load44 checks PASS:10100 product records,10111 raw receipts,22 physical source cursors and11 logical claims; no duplicates/ACK, all highwaters and original bytes verified.
+- Cold-process exploratory large metrics: source297ms, ledger1423ms, projection1485ms, preview commit1159ms, full projection+store replay2086ms. Not a normalized benchmark. Original hex utility allocates a Formatter per byte for every receipt/hash; next replace with equivalent fixed lowercase nibble mapping, preserving exact stored string format, then remeasure and rerun independent hash/DB tests.
+- Actual Windows x86 migration/large baseline still running; baseline log will be retained before recompiling. No protocol or database format change planned.
+
