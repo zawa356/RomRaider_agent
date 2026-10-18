@@ -156,3 +156,7 @@
 - Agent PR49 merged e1677c4e8341b1d60d61bd2be11dd57a5e459a43; PR journal39097642181/product39097642133 and main39124576935/39124576968 all success. Actual four jobs, 32-bit batch and PG steps ran. Local final preview/fault/load42/36/23 x64,43/37/24 x86,42/36/23 VPS; VPS10k/11session44 PASS. Fresh local PG twice/actual Server models PASS.
 - Server PR56 merged a1bc6210159f6ee736f084b6f81d3da0d5f9f500; main39124675916 success. Docker14 existing services Up, own container absent; VPS dedicated test processes none; loopback test PG preview schemas0. Synthetic files retained intentionally; no real originals/ECU/X270/production services changed.
 - Final report codex_acceleration_report.md captures all phases/PRs/merge/main CI, RED/GREEN, limitations and detailed next integration gates/resume commands. Documentation-only final PR to follow; source baseline stays e1677c4. Next: final docs normal merge and Server final progress, clean synchronized main/openPR0 checks.
+
+## 2026-10-18 final verification addendum
+- Final report PR50 mergeddf598b2; Server final summary PR57 mergedd66ab42, main39124960512 running. Both clean main/origin match and openPR0 at check. Documentation source diff only, generated tracked artifacts none.
+- Legacy root test.sh NOT RUN: required lib/RomRaider.jar absent from this checkout. Dedicated v1/ingress/native/ledger/preview suites were executed separately; never count them as the old30-check SelfTest. Add this explicit limitation to final report via docs-only follow-up; no implementation changes.
