@@ -39,3 +39,8 @@
 - RED0a27d0d accepted renamed ack_eligible column. Strict authoritative-schema verifier now checks every table/index/object and constraint/type/version plus quick_check/FK. Windows schema33 PASS, including genuine pre-I v0 DDL bytes and malformed DB unchanged. Diagnostic additive Supervisor axes implemented; Windows diagnostic/migration suite exit0, final counts in raw log.
 - Full preview/fault/load/schema/integration regression running. Intentional trigger injection now stops before ingest; an actual NOT NULL SQL failure inside transaction separately verifies rollback. I-3 actual x86 snapshot15 PASS.
 - CI billing block retained; PRs52/53/54 not merged. Continue real loopback Server HTTP E2E next, using own schema/credentials and test ACK only.
+
+## I-5 START — real loopback HTTP / owned PostgreSQL schema
+- Base3842a0c, branch test/rlc2-real-server-http. Build reproducible runner from both local checkouts, no private CI secret needed. Generate admitted three-source integration fixture, run actual Server migrations in invocation-owned schema only, bind actual Uvicorn/FastAPI to an owned loopback socket.
+- Test actual HTTP profile/batch persistence, duplicate/409/422/profile refs, database endpoint unavailability, real PG transaction failure, dropped HTTP response/retry, one run across rotation. Test ACK is observed but never written into candidate ACK state. Never stop shared local PG or touch production services.
+- Also exercise translated candidate schema migration transaction failure/rerun in owned PG schema. CI wiring later; scheduling remains blocked and merges prohibited.
