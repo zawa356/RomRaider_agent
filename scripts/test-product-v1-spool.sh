@@ -34,6 +34,7 @@ for name in slf4j-api slf4j-nop; do
   download_jar "lib/${name}.jar" \
     "org/slf4j/${name}/${SLF4J_VERSION}/${name}-${SLF4J_VERSION}.jar"
 done
+if [[ "${1:-}" == "--deps-only" ]]; then exit 0; fi
 sep=":"
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) sep=";";; esac
 cp="lib/sqlite-jdbc.jar${sep}lib/slf4j-api.jar${sep}lib/slf4j-nop.jar"

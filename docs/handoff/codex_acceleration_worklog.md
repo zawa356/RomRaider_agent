@@ -53,3 +53,10 @@
 - Immutable replay verifies prior row counts and bytes, refusing deleted/tampered receipts or records. Added explicit synthetic CLI (fixed JSON status, no exception text/path disclosure), Windows test-only native wrapper, real CLI-process E2E and rollback/claim/schema/preservation tests.
 - Tests running Windows x64. Next: fix failures, x86/VPS, wire CI, isolated PostgreSQL verification without Server ACK.
 
+
+## 2026-10-18 12:08:22 +09:00 — Phase D cross-platform RED / PostgreSQL local PASS
+- Windows SQLite preview x64 31 and actual Zulu8 x86 32 PASS. Local PostgreSQL16.15 twice committed/reconnected: two sources/four receipts/one profile/three records, exact JSON/originals, no duplicates, CHECK blocks ACK, injected failure rollback PASS. Actual Server ProfileRevision/Batch model validation PASS locally; no endpoint invoked.
+- Added guarded PostgreSQL fixture test and CI job; 3 destination guard tests PASS (unsafe endpoints/overrides/opt-in rejected before fixture/database access).
+- VPS Linux preview reached 27 checks then separate-JVM CLI failed: launcher is referenced by class name string, so javac did not compile POSIX CLI implicitly. Windows wrapper compiled it transitively. This is a harness failure; next fix explicitly compiles Rlc2PreviewCli on both OSs and reruns Linux.
+- Server PR51 main CI39092090529 success. Next: fix Linux launcher compilation, CI proof, docs/PR.
+

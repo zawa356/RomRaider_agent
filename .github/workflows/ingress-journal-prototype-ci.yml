@@ -10,6 +10,9 @@ on:
       - 'scripts/test-ingress-sqlite-receipts.sh'
       - 'scripts/test-watermark-ledger.sh'
       - 'scripts/test-ingress-diagnostics.sh'
+      - 'scripts/test-rlc2-preview.sh'
+      - 'scripts/test-rlc2-preview-postgres.py'
+      - 'scripts/test-rlc2-preview-postgres-guard.py'
       - '.github/workflows/ingress-journal-prototype-ci.yml'
   pull_request:
     paths:
@@ -20,6 +23,9 @@ on:
       - 'scripts/test-ingress-sqlite-receipts.sh'
       - 'scripts/test-watermark-ledger.sh'
       - 'scripts/test-ingress-diagnostics.sh'
+      - 'scripts/test-rlc2-preview.sh'
+      - 'scripts/test-rlc2-preview-postgres.py'
+      - 'scripts/test-rlc2-preview-postgres-guard.py'
       - '.github/workflows/ingress-journal-prototype-ci.yml'
   workflow_dispatch:
 permissions:
@@ -61,6 +67,9 @@ jobs:
       - name: Read-only Supervisor diagnostics with real SQLite
         shell: bash
         run: bash scripts/test-ingress-diagnostics.sh
+      - name: Isolated RLC2 preview SQLite and separate-JVM CLI
+        shell: bash
+        run: bash scripts/test-rlc2-preview.sh
       - name: Assert no production RomRaider.jar is needed
         shell: bash
         run: test ! -f lib/RomRaider.jar
@@ -83,6 +92,7 @@ jobs:
           bash scripts/test-product-v1-spool.sh
           bash scripts/test-watermark-ledger.sh
           bash scripts/test-ingress-diagnostics.sh
+          bash scripts/test-rlc2-preview.sh
       - name: Install isolated Zulu8 32bit runtime
         uses: actions/setup-java@v4
         with:
@@ -98,6 +108,45 @@ jobs:
           bash scripts/test-windows-native-identity.sh --run-only
           bash scripts/test-watermark-ledger.sh --run-only
           bash scripts/test-ingress-diagnostics.sh --run-only
+          bash scripts/test-rlc2-preview.sh --run-only
           java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.JournalIdentityComparisonTest
           java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.SplitLockJournalPrototypeTest
           java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.DurableWatermarkPrototypeTest
+
+  isolated-preview-postgres:
+    name: RLC2 quarantine PostgreSQL16 (no Server ACK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: romlogger_preview_e2e
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d romlogger_preview_e2e"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/romlogger_preview_e2e
+      ROMLOGGER_RLC2_PREVIEW_ENABLE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reject unsafe preview destinations before database access
+        run: python scripts/test-rlc2-preview-postgres-guard.py
+      - name: Install pinned synthetic PostgreSQL driver
+        run: python -m pip install 'psycopg[binary]==3.3.6'
+      - name: Generate validated native RLC2 preview in isolated SQLite
+        run: |
+          bash scripts/test-product-v1-spool.sh --deps-only
+          bash scripts/test-rlc2-preview.sh
+      - name: Verify private PostgreSQL schema replay, receipts, rollback and ACK refusal
+        run: python scripts/test-rlc2-preview-postgres.py
