@@ -471,3 +471,6 @@
 - Keep HTTP wire v1 and existing product DB/ACK state unchanged. Dedicated opt-in RLI2/user_version1 DB reuses preview transaction tables, adds canonical session/run binding and explicit child-source admissions. One logical session owns multiple physical UUID cursors/receipts; v1 run/record IDs remain stable.
 - Explicit migration creates only a new dedicated file transactionally. Existing v1 files are read-only compatibility inventories, never auto-migrated. Concurrent old-Worker/new-store coexistence remains BLOCKED until coordinated lane migration; external quiescence is mandatory.
 - Contract/invariants and acceptance: docs/interfaces/rlc2_integration_v2.md. Real SQLite revision/replay/rollback/legacy-byte/lane checks implemented; production adoption is separate.
+
+## D-058 — Shared atomic integration backend
+- Candidate format uses the existing transaction engine and converter rather than duplicating receipt/record logic. Transaction guards persist session path/run binding and explicit source admissions in the same transaction, reject missing past admissions and keep source UUID independent of run ID. No sender/Worker wiring.

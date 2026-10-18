@@ -13,6 +13,7 @@ if [[ "$windows" == 1 ]]; then
   entries+=("src/test/java/$pkg/WindowsRlc2PreviewCli.java")
 fi
 entries+=("src/test/java/$pkg/Rlc2IntegrationSchemaTest.java")
+entries+=("src/test/java/$pkg/Rlc2IntegrationStoreTest.java")
 if [[ "${1:-}" != "--run-only" ]]; then
   mkdir -p build/rlc2-preview
   javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath "src/main/java${sep}src/test/java" -d build/rlc2-preview "${entries[@]}"
@@ -21,3 +22,4 @@ java -cp "build/rlc2-preview${sep}${cp}" net.neristal.rrbridge.prototype.ingress
 java -cp "build/rlc2-preview${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Rlc2PreviewFaultTest
 java -cp "build/rlc2-preview${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Rlc2PreviewLoadTest
 java -cp "build/rlc2-preview${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Rlc2IntegrationSchemaTest
+java -cp "build/rlc2-preview${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Rlc2IntegrationStoreTest

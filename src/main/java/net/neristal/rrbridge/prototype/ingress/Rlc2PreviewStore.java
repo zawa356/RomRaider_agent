@@ -23,19 +23,30 @@ public final class Rlc2PreviewStore {
     public enum Stage { CLAIMS_WRITTEN, RECEIPTS_WRITTEN, BEFORE_COMMIT, AFTER_COMMIT }
     public interface Hook { void at(Stage stage)throws Exception; }
     public static final Hook NO_FAULT=new Hook(){public void at(Stage stage){}};
+    interface TransactionGuard {
+        void beforeWrite(Connection db)throws Exception;
+        void claimsWritten(Connection db)throws Exception;
+        void beforeCommit(Connection db)throws Exception;
+    }
     public static final class Result {
         public final int recordsAdded,receiptsAdded;
         public final boolean ackEligible=false;
         Result(int records,int receipts){recordsAdded=records;receiptsAdded=receipts;}
     }
     private final String jdbc;
+    private final boolean integration;
     public Rlc2PreviewStore(boolean enableSynthetic,File database)throws Exception {
+        this(enableSynthetic,database,false);
+    }
+    Rlc2PreviewStore(boolean enableSynthetic,File database,boolean integration)throws Exception {
+        this.integration=integration;
         if(!enableSynthetic)throw new IllegalStateException("synthetic preview store disabled");
-        if(database==null||!database.getName().endsWith(".rlc2-preview.db"))throw new IllegalArgumentException("dedicated .rlc2-preview.db required");
+        if(database==null||!database.getName().endsWith(integration?".rlc2-integration.db":".rlc2-preview.db"))throw new IllegalArgumentException("dedicated store extension required");
         File path=database.getAbsoluteFile();IngressDiagnostics.safePath(path.toPath());
         if(path.getParentFile()==null||!path.getParentFile().isDirectory())throw new IOException("existing preview parent directory required");
         Class.forName("org.sqlite.JDBC");
         boolean exists=Files.exists(path.toPath(),LinkOption.NOFOLLOW_LINKS);
+        if(!exists&&integration){Rlc2IntegrationSchema.initialize(true,path);exists=true;}
         if(exists) {
             if(!Files.isRegularFile(path.toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("regular preview DB required");
             // Input ledgers remain immutable/quiescent. An owned output may need SQLite's
@@ -72,22 +83,23 @@ public final class Rlc2PreviewStore {
                 s.execute("CREATE TABLE IF NOT EXISTS preview_records(record_id TEXT PRIMARY KEY,run_id TEXT NOT NULL,segment_id TEXT,sequence INTEGER,kind TEXT NOT NULL CHECK(kind IN ('observation','event')),profile_id TEXT REFERENCES preview_profiles(profile_id),captured_at TEXT NOT NULL,source_kind TEXT NOT NULL CHECK(source_kind IN ('synthetic','agent')),body_json TEXT NOT NULL,session_uuid TEXT NOT NULL REFERENCES preview_sessions(session_uuid),ack_eligible INTEGER NOT NULL DEFAULT 0 CHECK(ack_eligible=0))");
                 s.execute("CREATE UNIQUE INDEX IF NOT EXISTS preview_run_sequence ON preview_records(run_id,sequence) WHERE kind='observation'");
     }
-    private static void verifyRecoveryOwner(File path,File journal)throws Exception {
+    private void verifyRecoveryOwner(File path,File journal)throws Exception {
         if(!Files.isRegularFile(journal.toPath(),LinkOption.NOFOLLOW_LINKS)||Files.isSymbolicLink(journal.toPath()))throw new IOException("unsafe preview rollback journal");
         for(String suffix:new String[]{"-wal","-shm"})if(Files.exists(new File(path.getPath()+suffix).toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("unexpected WAL on rollback preview database");
         byte[] header=new byte[100];
         try(java.io.RandomAccessFile source=new java.io.RandomAccessFile(path,"r")){source.readFully(header);}
         byte[] magic="SQLite format 3\u0000".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
-        if(!Arrays.equals(magic,Arrays.copyOf(header,16))||java.nio.ByteBuffer.wrap(header).getInt(68)!=APPLICATION_ID)
+        if(!Arrays.equals(magic,Arrays.copyOf(header,16))||java.nio.ByteBuffer.wrap(header).getInt(68)!=(integration?Rlc2IntegrationSchema.APPLICATION_ID:APPLICATION_ID))
             throw new IOException("rollback recovery requires positively identified preview output");
     }
-    private static void owned(Connection db)throws Exception {
+    private void owned(Connection db)throws Exception {
+        if(integration)Rlc2IntegrationSchema.verify(db);
         try(Statement s=db.createStatement()) {
-            try(ResultSet r=s.executeQuery("PRAGMA application_id")) { if(!r.next()||r.getInt(1)!=APPLICATION_ID)throw new IOException("not a preview-owned database"); }
+            try(ResultSet r=s.executeQuery("PRAGMA application_id")) { if(!r.next()||r.getInt(1)!=(integration?Rlc2IntegrationSchema.APPLICATION_ID:APPLICATION_ID))throw new IOException("not a store-owned database"); }
             try(ResultSet r=s.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT GLOB 'sqlite_*'")) {
                 int count=0;
-                while(r.next()) { count++;String name=r.getString(1);if(!Arrays.asList("preview_sessions","preview_claims","preview_sources","preview_receipts","preview_profiles","preview_records").contains(name))throw new IOException("foreign tables in preview database"); }
-                if(count!=6)throw new IOException("incomplete preview schema");
+                while(r.next()) { count++;String name=r.getString(1);if(!Arrays.asList("preview_sessions","preview_claims","preview_sources","preview_receipts","preview_profiles","preview_records").contains(name)&&!(integration&&Arrays.asList("integration_bindings","integration_admissions").contains(name)))throw new IOException("foreign tables in store database"); }
+                if(count!=(integration?8:6))throw new IOException("incomplete store schema");
             }
         }
     }
@@ -106,11 +118,15 @@ public final class Rlc2PreviewStore {
     }
     public Result ingest(Rlc2ProductAdapter.Projection projection)throws Exception { return ingest(projection,NO_FAULT); }
     public Result ingest(Rlc2ProductAdapter.Projection p,Hook hook)throws Exception {
+        return ingest(p,hook,null);
+    }
+    Result ingest(Rlc2ProductAdapter.Projection p,Hook hook,TransactionGuard guard)throws Exception {
         if(p.ackEligible||!p.payloadSession.startsWith("synthetic-"))throw new IOException("synthetic ACK-ineligible projection required");
         try(Connection db=open();Statement tx=db.createStatement()) {
             tx.execute("BEGIN IMMEDIATE");boolean committed=false;
             try {
                 owned(db);
+                if(guard!=null)guard.beforeWrite(db);
                 try(ResultSet r=tx.executeQuery("PRAGMA foreign_key_check")){if(r.next())throw new IOException("preview foreign key inconsistency");}
                 try(PreparedStatement q=sql(db,"SELECT lane,session_uuid FROM preview_claims WHERE device=? AND vehicle=? AND payload_session=?",p.device,p.vehicle,p.payloadSession);ResultSet r=q.executeQuery()) {
                     if(r.next()&&(!"rlc2-preview".equals(r.getString(1))||!p.manifestSession.equals(r.getString(2))))throw new IOException("source lane/session claim conflict");
@@ -166,6 +182,7 @@ public final class Rlc2PreviewStore {
                     }
                     update(db,"INSERT INTO preview_sources VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_uuid) DO UPDATE SET generation=excluded.generation,seq=excluded.seq,offset_bytes=excluded.offset_bytes,prefix_sha256=excluded.prefix_sha256,sealed=excluded.sealed",source.uuid,p.manifestSession,source.index,source.path,m.identity.tag.code,identity,m.generation,m.sequence,m.offset,prefix,source.sealed?1:0);
                 }
+                if(guard!=null)guard.claimsWritten(db);
                 hook.at(Stage.CLAIMS_WRITTEN);
                 int receipts=0,records=0;
                 for(Rlc2ProductAdapter.Receipt receipt:p.receipts) {
@@ -195,7 +212,7 @@ public final class Rlc2PreviewStore {
                     }
                     if(!exists)records+=update(db,"INSERT INTO preview_records VALUES(?,?,?,?,?,?,?,?,?,?,0)",record.id,record.run,record.segment,record.sequence,record.kind,record.profile,record.capturedAt,record.source,record.json,p.manifestSession);
                 }
-                hook.at(Stage.BEFORE_COMMIT);tx.execute("COMMIT");committed=true;hook.at(Stage.AFTER_COMMIT);
+                hook.at(Stage.BEFORE_COMMIT);if(guard!=null)guard.beforeCommit(db);tx.execute("COMMIT");committed=true;hook.at(Stage.AFTER_COMMIT);
                 return new Result(records,receipts);
             }catch(Exception failure) { if(!committed)try{tx.execute("ROLLBACK");}catch(SQLException rollback){failure.addSuppressed(rollback);}throw failure; }
         }

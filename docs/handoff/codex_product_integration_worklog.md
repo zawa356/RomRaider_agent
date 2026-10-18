@@ -16,3 +16,8 @@
 - Agent PR52 head50c0475 and Server PR58 created/attached. GitHub annotations: jobs not started due recent account payments/spending limit; steps empty. CI NOT RUN, no merge. PR52/58 remain reviewable. No billing/settings changes attempted.
 - I-2 branch feat/rlc2-integration-engine stacks on PR52; base50c0475. Reuse existing full transaction backend via an isolated format/transaction guard, explicit admission and external quiescence. Keep each phase in separate PR against prior phase until CI/main gate clears.
 - Local schema13 actual x86 PASS; VPS full suite still running. Next candidate engine checks canonical binding/admitted UUIDs/legacy lane within the shared transaction and preserves all original/checkpoint gates.
+
+## I-2 local engine GREEN
+- Reused full existing transaction engine via isolated-format constructor and transaction guard. All eight tables (including session binding/admissions) commit/rollback together. Explicit approved UUID set required for rotation; missing saved admissions cannot be reconstructed. Closed legacy inventory checked before ingest and precommit; live coexistence still blocked.
+- Windows17 x64 integration24 PASS: two-source projection/replay, unchanged legacy/input bytes, unapproved-source rejection, admitted third-source append, rollback all8, lane conflict and two-worker exact convergence. Actual x86 follows. Existing full preview/fault regression will be rerun after final snapshot/schema changes.
+- I-1 VPS schema13 plus preview42/fault36/load23 and10k44 PASS. CI still blocked at scheduling by account billing; no merges.
