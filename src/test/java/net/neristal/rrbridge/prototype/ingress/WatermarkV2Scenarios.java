@@ -143,26 +143,32 @@ final class WatermarkV2Scenarios {
             Committed c = read(env, source, null);
             Files.write(dir.resolve(tag + ".out"), ("gen=" + c.marker.generation + " seq=" + c.marker.sequence + " entries=" + c.entries.size()).getBytes(StandardCharsets.UTF_8));
         } else if (mode.equals("readloop")) {
-            Marker previous = null; int ok = 0, closed = 0; java.util.Map<String, Integer> reasons = new java.util.TreeMap<String, Integer>();
+            Marker previous = null; int ok = 0, closed = 0; boolean pendingReview = false; java.util.Map<String, Integer> reasons = new java.util.TreeMap<String, Integer>();
             Files.write(dir.resolve(tag + ".ready"), new byte[0]);
             long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
             while (true) {
                 if (System.nanoTime() > end) throw new IOException("deadline");
-                // After the writer has stopped (quiescent), one final read MUST succeed.
+                // A completed publication requires a final successful read. A deliberately
+                // retained staged update instead MUST remain unreadable, without repair.
                 boolean quiescent = Files.exists(dir.resolve(tag + ".stop"));
+                boolean expectReview = quiescent && Files.exists(dir.resolve(tag + ".expect-review"));
                 try {
                     Committed c = read(env, source, previous);
+                    if (expectReview) throw new AssertionError("pending update became readable");
                     if (c.entries.size() != c.marker.sequence) throw new AssertionError("entries/sequence mismatch");
                     previous = c.marker; ok++;
                     if (quiescent) break;
                 } catch (IOException failClosed) {
-                    if (quiescent) throw failClosed;
+                    if (quiescent) {
+                        if (!expectReview || !Files.exists(WatermarkV2Prototype.staged(source.toFile()))) throw failClosed;
+                        pendingReview = true; closed++; break;
+                    }
                     closed++; String why = String.valueOf(failClosed.getMessage());
                     Integer n = reasons.get(why); reasons.put(why, n == null ? 1 : n + 1);
                 }
             }
             Files.write(dir.resolve(tag + ".out"), ("ok=" + ok + " closed=" + closed + " lastGen=" + (previous == null ? 0 : previous.generation) +
-                " reasons=" + reasons).getBytes(StandardCharsets.UTF_8));
+                " pendingReview=" + pendingReview + " reasons=" + reasons).getBytes(StandardCharsets.UTF_8));
         } else throw new IllegalArgumentException(mode);
     }
 
@@ -348,15 +354,55 @@ final class WatermarkV2Scenarios {
         Process loop = start(env, ndir, "readloop", "loop");
         try {
             await(loop, ndir.resolve("loop.ready"));
+            boolean pending = false;
             try (OwnedJournal w = env.openOwned(nsrc)) {
-                for (int i = 0; i < 25; i++) { w.append("S\tsynthetic\t" + (3 + i) + "\tTEST_RPM=" + (1000 + i)); publish(env, nsrc, w, WatermarkV2Prototype.NO_FAULT); }
+                for (int i = 0; i < 25; i++) {
+                    byte[] beforeAttempt = Files.readAllBytes(WatermarkV2Prototype.marker(nsrc.toFile()));
+                    w.append("S\tsynthetic\t" + (3 + i) + "\tTEST_RPM=" + (1000 + i));
+                    try { publish(env, nsrc, w, WatermarkV2Prototype.NO_FAULT); }
+                    catch (IOException denied) {
+                        if (!env.heldNamesArePinned()) throw denied;
+                        verifyPendingReplace(nsrc, w, beforeAttempt, denied);
+                        pending = true; break;
+                    }
+                }
             }
+            if (pending) Files.write(ndir.resolve("loop.expect-review"), new byte[0]);
             Files.write(ndir.resolve("loop.stop"), new byte[0]);
             check(loop.waitFor(30, TimeUnit.SECONDS) && loop.exitValue() == 0, "concurrent reader JVM never observed an inconsistent or regressed prefix");
             String out = new String(Files.readAllBytes(ndir.resolve("loop.out")), StandardCharsets.UTF_8);
             System.out.println("OBSERVED concurrent reader " + out);
-            check(out.contains(" lastGen=26 "), "concurrent reader's quiescent final read returns the last generation (26)");
+            if (pending) {
+                check(out.contains("pendingReview=true"), "concurrent reader fails closed on retained pending update");
+                System.out.println("BLOCKED full 25-generation concurrent publish progress: Windows replacement refused; exact old/staged/original bytes preserved, no auto-repair");
+            } else check(out.contains(" lastGen=26 ") && out.contains("pendingReview=false"), "concurrent reader's quiescent final read returns the last generation (26)");
         } finally { kill(loop); }
+
+        // N2. Deterministically cover the Windows pending-update reader path without
+        // relying on an intermittent OS/other-handle replacement refusal.
+        if (env.heldNamesArePinned()) {
+            final Path pendingDir = commitTwo(env, "concurrent-pending"); final Path pendingSource = pendingDir.resolve("source.rlj");
+            Process pendingReader = start(env, pendingDir, "readloop", "loop");
+            final FileInputStream[] held = new FileInputStream[1];
+            try {
+                await(pendingReader, pendingDir.resolve("loop.ready"));
+                byte[] beforeAttempt = Files.readAllBytes(WatermarkV2Prototype.marker(pendingSource.toFile()));
+                try (OwnedJournal w = env.openOwned(pendingSource)) {
+                    w.append("S\tsynthetic\t3\tTEST_RPM=1001");
+                    try {
+                        publish(env, pendingSource, w, new Hook() { public void at(Stage stage) throws IOException {
+                            if (stage == Stage.TEMP_SYNCED) held[0] = new FileInputStream(WatermarkV2Prototype.marker(pendingSource.toFile()).toFile());
+                        }});
+                        throw new AssertionError("held Windows marker was replaced");
+                    } catch (IOException denied) { verifyPendingReplace(pendingSource, w, beforeAttempt, denied); }
+                    finally { if (held[0] != null) held[0].close(); }
+                }
+                Files.write(pendingDir.resolve("loop.expect-review"), new byte[0]); Files.write(pendingDir.resolve("loop.stop"), new byte[0]);
+                check(pendingReader.waitFor(30, TimeUnit.SECONDS) && pendingReader.exitValue() == 0, "deterministic pending-update reader exits safely");
+                check(new String(Files.readAllBytes(pendingDir.resolve("loop.out")), StandardCharsets.UTF_8).contains("pendingReview=true"), "pending update never promoted after writer stops");
+                rejects("retained staged update still needs review after both JVMs stop", new Action() { public void run() throws Exception { read(env, pendingSource, null); } });
+            } finally { if (held[0] != null) held[0].close(); kill(pendingReader); }
+        }
 
         // O. replace while the marker is held open by a reader without delete sharing
         final Path odir = commitTwo(env, "held-marker"); final Path osrc = odir.resolve("source.rlj");
@@ -377,6 +423,15 @@ final class WatermarkV2Scenarios {
         System.out.println(env.name() + " RLC2 scenarios passed " + checks + " checks; directory=" + env.expectedDirectory() +
             "; JVM halt != power loss; no DB/ACK/product wiring");
         return checks;
+    }
+
+    private static void verifyPendingReplace(Path source, OwnedJournal writer, byte[] before, IOException denied) throws IOException {
+        Marker prior = WatermarkV2Prototype.decode(before);
+        Marker expected = new Marker(writer.identity(), prior.sourceUuid, prior.generation + 1, prior.sequence + 1, writer.writtenLength(), writer.writtenHash());
+        if (!Arrays.equals(before, Files.readAllBytes(WatermarkV2Prototype.marker(source.toFile()))) ||
+            !Arrays.equals(WatermarkV2Prototype.encode(expected), Files.readAllBytes(WatermarkV2Prototype.staged(source.toFile())))) throw denied;
+        check(true, "replacement refusal preserves exact old marker and complete staged next generation");
+        check(Arrays.equals(WatermarkV2Prototype.sha().digest(writer.read(0, (int) writer.writtenLength())), writer.writtenHash()), "replacement refusal preserves writer-recorded original bytes");
     }
 
     private static void redigest(byte[] raw) {

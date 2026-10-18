@@ -79,3 +79,36 @@
 - Windows17 x64: existing preview34 PASS plus new faults36 PASS (four stage halts, all-or-none receipts/records, exact replay, competing CLI JVMs, exclusive lock review/no ACK, real insert ABORT with whole six-table rollback, original-byte preservation, foreign product DB+journal unchanged). RED778757d retained.
 - Next: actual x86/VPS, CI and manual dry-run recovery documentation. Physical power loss/real ENOSPC NOT RUN.
 
+
+## 2026-10-18 12:31:54 +09:00 — Phase E COMPLETE; Phase F START
+- Agent PR46 merged9caa2486d7b4a9e256b68eb02835ed90cf09e0f7; PR39093449838/39093449961 and main39093698538/39093698530 success. Server PR53 merged2aaaeda93f39260c97534f52d463ace663b209fd, main39093791658 success. Fault36/37/36 and preview34/35/34 validated; no physical power loss/ENOSPC claim.
+- Phase F base Agent9caa248 / Server2aaaeda; branch feat/acceleration-test-automation. Add hash-verified Java dependencies, locked cp312 Win/Linux PostgreSQL driver wheels, pinned observed PostgreSQL image digest, Windows one-command batch with optional guarded PG/model validation, artifact guard and duplicate push/PR CI cancellation.
+- Preparation: isolated Windows Python venv installed psycopg3.3.6/binary3.3.6/typing-extensions4.16.0/tzdata2026.5 with full wheel hashes; deliberately wrong hash rejected before install. Wheel files remain workspace-only. Docker image digest observed from successful PostgreSQL CI, not guessed.
+- Next: implement automation and run the actual complete Windows batch with local disposable PG; CI verifies Linux hash lock and all test steps.
+
+
+## 2026-10-18 12:34:33 +09:00 — Phase F implementation checkpoint / full Windows batch running
+- Central SHA256 manifest verifies cached/downloaded SQLite/SLF4J jars; fetch-deps uses staged checked publication. CPython3.12 Win/Linux x64 driver lock has hashes for both native wheels and pinned transitive packages. PG CI image pinned to observed digest ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d.
+- Added configurable Windows PowerShell batch: compile Java8-compatible code on JDK17 x64, actual Zulu8 x86 runs, guarded optional test PG/Server-model checks, ignored build log and no tracked artifacts. Environment restored afterward; secrets stay in inherited process environment.
+- CI cache key follows hash manifest; push/PR runs share head-branch concurrency to cancel duplicates; generated artifacts/source mutations checked. Full actual Windows batch running with local test PG and actual Server models.
+- Next: batch result, wrong-valid-JAR cache negative verification, CI, docs/PR.
+
+
+## 2026-10-18 12:40:59 +09:00 — Phase F RED: YAML quoting and existing Windows concurrency harness
+- Full Windows batch reached existing RLC2 concurrent reader/publisher scenario, then MoveFileExW error5. Preserved synthetic fixture: old marker gen24/seq25/offset1178 and staged gen25/seq26/offset1226; both marker digests and original prefix hashes valid, source size1226. Core publish correctly retained old marker and complete staged update; harness wrongly assumed every concurrent replacement must succeed.
+- Local JDK17 and Zulu8 source archives confirm NIO defaults shareRead/shareWrite/shareDelete=true; which external/transient handle caused denial is not proven. Do not attribute it to a specific process or loosen product replace/review behavior.
+- Workflow39094266492 rejected before jobs: inline pip --only-binary=:all: has a colon-space YAML token. Change to a block scalar. Existing passing pre-F runs retained.
+- Next: test-only harness verifies either all25 publications plus final read, or exact old-marker/staged/original preservation plus reader fail-closed; deterministically exercise pending-review reader case. Never delete staged files or retry originals automatically. Rerun actual batch and CI.
+
+
+## 2026-10-18 12:42:28 +09:00 — Phase F targeted harness/CI correction (verification running)
+- YAML pip install switched to block scalar so :all: cannot parse as a mapping delimiter.
+- Existing RLC2 TEST harness now accepts Windows replacement refusal only if exact old marker, fully encoded expected staged next generation and writer-recorded source bytes all match. It records concurrent25-progress BLOCKED for that run and requires the reader to remain fail-closed; normal successful path still requires finalgen26. No staged cleanup, retry or product publish change.
+- Added deterministic held-marker+reader case, verifying pending data stays unreadable after writer and reader stop. This covers the refusal branch even when intermittent denial does not occur. Targeted native suite running; then full batch will rerun.
+
+
+## 2026-10-18 12:45:14 +09:00 — Phase F targeted native GREEN; full batch rerun
+- Freshly compiled Windows native suite passes; RLC2 101 checks including normal finalgen26 and deterministic pending-review refusal. Initial targeted invocation reused old common bytecode, so native test script now explicitly compiles shared WatermarkV2Scenarios with sourcepath; no stale pass is counted as new proof.
+- Corrected YAML now schedules all four CI jobs; Linux/Windows/PG jobs already success at0541317, x86 running. Superseded runs may cancel by design. Full Windows batch reruns after these actual corrections; prior failed batch remains recorded.
+- Valid wrong-JAR fixture replacement and wheel hash positive/negative checks PASS. No product publication/retry semantics changed.
+

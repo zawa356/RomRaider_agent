@@ -10,14 +10,19 @@ SLF4J_VERSION=2.0.16
 # the full jar BEFORE atomically publishing it to the local classpath.
 download_jar() {
   local target="$1" artifact="$2" tmp="${1}.partial"
-  if [[ -s "$target" ]] && jar tf "$target" >/dev/null 2>&1; then return 0; fi
+  local expected
+  expected="$(while read -r checksum path; do
+    if [[ "${path%$'\r'}" == "$target" ]]; then printf '%s' "$checksum"; break; fi
+  done < lib/test-dependencies.sha256)"
+  [[ "$expected" =~ ^[0-9a-f]{64}$ ]] || { echo "Missing pinned dependency checksum: $target" >&2; return 1; }
+  if [[ -s "$target" ]] && printf '%s  %s\n' "$expected" "$target" | sha256sum -c - >/dev/null 2>&1; then return 0; fi
   rm -f "$target" "$tmp"
   local base
   for base in https://repo.maven.apache.org/maven2 https://repo1.maven.org/maven2; do
     if curl --fail --silent --show-error --location \
         --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 10 \
         --max-time 90 --output "$tmp" "$base/$artifact"; then
-      if jar tf "$tmp" >/dev/null 2>&1; then
+      if printf '%s  %s\n' "$expected" "$tmp" | sha256sum -c - && jar tf "$tmp" >/dev/null 2>&1; then
         mv -f "$tmp" "$target"
         return 0
       fi
@@ -34,6 +39,7 @@ for name in slf4j-api slf4j-nop; do
   download_jar "lib/${name}.jar" \
     "org/slf4j/${name}/${SLF4J_VERSION}/${name}-${SLF4J_VERSION}.jar"
 done
+sha256sum -c lib/test-dependencies.sha256
 if [[ "${1:-}" == "--deps-only" ]]; then exit 0; fi
 sep=":"
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) sep=";";; esac

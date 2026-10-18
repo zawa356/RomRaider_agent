@@ -13,6 +13,9 @@ on:
       - 'scripts/test-rlc2-preview.sh'
       - 'scripts/test-rlc2-preview-postgres.py'
       - 'scripts/test-rlc2-preview-postgres-guard.py'
+      - 'scripts/requirements-preview-cp312.lock'
+      - 'scripts/run-acceleration-tests.ps1'
+      - 'lib/test-dependencies.sha256'
       - '.github/workflows/ingress-journal-prototype-ci.yml'
   pull_request:
     paths:
@@ -26,12 +29,15 @@ on:
       - 'scripts/test-rlc2-preview.sh'
       - 'scripts/test-rlc2-preview-postgres.py'
       - 'scripts/test-rlc2-preview-postgres-guard.py'
+      - 'scripts/requirements-preview-cp312.lock'
+      - 'scripts/run-acceleration-tests.ps1'
+      - 'lib/test-dependencies.sha256'
       - '.github/workflows/ingress-journal-prototype-ci.yml'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: journal-proto-${{ github.workflow }}-${{ github.ref }}
+  group: journal-proto-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   isolated-journal:
@@ -73,6 +79,11 @@ jobs:
       - name: Assert no production RomRaider.jar is needed
         shell: bash
         run: test ! -f lib/RomRaider.jar
+      - name: Reject tracked build artifacts and test-created source changes
+        shell: bash
+        run: |
+          test -z "$(git ls-files -- build dist 'lib/*.jar' '*.class' '*.pyc')"
+          git diff --exit-code
 
   windows-java8-x86-identity:
     name: Test-only native identity and bound READ (Zulu8 x86)
@@ -84,34 +95,19 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Compile Java8 bytecode and verify x64 baseline
-        shell: bash
-        run: |
-          bash scripts/test-ingress-journal-prototype.sh
-          bash scripts/test-windows-native-identity.sh
-          bash scripts/test-product-v1-spool.sh
-          bash scripts/test-watermark-ledger.sh
-          bash scripts/test-ingress-diagnostics.sh
-          bash scripts/test-rlc2-preview.sh
+      - name: Remember JDK17 x64 for the Windows batch
+        shell: pwsh
+        run: Add-Content $env:GITHUB_ENV "ROMLOGGER_TEST_JDK17=$env:JAVA_HOME"
       - name: Install isolated Zulu8 32bit runtime
         uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: '8'
           architecture: x86
-      - name: Run native identity and bound read in actual 32bit JVM
-        shell: bash
-        env:
-          ROMLOGGER_EXPECT_DATA_MODEL: '32'
+      - name: Run complete Windows batch with actual JDK17 x64 and Zulu8 32bit JVM
+        shell: pwsh
         run: |
-          java -version
-          bash scripts/test-windows-native-identity.sh --run-only
-          bash scripts/test-watermark-ledger.sh --run-only
-          bash scripts/test-ingress-diagnostics.sh --run-only
-          bash scripts/test-rlc2-preview.sh --run-only
-          java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.JournalIdentityComparisonTest
-          java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.SplitLockJournalPrototypeTest
-          java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.DurableWatermarkPrototypeTest
+          ./scripts/run-acceleration-tests.ps1 -Jdk17 $env:ROMLOGGER_TEST_JDK17 -Java8x86 $env:JAVA_HOME
 
   isolated-preview-postgres:
     name: RLC2 quarantine PostgreSQL16 (no Server ACK)
@@ -119,7 +115,7 @@ jobs:
     timeout-minutes: 10
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
         env:
           POSTGRES_DB: romlogger_preview_e2e
           POSTGRES_HOST_AUTH_METHOD: trust
@@ -143,7 +139,8 @@ jobs:
       - name: Reject unsafe preview destinations before database access
         run: python scripts/test-rlc2-preview-postgres-guard.py
       - name: Install pinned synthetic PostgreSQL driver
-        run: python -m pip install 'psycopg[binary]==3.3.6'
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r scripts/requirements-preview-cp312.lock
       - name: Generate validated native RLC2 preview in isolated SQLite
         run: |
           bash scripts/test-product-v1-spool.sh --deps-only
