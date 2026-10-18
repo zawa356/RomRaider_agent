@@ -147,3 +147,7 @@
 - Agent PR48 merged33875a2e86dabb91f8b3a93441192595a2a7d08f, PR journal39096699520/product39096699522 success; main39097392309 running/product39097392286 success. Server PR55 mergedaf30941a4f0128a448389e3dd48d5003191bd2cd, main39097403278 success.
 - Phase H base33875a2/af30941; fix/preview-checkpoint-integrity. Probe replay after an event primary key is changed while aggregate counts remain valid. If reproduced, reject unknown/missing committed projection sets before adding rows; never silently reconstruct output evidence. Also verify prior source receipt extents independently of aggregate counts. Synthetic preview only, no schema migration or ACK.
 
+
+## 2026-10-18 — Phase H RED reproduced / fix under test
+- RED b032e04 changed one synthetic event key without changing row counts; replay accepted it and added the original row. New pre-write validation checks prior per-source receipt extents and exact record IDs derived from the old contiguous receipt prefix, independently of aggregate counters. Unknown/missing rows fail closed without reconstruction.
+- Regression adds original key replacement/byte preservation, deletion+adjusted counters, valid active append and third-source rotation/replay. Windows x64 RED became GREEN for new cases; full fault/load and actual x86/Linux running. No schema or formal ACK changes.

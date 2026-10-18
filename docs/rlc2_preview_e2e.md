@@ -111,3 +111,9 @@ original-byte preservation, and foreign journal refusal. Existing RLC2/RLM1 regr
 rename/manifest-stage halts, stale marker, copied UUID, CRC-valid alteration and quota tests.
 These are synthetic process-failure tests. Physical power loss and real ENOSPC remain NOT RUN;
 Windows directory durability UNKNOWN and ACK prohibition are unchanged.
+
+## Phase H: committed checkpoint integrity
+
+A synthetic RED replay changed only an event record primary key, retaining the same row count and JSON. The previous store inserted the expected event again and retained the unknown row. Replay now verifies the old committed record ID set before updating any checkpoint. It derives that set from the old source receipt boundaries and ordered S/E projection, independently of saved aggregate counters. Each old source must have exactly receipts 1..saved_seq, and old receipts must form a contiguous projection prefix. Unknown IDs, missing committed IDs, unknown sources and incomplete extents require manual review; the transaction leaves the evidence intact.
+
+Tests include the original single-key RED, deletion plus adjusted saved record/receipt counts, byte-for-byte preservation of changed-ID evidence, normal active-source append, new-source rotation and idempotent replay. No schema migration, automatic reconstruction or ACK is added. This detects inconsistent stored state; it is not authentication against an administrator who can rewrite the entire database and every checkpoint consistently.

@@ -395,3 +395,6 @@ Pinned Java/Python/PG CI artifacts and Windows one-command x64/x86/full regressi
 
 Manual next-action diagnostics, non-mutating source-only migration preflight, mixed-format/ledger-lag guards and real multi-session workload/replay added. RLC1 fileKey hash never promoted to native identity; ACK/repair disabled. Large10k/11-session tests pass on Linux17 and actual Zulu8 x86; identical-hex optimization retains old-ledger compatibility. Current product claim/cursor/directory-durability gates remain explicit. Details: ingress_preflight_load.md.
 
+
+### 2026-10-18 — Preview checkpoint integrity follow-up
+- Phase H independently verifies committed source receipt boundaries and the exact projected record ID set before replay. Unknown/missing committed rows are retained for review, including unchanged-count event key replacement. Normal append/rotation remain supported. See rlc2_preview_e2e.md and D-056; no production ACK enablement.
