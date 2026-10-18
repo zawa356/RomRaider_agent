@@ -192,11 +192,24 @@ public final class IngressJournalPrototypeTest {
             public void run() throws Exception { new IngressJournalPrototype(invalidUtf8, QUOTA); }
         });
 
+        // Only link creation may be skipped (no symlink privilege, e.g. Windows without
+        // Developer Mode); the rejection assertion itself is never caught. CI sets
+        // ROMLOGGER_REQUIRE_SYMLINK_TESTS=1 so a missing capability fails there.
         final File symlink = new File(dir, "link.rlj");
-        Files.createSymbolicLink(symlink.toPath(), abnormal.toPath());
-        refuses("journal symlink is rejected", new Action() {
-            public void run() throws Exception { new IngressJournalPrototype(symlink, QUOTA); }
-        });
+        boolean linked = false;
+        try {
+            Files.createSymbolicLink(symlink.toPath(), abnormal.toPath());
+            linked = true;
+        } catch (UnsupportedOperationException | java.nio.file.FileSystemException unavailable) {
+            if ("1".equals(System.getenv("ROMLOGGER_REQUIRE_SYMLINK_TESTS"))) throw unavailable;
+            System.out.println("SKIP journal symlink rejection (symlink creation unavailable: "
+                + unavailable.getClass().getSimpleName() + ")");
+        }
+        if (linked) {
+            refuses("journal symlink is rejected", new Action() {
+                public void run() throws Exception { new IngressJournalPrototype(symlink, QUOTA); }
+            });
+        }
         ok("all test artifacts stay in isolated temporary directory", dir.isDirectory());
         System.out.println("IngressJournalPrototypeTest passed " + checks + " checks (isolated synthetic only)");
     }
