@@ -40,7 +40,8 @@ final class Rlc2SchemaVerifier {
             char c=sql.charAt(i);
             if(quote!=0){b.append(c);if(c==quote)quote=0;}
             else if(c=='\''||c=='"'||c=='`'){quote=c;b.append(c);}
-            else if(!Character.isWhitespace(c))b.append(Character.toLowerCase(c));
-        }return b.toString();
+            else if(Character.isWhitespace(c)){if(b.length()>0&&b.charAt(b.length()-1)!=' ')b.append(' ');}
+            else b.append(Character.toLowerCase(c));
+        }return b.toString().trim();
     }
 }
