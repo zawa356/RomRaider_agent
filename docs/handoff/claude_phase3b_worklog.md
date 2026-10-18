@@ -104,3 +104,15 @@ JAVA_HOME="/c/Program Files/Zulu/zulu-17" PATH="/c/Program Files/Zulu/zulu-17/bi
   - Windows 11 VM: JDK17 x64 script rc=0 PASS70（ledger27 + rotation43）、Zulu8 x86 `--run-only` rc=0 PASS72（28+44）、POSIX NOT RUN。
   - Linux隔離コンテナ（`rl-claude-phase3d1-linux`、作業ツリー版）: rc=0 PASS70（ledger27 + rotation43）。
 - 次: commit/push → PR → CI → merge → main CI → 最終報告。
+
+## 2026-10-18 14:30 JST — Phase 3d-1 MERGED / 最終回帰 / 終了
+
+- PR [#41](https://github.com/zawa356/RomRaider_agent/pull/41) MERGED → main `512c8b79c2f9718ab8d75019c6981c5b242b2fdc`。PR CI [39085846825](https://github.com/zawa356/RomRaider_agent/actions/runs/39085846825): rotation Windows x64 **43** / ubuntu **43** / actual Zulu8 x86 **44**、ledger 27 / 27 / 28。main CI [39086064638](https://github.com/zawa356/RomRaider_agent/actions/runs/39086064638)・[39086064653](https://github.com/zawa356/RomRaider_agent/actions/runs/39086064653) success。
+- 最終main `512c8b7` でのローカル全回帰（`build/`を削除してから実行。ログは `C:\Dev\RomLogger\logs\final`）:
+  - JDK17 x64: journal 186 / spool 321 / receipt 343 / native 179 / ledger+rotation 70、すべてrc=0
+  - Zulu8 x86: native 182 / ledger+rotation 72 / journal系185 / spool+receipt 343、fail 0
+  - Server: ローカルPG16で pytest **57 passed**
+  - SKIP・NOT RUNはsymlink権限・POSIX viewの2要因のみ
+- Dockerサーバーの後片付けを確認: labelを付けた自分のコンテナは残っていない。`romraiderserver-*` は Up 5 days のまま。
+- 報告: [claude_phase3b_report.md](claude_phase3b_report.md)。open PR（コードPhase）は0件。
+- **次回の正確な再開:** reportの「再開手順」を参照。3c/3dを製品へ統合する作業、RLC1からの移行、実機試験は、ユーザーの承認を得てから行う。
