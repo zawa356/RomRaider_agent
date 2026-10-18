@@ -74,6 +74,11 @@ public final class Rlc2PreviewStoreTest {
         final File lostRecord=target();final Rlc2PreviewStore missingRecord=new Rlc2PreviewStore(true,lostRecord);missingRecord.ingest(p);execute(lostRecord,"DELETE FROM preview_records WHERE rowid=(SELECT min(rowid) FROM preview_records)");
         rejects("missing persisted product projection refused rather than reconstructed",new Action(){public void run()throws Exception{missingRecord.ingest(p);}});
         check(count(lostRecord,"SELECT count(*) FROM preview_records")==2,"missing projected record remains for review");
+        final File changedId=target();final Rlc2PreviewStore unknownRecord=new Rlc2PreviewStore(true,changedId);unknownRecord.ingest(p);
+        execute(changedId,"UPDATE preview_records SET record_id='00000000-0000-0000-0000-000000000001' WHERE kind='event'");
+        final byte[] changedBytes=Files.readAllBytes(changedId.toPath());
+        rejects("changed event ID with unchanged counts is refused",new Action(){public void run()throws Exception{unknownRecord.ingest(p);}});
+        check(count(changedId,"SELECT count(*) FROM preview_records")==3&&java.util.Arrays.equals(changedBytes,Files.readAllBytes(changedId.toPath())),"unknown event evidence preserved without inserting original ID");
         final File mixed=target();new Rlc2PreviewStore(true,mixed);execute(mixed,"CREATE TABLE sqlitex_foreign(value TEXT)");
         rejects("owned preview rejects foreign tables including sqlite-like names",new Action(){public void run()throws Exception{new Rlc2PreviewStore(true,mixed);}});
         final File conflict=target();final Rlc2PreviewStore claimed=new Rlc2PreviewStore(true,conflict);
