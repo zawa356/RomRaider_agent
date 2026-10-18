@@ -499,3 +499,8 @@ Rlc2PreviewStore requires explicit synthetic enable and a dedicated .rlc2-previe
 
 Existing positively identified RLP1 output with a safe rollback journal can undergo SQLite normal rollback recovery before schema verification. Immutable input ledger rules remain unchanged. Unknown application/schema or unexpected WAL/SHM refuses; no manual journal removal, original repair or ACK permission. The same explicit CLI/review exit codes apply. See D-051 and rlc2_preview_e2e.md.
 
+
+## C18. Development-only acceleration batch — 2026-10-18 12:46:00 +09:00
+
+PowerShell7 scripts/run-acceleration-tests.ps1 selects configurable JDK17 x64/Zulu8 x86/Git Bash/Python, restores test environment and writes ignored build logs. Optional -Postgres requires an inherited protected loopback test DSN and downstream strict destination guard; -ServerPath requires actual local Server model validation. Java/Python byte hashes and PG CI image digest are pinned. It never enables new-path sending. See acceleration_test_automation.md.
+

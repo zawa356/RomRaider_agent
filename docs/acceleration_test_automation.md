@@ -60,6 +60,21 @@ CI rejects tracked generated jars/classes/Python bytecode/build output and test-
 tracked-source changes. Lock/hash/PowerShell files have explicit LF checkout rules. Existing
 private-Server HTTP E2E is still separately gated; its SKIPPED step is not called a PASS.
 
+## Windows concurrent replacement: safety and progress are separate observations
+
+The complete batch exposed an intermittent existing test failure: MoveFileExW refused a
+replacement while another JVM was reading. The retained fixture had a valid old marker,
+fully valid next-generation tmp and exactly preserved writer bytes. Local JDK sources confirm
+NIO's default delete sharing; the particular transient/external handle causing denial was not
+identified. Product publication remains fail-closed, with no retry/cleanup change.
+
+The test now requires either all 25 publications and the quiescent reader's final generation26,
+or exact old-marker/expected-staged/original-byte preservation plus reader refusal. The latter
+explicitly logs full concurrent publish progress BLOCKED; it is not called a completed
+25-generation run. A separate deterministic held-marker/reader scenario always exercises
+retained pending-state refusal after both JVMs stop. Native-only builds explicitly compile the
+shared scenario source so a stale class cannot hide a newly added assertion.
+
 ## Unchanged verification limits
 
 The batch does not exercise ECU/X270, physical power loss, actual ENOSPC, production DBs,
