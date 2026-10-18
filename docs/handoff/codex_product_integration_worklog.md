@@ -29,3 +29,8 @@
 ## I-3 RED/GREEN checkpoint
 - RED d08860d reproduced source+ledger advance after projection accepted at commit. Streaming bounded snapshot evidence now checked before/after projection, before output writes and immediately precommit; changes roll back output without repair. Quiescence and non-live contract remain mandatory.
 - Initial Windows x64 RED->GREEN3 checks; expanded independent manifest/ledger/legacy/unpublished-tail scenarios running (15 total expected). Next actual x86, Linux and PR. GitHub scheduling still billing-blocked; main unchanged.
+
+## I-4 START — explicit diagnostic axes / strict output schema
+- Base109804c, branch fix/ingress-schema-supervisor-contract. I-3 Windows15 PASS; x86 running. I-2 x8624 PASS. CI still blocked by billing, all branches retained, no main merge.
+- Plan RED: rename ack_eligible column in a synthetic preview DB; current name/application-only ownership may accept it. Then compare complete SQLite schema signature against authoritative DDL (all columns/types/nullability/PK/UNIQUE/FK/CHECK/index/trigger/object/version), quick_check and FK consistency. Preserve actual legacy-v0 DDL compatibility. Replace trigger-based failure injection with real NOT NULL constraint failure inside transaction because untrusted triggers must be refused.
+- Diagnostic JSON v1/exit compatibility retained with independent supervisor contract v2 fields; exit0 never implies operational readiness, durability or ACK.
