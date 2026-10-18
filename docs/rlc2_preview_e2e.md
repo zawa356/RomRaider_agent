@@ -15,8 +15,9 @@ This is an executable synthetic integration path, **not a product sender or Serv
 
 `Rlc2PreviewStore(true, output)` requires an existing parent, a `.rlc2-preview.db` filename,
 no symlink ancestors, SQLite application ID `RLP1` on existing databases, and exactly the six
-owned tables. Foreign/renamed product DBs are refused before writable access. Existing output
-must be quiescent for opening; active companions cause conservative refusal. No v1 table is
+owned tables. Foreign/renamed product DBs are refused before writable access. Input ledgers
+must remain closed/checkpointed. Owned preview output may use SQLite-managed rollback after
+a killed transaction, subject to the additional ownership checks below. No v1 table is
 created, and existing product Worker/configuration does not reference these tables.
 
 | Table | Purpose |
@@ -80,3 +81,33 @@ ROMLOGGER_RLC2_PREVIEW_ENABLE=1 python scripts/test-rlc2-preview-postgres.py
 
 The Java synthetic store tests run Windows x64, Linux and actual Zulu8 x86. Test fixture
 paths, dependencies, SQLite output and Python bytecode remain ignored build artifacts.
+
+## Phase E: abrupt-stop recovery and operator dry-run
+
+The RED separate-JVM test found that treating output as an immutable input refused even the
+preview's own rollback journal. The output-only recovery gate now first checks regular DB/
+journal paths, the SQLite header magic and RLP1 application ID, and absence of unexpected
+WAL/SHM companions. Only then does SQLite open that positively identified preview output
+with mode=rw and perform its normal transaction rollback. Owned schema is verified afterward.
+The code never manually deletes a journal, repairs original data or relaxes input-ledger rules.
+Foreign product DB plus journal remains byte-identical and is refused before recovery.
+
+For manual review, the diagnostic CLI is the dry-run entry point: it reports fixed findings
+without adopting, removing or editing any input. A staged marker/manifest, orphan, changed
+identity, corrupt receipt or regressed highwater requires preservation and investigation;
+there is no auto-clear or repair command. Quiesce synthetic writers externally before supplying
+a closed ledger snapshot. Do not delete WAL/SHM to make an active input appear closed.
+
+For an otherwise valid synthetic input and positively identified preview output, repeat the
+explicit preview CLI after an interrupted run. SQLite recovery yields either the whole old
+transaction or the committed new one; stable replay adds missing *new* output only. A saved
+receipt/record mismatch or deletion is refused, not reconstructed. A transient exclusive lock
+reports review/no ACK; retry explicitly after the owning test process releases the lock.
+
+The fault suite halts separate JVMs at CLAIMS_WRITTEN, RECEIPTS_WRITTEN, BEFORE_COMMIT and
+AFTER_COMMIT. It verifies whole receipt/record sets and exactly-once local replay, two competing
+CLI processes, an exclusive lock, an actual SQLite RAISE(ABORT) trigger, six-table rollback,
+original-byte preservation, and foreign journal refusal. Existing RLC2/RLM1 regressions retain
+rename/manifest-stage halts, stale marker, copied UUID, CRC-valid alteration and quota tests.
+These are synthetic process-failure tests. Physical power loss and real ENOSPC remain NOT RUN;
+Windows directory durability UNKNOWN and ACK prohibition are unchanged.
