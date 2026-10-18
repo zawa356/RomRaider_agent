@@ -61,3 +61,27 @@ JAVA_HOME="/c/Program Files/Zulu/zulu-17" PATH="/c/Program Files/Zulu/zulu-17/bi
   - Zulu8 1.8.0_504 x86（data-model32）: `--run-only` rc=0 PASS182（RLC2 Windows 97）
   - Windows directory: `FlushFileBuffers(directory)` は成功を返したが **UNKNOWN** と報告（保証の文書化なし）
 - 次: commit/push → PR → Linux CI（POSIX scenarios実行）とWindows/x86 CI確認 → Docker隔離コンテナでLinux追加検証。
+
+## 2026-10-18 11:55 JST — Phase 3b MERGED / main CI
+
+- PR [#39](https://github.com/zawa356/RomRaider_agent/pull/39) MERGED → main `e413fca085d294fb231f89477059a51089f8f31d`。
+- PR CI [39084461335](https://github.com/zawa356/RomRaider_agent/actions/runs/39084461335) 全3job success:
+  - windows-latest(Server2025, Temurin17 x64): Contract22、RLC2 Windows **96**、POSIX NOT RUN
+  - ubuntu-latest: Contract22、RLC2 POSIX **94**（directory=OS_REPORTED_SYNCED）
+  - actual Zulu8 1.8.0_504 x86: data-model32、RLC2 Windows **97**
+- main CI [39084674087](https://github.com/zawa356/RomRaider_agent/actions/runs/39084674087)（journal 3jobs）・[39084674145](https://github.com/zawa356/RomRaider_agent/actions/runs/39084674145)（spool durability 2jobs）success。
+- Linux追加検証（Dockerサーバー隔離コンテナ）: `eclipse-temurin:17-jdk`、`--network none --memory 768m --cpus 1 --pids-limit 256`、名前 `rl-claude-phase3b-linux`（`--rm`）。journal script rc=0 PASS338、RLC2 POSIX 94。既存コンテナ・network・volumeは未変更。作業dir `~/rl-claude-phase3b`。
+- Win32文書調査: `MoveFileExW` WRITE_THROUGHの明示保証はcopy+delete経路のみ、同一volume renameのdirectory entry/電源断は記載なし。`FlushFileBuffers`はdirectory handleを文書化していない。→ Windows directory durability **UNKNOWN維持**。
+
+## 2026-10-18 12:10 JST — Phase 3c-1 START / 判断
+
+- 3bのWindows directory durabilityはUNKNOWNで、durabilityゲートは**未成立**。したがって3c全体（製品への統合・ACK）はBLOCKEDのまま。
+- ただし3bの反例（stale受理・偽造コピー受理）を閉じる**永続ledgerの独立PoC**は、製品非接続の合成試験として安全に進められる。そこで3c-1として実施し、ACKとの連動はしない。
+- branch `claude/phase3c1-rlc2-ledger`（main `e413fca`起点）。
+
+## 2026-10-18 12:40 JST — Phase 3c-1 実装・ローカル試験
+
+- 変更: `WatermarkLedgerPrototype.java`、test `WatermarkLedgerScenarios` / `PosixWatermarkLedgerTest` / `WindowsWatermarkLedgerTest`、`scripts/test-watermark-ledger.sh`、CI（isolated-journalに3c-1 step追加、x86 jobではspool scriptでjar取得→ledger compile→Zulu8で`--run-only`）。
+- 途中の修正: sqlite-jdbcの`setAutoCommit(false)`と`BEGIN IMMEDIATE`は二重開始になるため、autocommitのまま明示的にBEGIN IMMEDIATE/COMMIT/ROLLBACKする実装へ変更（コンパイル前に修正）。
+- Windows 11 VM: JDK17 x64 ledger **27 PASS** rc=0、Zulu8 x86 **28 PASS** rc=0、POSIX ledger NOT RUN（unix viewなし）。拒否理由がすべて意図した原因（stale/UUID claim/identity/TSV lane/receipt改竄/世代退行）であることをログで確認。並行ingestは `a=added=3 b=added=0`。
+- 次: commit/push → PR → CI（Linux POSIX ledger実行）→ merge → main CI。

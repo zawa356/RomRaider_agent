@@ -8,6 +8,7 @@ on:
       - 'scripts/test-ingress-journal-prototype.sh'
       - 'scripts/test-windows-native-identity.sh'
       - 'scripts/test-ingress-sqlite-receipts.sh'
+      - 'scripts/test-watermark-ledger.sh'
       - '.github/workflows/ingress-journal-prototype-ci.yml'
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - 'scripts/test-ingress-journal-prototype.sh'
       - 'scripts/test-windows-native-identity.sh'
       - 'scripts/test-ingress-sqlite-receipts.sh'
+      - 'scripts/test-watermark-ledger.sh'
       - '.github/workflows/ingress-journal-prototype-ci.yml'
   workflow_dispatch:
 permissions:
@@ -51,6 +53,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: bash scripts/test-windows-native-identity.sh
+      - name: Phase 3c-1 RLC2 highwater ledger with real SQLite (synthetic)
+        shell: bash
+        run: bash scripts/test-watermark-ledger.sh
       - name: Assert no production RomRaider.jar is needed
         shell: bash
         run: test ! -f lib/RomRaider.jar
@@ -70,6 +75,8 @@ jobs:
         run: |
           bash scripts/test-ingress-journal-prototype.sh
           bash scripts/test-windows-native-identity.sh
+          bash scripts/test-product-v1-spool.sh
+          bash scripts/test-watermark-ledger.sh
       - name: Install isolated Zulu8 32bit runtime
         uses: actions/setup-java@v4
         with:
@@ -83,6 +90,7 @@ jobs:
         run: |
           java -version
           bash scripts/test-windows-native-identity.sh --run-only
+          bash scripts/test-watermark-ledger.sh --run-only
           java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.JournalIdentityComparisonTest
           java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.SplitLockJournalPrototypeTest
           java -cp build/ingress-journal-prototype net.neristal.rrbridge.prototype.ingress.DurableWatermarkPrototypeTest
