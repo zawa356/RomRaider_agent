@@ -245,7 +245,8 @@ public final class IngressDiagnostics {
             if(!source.getName().endsWith(".rlj")||!Files.isRegularFile(source.toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("source required");
             if(Files.size(source.toPath())>IngressJournalPrototype.MAX_JOURNAL_BYTES) {add(out,Code.QUOTA_REACHED,1,"source_exceeds_inspection_capacity");return new Report(out);}
         }catch(Exception invalid) {add(out,Code.INVALID_PATH,1,"existing_non_symlink_source_required");return new Report(out);}
-        if(Files.exists(WatermarkV2Prototype.staged(source),LinkOption.NOFOLLOW_LINKS)||Files.exists(new File(source.getPath()+".commit.tmp").toPath(),LinkOption.NOFOLLOW_LINKS))
+        boolean pending=Files.exists(WatermarkV2Prototype.staged(source),LinkOption.NOFOLLOW_LINKS)||Files.exists(new File(source.getPath()+".commit.tmp").toPath(),LinkOption.NOFOLLOW_LINKS);
+        if(pending)
             add(out,Code.TMP_MARKER,1,"staged_format_update_requires_review");
         boolean legacy=Files.exists(WatermarkV2Prototype.legacyMarker(source),LinkOption.NOFOLLOW_LINKS);
         boolean modern=Files.exists(WatermarkV2Prototype.marker(source),LinkOption.NOFOLLOW_LINKS);
@@ -253,6 +254,7 @@ public final class IngressDiagnostics {
         if(!legacy&&!modern) {add(out,Code.MARKER_MISSING,1,"no_committed_marker_do_not_fabricate");return new Report(out);}
         if(legacy) {
             add(out,Code.LEGACY_RLC1_PRESENT,1,"rlc1_filekey_hash_cannot_be_reinterpreted_as_rlc2_identity");
+            if(pending)return new Report(out);
             try {
                 DurableWatermarkPrototype.Snapshot old=DurableWatermarkPrototype.inspectEnvelope(source);
                 if(!old.sourceUuid.equals(JournalIdentityPrototype.readExisting(source).sourceUuid()))throw new IOException("UUID mismatch");
@@ -265,6 +267,7 @@ public final class IngressDiagnostics {
             }catch(Exception invalid) {add(out,Code.WATERMARK_INVALID,1,"legacy_envelope_or_original_prefix_invalid");}
         } else {
             add(out,Code.LEDGER_REQUIRED,1,"persistent_claim_highwater_receipts_and_manifest_not_checked");
+            if(pending)return new Report(out);
             try {
                 WatermarkV2Prototype.Committed c=WatermarkV2Prototype.readCommitted(source,opener,null);
                 try(WatermarkV2Prototype.ReadHandle h=opener.open(source.toPath())) {

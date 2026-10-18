@@ -54,6 +54,10 @@ public final class IngressMigrationPreflightTest {
         Rlc2ProductAdapterTest.Fixture modern=new Rlc2ProductAdapterTest.Fixture(env,false,Rlc2ProductAdapterTest.SESSION,1);
         Path source=RotationManifestPrototype.segment(modern.dir,2);
         check(IngressDiagnostics.inspectMigration(source.toFile(),env.reader()).has(Code.LEDGER_REQUIRED),"valid stateless RLC2 preflight cannot substitute for persisted provenance");
+        Rlc2ProductAdapterTest.Fixture pendingModern=new Rlc2ProductAdapterTest.Fixture(env,false,Rlc2ProductAdapterTest.SESSION,1);
+        Path pendingSource=RotationManifestPrototype.segment(pendingModern.dir,2);Files.write(WatermarkV2Prototype.staged(pendingSource.toFile()),new byte[]{1});
+        IngressDiagnostics.Report pendingReport=IngressDiagnostics.inspectMigration(pendingSource.toFile(),env.reader());
+        check(pendingReport.has(Code.TMP_MARKER)&&!pendingReport.has(Code.WATERMARK_INVALID),"pending update is reported as unreviewed rather than falsely labelled corrupt");
         modern.append(2,"S\t"+Rlc2ProductAdapterTest.SESSION+"\t1\t2\t1791838802000\tTEST_RPM=702");
         IngressDiagnostics.Report lag=IngressDiagnostics.inspect(modern.dir,modern.db.toFile(),env.reader(),null);
         check(lag.has(Code.LEDGER_BEHIND)&&!lag.has(Code.RECEIPT_INCONSISTENT),"ledger lag distinguished from receipt corruption");

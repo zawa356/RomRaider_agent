@@ -131,3 +131,9 @@
 - Cold-process exploratory large metrics: source297ms, ledger1423ms, projection1485ms, preview commit1159ms, full projection+store replay2086ms. Not a normalized benchmark. Original hex utility allocates a Formatter per byte for every receipt/hash; next replace with equivalent fixed lowercase nibble mapping, preserving exact stored string format, then remeasure and rerun independent hash/DB tests.
 - Actual Windows x86 migration/large baseline still running; baseline log will be retained before recompiling. No protocol or database format change planned.
 
+
+## 2026-10-18 13:12:40 +09:00 — Phase G load/performance after-change PASS
+- Actual Zulu8 x86 baseline: migration18 PASS;10000 observations/11 sessions load45 PASS, original bytes preserved. Baseline metrics source2151/ledger5572/project9856/commit6377/replay11433 ms, before hex recompilation.
+- VPS optimized implementation retains all migration/diagnostic/preview/fault proof and10k/11-session load44 PASS. Metrics source297/ledger949/project614/commit1675/replay939 ms versus baseline297/1423/1485/1159/2086. Commit timing increased while CPU-heavy phases decreased; these are single cold-process observations, not a normalized speed guarantee. Exact stored lowercase hex format retained.
+- Windows x64 after-change existing suites and default load23 PASS. Added precise pending-update preflight classification: known staged state is not falsely labelled corrupt; final added case awaiting fresh compile/CI. Next: optimized x8610k, backward compatibility scan of an old10k ledger, docs/PR/main CI.
+
