@@ -112,3 +112,10 @@
 - Corrected YAML now schedules all four CI jobs; Linux/Windows/PG jobs already success at0541317, x86 running. Superseded runs may cancel by design. Full Windows batch reruns after these actual corrections; prior failed batch remains recorded.
 - Valid wrong-JAR fixture replacement and wheel hash positive/negative checks PASS. No product publication/retry semantics changed.
 
+
+## 2026-10-18 12:57:57 +09:00 — Phase F COMPLETE; Phase G START
+- Agent PR47 merged202b9c95a77d7f07d28a6cb1d2a2c03927b13d98; PR39094810643/39094810652 and main39095250378/39095250377 success. Actual full local batch build/acceleration-20261018-124526.log exit0 includes test PG/actual Server models; native102 each explicit64/32, diagnostics35/projection21/preview35/fault37 per architecture. Local symlink/old Windows RLC156/physical power loss/real ENOSPC limitations retained.
+- Server PR54 merged60d33653da26ec5c796aae0fe44cf4094e9b9807; main39095397003 running (docs only).
+- Phase G base Agent202b9c9 / Server60d3365; branch feat/ingress-preflight-load. Add fixed manual next-action hints (never execute), source-only RLC1/RLC2 migration preflight without reinterpretation/repair, mixed-format refusal, ledger-lag diagnosis, and bounded multi-source/multi-session load/replay verification. Capture larger10k observations on VPS/actual x86 if feasible; CI uses bounded default.
+- Next: implement read-only preflight using existing codecs, then workload fixtures; preserve all ACK/durability/production gates.
+
