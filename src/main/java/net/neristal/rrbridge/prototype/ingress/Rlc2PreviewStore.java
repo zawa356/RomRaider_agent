@@ -58,6 +58,12 @@ public final class Rlc2PreviewStore {
                     r.next();if(r.getInt(1)!=0&&r.getInt(1)!=APPLICATION_ID)throw new IOException("foreign application database");
                 }
                 s.execute("PRAGMA application_id="+APPLICATION_ID);
+                createSchema(s);
+                s.execute("COMMIT");
+            }catch(Exception e){try{s.execute("ROLLBACK");}catch(SQLException ignored){}throw e;}
+        }
+    }
+    static void createSchema(Statement s)throws SQLException {
                 s.execute("CREATE TABLE IF NOT EXISTS preview_sessions(session_uuid TEXT PRIMARY KEY,device TEXT NOT NULL,vehicle TEXT NOT NULL,payload_session TEXT NOT NULL,manifest_generation INTEGER NOT NULL,manifest BLOB NOT NULL,record_count INTEGER NOT NULL,receipt_count INTEGER NOT NULL)");
                 s.execute("CREATE TABLE IF NOT EXISTS preview_claims(device TEXT NOT NULL,vehicle TEXT NOT NULL,payload_session TEXT NOT NULL,lane TEXT NOT NULL,session_uuid TEXT NOT NULL,PRIMARY KEY(device,vehicle,payload_session))");
                 s.execute("CREATE TABLE IF NOT EXISTS preview_sources(source_uuid TEXT PRIMARY KEY,session_uuid TEXT NOT NULL REFERENCES preview_sessions(session_uuid),segment_index INTEGER NOT NULL,source_path TEXT NOT NULL UNIQUE,identity_tag INTEGER NOT NULL,identity_hex TEXT NOT NULL,generation INTEGER NOT NULL,seq INTEGER NOT NULL,offset_bytes INTEGER NOT NULL,prefix_sha256 TEXT NOT NULL,sealed INTEGER NOT NULL CHECK(sealed IN (0,1)),UNIQUE(session_uuid,segment_index))");
@@ -65,9 +71,6 @@ public final class Rlc2PreviewStore {
                 s.execute("CREATE TABLE IF NOT EXISTS preview_profiles(profile_id TEXT PRIMARY KEY,body_json TEXT NOT NULL)");
                 s.execute("CREATE TABLE IF NOT EXISTS preview_records(record_id TEXT PRIMARY KEY,run_id TEXT NOT NULL,segment_id TEXT,sequence INTEGER,kind TEXT NOT NULL CHECK(kind IN ('observation','event')),profile_id TEXT REFERENCES preview_profiles(profile_id),captured_at TEXT NOT NULL,source_kind TEXT NOT NULL CHECK(source_kind IN ('synthetic','agent')),body_json TEXT NOT NULL,session_uuid TEXT NOT NULL REFERENCES preview_sessions(session_uuid),ack_eligible INTEGER NOT NULL DEFAULT 0 CHECK(ack_eligible=0))");
                 s.execute("CREATE UNIQUE INDEX IF NOT EXISTS preview_run_sequence ON preview_records(run_id,sequence) WHERE kind='observation'");
-                s.execute("COMMIT");
-            }catch(Exception e){try{s.execute("ROLLBACK");}catch(SQLException ignored){}throw e;}
-        }
     }
     private static void verifyRecoveryOwner(File path,File journal)throws Exception {
         if(!Files.isRegularFile(journal.toPath(),LinkOption.NOFOLLOW_LINKS)||Files.isSymbolicLink(journal.toPath()))throw new IOException("unsafe preview rollback journal");

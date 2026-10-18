@@ -466,3 +466,8 @@
 - Context: changing an event primary key left aggregate counts unchanged; replay silently inserted the original ID (RED b032e04).
 - Decision: independently validate prior source receipt extents, the ordered committed prefix, and its exact projected record ID set before any checkpoint update. Existing per-receipt/per-record content comparisons remain. Refuse inconsistent evidence without reconstruction; no schema or product sender change.
 - Validation: synthetic key replacement and coordinated counter/deletion cases, normal append/rotation/replay, Windows/Linux/actual x86 suites. This is consistency checking, not authenticated protection from coordinated database replacement.
+
+## D-057 — Agent-local multi-source integration contract v2
+- Keep HTTP wire v1 and existing product DB/ACK state unchanged. Dedicated opt-in RLI2/user_version1 DB reuses preview transaction tables, adds canonical session/run binding and explicit child-source admissions. One logical session owns multiple physical UUID cursors/receipts; v1 run/record IDs remain stable.
+- Explicit migration creates only a new dedicated file transactionally. Existing v1 files are read-only compatibility inventories, never auto-migrated. Concurrent old-Worker/new-store coexistence remains BLOCKED until coordinated lane migration; external quiescence is mandatory.
+- Contract/invariants and acceptance: docs/interfaces/rlc2_integration_v2.md. Real SQLite revision/replay/rollback/legacy-byte/lane checks implemented; production adoption is separate.
