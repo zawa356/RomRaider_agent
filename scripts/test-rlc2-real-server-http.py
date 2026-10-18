@@ -97,7 +97,7 @@ def pg_candidate_migration(url, ddl):
         db.execute("DELETE FROM preview_sessions WHERE session_uuid='synthetic-64bit'")
 
 
-def main():
+def main(owned_pg=None):
     if os.environ.get("ROMLOGGER_RLC2_HTTP_ENABLE") != "1":
         raise ValueError("explicit HTTP test opt-in required")
     url = guard.destination()  # Strict loopback disposable DB, no caller URI overrides.
@@ -220,9 +220,17 @@ def main():
             with psycopg.connect(scoped) as db:
                 db.execute("DROP TRIGGER synthetic_reject ON v1_records")
                 db.execute("DROP FUNCTION synthetic_reject()")
-        # Shared PG service is never stopped: make the test Server DB endpoint
-        # genuinely unavailable on an owned bound-but-non-listening loopback port.
-        with socket.socket() as unavailable:
+        # Optional wrapper owns an entire disposable cluster and can stop it.
+        # The normal runner never stops the existing shared test PG service.
+        if owned_pg is not None:
+            owned_pg.stop()
+            try:
+                status, error = request(port, "POST", "/api/agent/v1/telemetry/batches", fresh, token)
+                check(status == 503 and error.get("status") != "committed", "owned PostgreSQL process stopped: real HTTP503 without ACK")
+            finally:
+                owned_pg.start()
+        else:
+          with socket.socket() as unavailable:
             unavailable.bind(("127.0.0.1", 0))
             bad_port = unavailable.getsockname()[1]
             from urllib.parse import urlsplit, urlunsplit
