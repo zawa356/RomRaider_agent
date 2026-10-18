@@ -20,3 +20,11 @@
 - Windows JDK17 x64: diagnostics 34 PASS, real SQLite/file-byte preservation/CLI/quota. Zulu8 x86 and VPS Linux running. Java17, SQLite3 and python3-venv provisioned on VPS successfully; no production deployment.
 - CI adds explicit Linux/Windows and Zulu8 x86 diagnostics steps. API and caveats documented in acceleration_diagnostics.md; ADR D-048 and interfaces/history/progress updated. Next: x86/Linux results, PR+CI, normal merge; then isolated adapter mapping design.
 
+
+## 2026-10-18 11:50:32 +09:00 — Phase A/B COMPLETE; Phase C START
+- Agent PR43 normal merge 77089a368d3c562bb5b5e8f01ae9e4e6ba90c606; PR CI39091138681/39091138687 and main CI39091295337/39091295292 success. Inspected actual Linux/Windows diagnostic steps and actual Zulu8 x86 step. Local results x64 34, x86 35, VPS34; existing VPS ledger27+rotation43. Server regression57 passed.
+- Server progress PR50 merged e056c0590cf61413b9e237cc7d9469a6a5578285; main CI39091434142 success.
+- Clock correction: earlier manually entered 11:51 and 12:00 headings were entry errors; those checkpoints occurred before the observed 11:43:58 JST reading, in the recorded Git sequence. Subsequent headings use the machine clock.
+- Phase C base Agent77089a3 / Servere056c05; branch feat/rlc2-product-projection. Plan pure opt-in synthetic projection using shared existing v1 row converter, strict RLC2/ledger alignment, manifest-order metadata, stable IDs and source receipts. No output to product spool or HTTP. Phase D will separately persist to quarantined preview tables, with no ACK column accepting true.
+- Next: extract a no-I/O conversion sink from IncrementalTsvBridge; implement Rlc2ProductAdapter and native/SQLite cross-platform tests. Existing production behavior must remain equivalent.
+
