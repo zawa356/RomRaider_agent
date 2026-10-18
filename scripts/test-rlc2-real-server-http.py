@@ -111,7 +111,7 @@ def main(owned_pg=None):
     import uvicorn
     schema = "rlc2_http_" + uuid4().hex
     assert re.fullmatch(r"rlc2_http_[0-9a-f]{32}", schema)
-    scoped = url + "?" + urlencode({"options": "-csearch_path=" + schema})
+    scoped = url + "?" + urlencode({"options": "-csearch_path=" + schema, "connect_timeout": "2"})
     prior_url = os.environ.get("DATABASE_URL")
     created = False
     server = thread = listener = None
@@ -236,7 +236,7 @@ def main(owned_pg=None):
             from urllib.parse import urlsplit, urlunsplit
             parts = urlsplit(scoped)
             auth = parts.netloc.rsplit("@", 1)[0]
-            os.environ["DATABASE_URL"] = urlunsplit((parts.scheme, auth + "@127.0.0.1:" + str(bad_port), parts.path, parts.query + "&connect_timeout=2", ""))
+            os.environ["DATABASE_URL"] = urlunsplit((parts.scheme, auth + "@127.0.0.1:" + str(bad_port), parts.path, parts.query, ""))
             try:
                 status, error = request(port, "POST", "/api/agent/v1/telemetry/batches", fresh, token)
                 check(status == 503 and error.get("status") != "committed", "actual unavailable DB endpoint HTTP503 without ACK")
