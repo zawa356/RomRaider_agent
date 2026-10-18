@@ -27,6 +27,7 @@ public final class Rlc2StoreSchemaTest {
             {"preview_profiles","profile_id TEXT PRIMARY KEY","profile_id TEXT"},
             {"preview_receipts","REFERENCES preview_sources(source_uuid)",""},
             {"preview_records","captured_at TEXT NOT NULL","captured_at INTEGER NOT NULL"},
+            {"preview_receipts","body_tsv TEXT NOT NULL","body_tsv TEXTNOTNULL"},
             {"preview_records","'observation','event'","'obser vation','event'"}
         };
         for(String[] edit:rewrites){File db=Rlc2PreviewStoreTest.target();new Rlc2PreviewStore(true,db);
