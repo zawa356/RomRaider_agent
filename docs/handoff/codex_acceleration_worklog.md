@@ -119,3 +119,9 @@
 - Phase G base Agent202b9c9 / Server60d3365; branch feat/ingress-preflight-load. Add fixed manual next-action hints (never execute), source-only RLC1/RLC2 migration preflight without reinterpretation/repair, mixed-format refusal, ledger-lag diagnosis, and bounded multi-source/multi-session load/replay verification. Capture larger10k observations on VPS/actual x86 if feasible; CI uses bounded default.
 - Next: implement read-only preflight using existing codecs, then workload fixtures; preserve all ACK/durability/production gates.
 
+
+## 2026-10-18 13:03:31 +09:00 — Phase G preflight implementation/local GREEN; workload running
+- Diagnostic findings add fixed manual next_action and automatic_repair_allowed=false. Source-only --migration-preflight uses existing RLC1 codec plus raw prefix/CRC/UUID checks, never maps fileKey hash to native identity or creates an RLC2 marker/ledger. Mixed marker paths block session projection. Ledger lag is distinguished from corrupted receipts.
+- Windows x64 existing diagnostics34/projection20 and new migration preflight17 checks PASS (one additional shared rejection assertion also ran). New bounded load test defaults1000 observations +3 additional sessions, verifies two physical sources/session, exact receipts/rows/highwaters, new-process-style replay and input-byte preservation; running.
+- Next: x86/VPS; larger10k observations/10 additional sessions; measure existing implementation before any performance change. ACK/repair/durability limits retained.
+
