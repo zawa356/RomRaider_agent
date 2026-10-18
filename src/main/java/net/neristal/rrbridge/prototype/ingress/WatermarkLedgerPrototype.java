@@ -28,6 +28,7 @@ import java.util.List;
 public final class WatermarkLedgerPrototype {
     public interface Hook { void beforeCommit() throws Exception; }
     private static final Hook NONE = new Hook() { public void beforeCommit() {} };
+    private static final char[] HEX = "0123456789abcdef".toCharArray();
     private final String jdbcUrl;
 
     public WatermarkLedgerPrototype(File database) throws Exception {
@@ -63,9 +64,12 @@ public final class WatermarkLedgerPrototype {
     }
 
     static String hex(byte[] b) {
-        StringBuilder s = new StringBuilder();
-        for (byte x : b) s.append(String.format(java.util.Locale.ROOT, "%02x", x & 0xff));
-        return s.toString();
+        char[] out = new char[b.length * 2];
+        for (int i = 0; i < b.length; i++) {
+            int value = b[i] & 0xff;
+            out[i * 2] = HEX[value >>> 4]; out[i * 2 + 1] = HEX[value & 15];
+        }
+        return new String(out);
     }
     private static byte[] unhex(String h) {
         byte[] out = new byte[h.length() / 2];
