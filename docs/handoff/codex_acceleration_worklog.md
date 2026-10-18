@@ -47,3 +47,9 @@
 - Phase D base Agentb862651 / Server3d574d5; branch feat/rlc2-preview-store. Build dedicated named .rlc2-preview.db storage with application ID and preview-only schema guard. One transaction for manifest history, lane/source claims, raw receipts, v1 projections and highwater. No v1 tables and CHECK ack_eligible=0. Add restart/CLI E2E and faults on synthetic fixtures; PostgreSQL direct isolated verification later.
 - Next: implement preview store and opt-in CLI, real SQLite tests including idempotency and original preservation; retain UNKNOWN durability and no Server ACK.
 
+
+## 2026-10-18 12:04:44 +09:00 — Phase D implementation checkpoint / SQLite tests running
+- Added Rlc2PreviewStore with dedicated extension/application ID/schema ownership check before writable access. Dedicated preview-only tables retain manifest bytes/history, source/lane claims, exact receipts/highwaters and shared v1 profiles/records in one IMMEDIATE transaction. Records enforce ack_eligible=0; no v1 table names.
+- Immutable replay verifies prior row counts and bytes, refusing deleted/tampered receipts or records. Added explicit synthetic CLI (fixed JSON status, no exception text/path disclosure), Windows test-only native wrapper, real CLI-process E2E and rollback/claim/schema/preservation tests.
+- Tests running Windows x64. Next: fix failures, x86/VPS, wire CI, isolated PostgreSQL verification without Server ACK.
+
