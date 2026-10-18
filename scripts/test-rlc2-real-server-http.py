@@ -70,6 +70,8 @@ def pg_candidate_migration(url, ddl):
     statements = []
     for text in ddl:
         text = re.sub(r"\bBLOB\b", "BYTEA", text, flags=re.I)
+        # SQLite INTEGER stores signed64; PostgreSQL INTEGER would narrow cursors.
+        text = re.sub(r"\bINTEGER\b", "BIGINT", text, flags=re.I)
         text = re.sub(r"CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ", text, count=1, flags=re.I)
         text = re.sub(r"CREATE UNIQUE INDEX ", "CREATE UNIQUE INDEX IF NOT EXISTS ", text, count=1, flags=re.I)
         statements.append(text)
@@ -89,6 +91,10 @@ def pg_candidate_migration(url, ddl):
             db.execute("CREATE TABLE IF NOT EXISTS integration_schema_version(singleton int PRIMARY KEY CHECK(singleton=1),revision int NOT NULL CHECK(revision=1))")
             db.execute("INSERT INTO integration_schema_version VALUES(1,1) ON CONFLICT DO NOTHING")
             check(db.execute("SELECT revision FROM integration_schema_version").fetchone()[0] == 1, "PostgreSQL candidate explicit migration/replay revision1")
+    with psycopg.connect(url) as db:
+        db.execute("INSERT INTO preview_sessions VALUES('synthetic-64bit','synthetic','synthetic','synthetic',%s,%s,0,0)", (1 << 40, b"synthetic"))
+        check(db.execute("SELECT manifest_generation FROM preview_sessions WHERE session_uuid='synthetic-64bit'").fetchone()[0] == 1 << 40, "PostgreSQL candidate retains SQLite signed64 cursor range")
+        db.execute("DELETE FROM preview_sessions WHERE session_uuid='synthetic-64bit'")
 
 
 def main():
