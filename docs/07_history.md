@@ -362,3 +362,8 @@
 
 Shared v1 conversion sink and opt-in RLC2 adapter implemented. Windows x64 20 checks PASS, including exact legacy JSON/ID/profile comparison, two-source metadata continuity, uncommitted tail exclusion, highwater lag/session/sequence/lane refusal. Linux/x86 and full product regressions running. Source claims remain a documented product-integration gate, not a silently changed v1 contract.
 
+
+## 2026-10-18 12:10:37 +09:00 — acceleration Phase D isolated SQLite/PostgreSQL E2E
+
+Dedicated preview persistence and explicit CLI implemented. Windows SQLite31/x8632 initially PASS; Linux launcher compile omission reproduced then fixed and Linux31 PASS. Additional deleted-record and foreign-table schema guards added (verification running). Local PostgreSQL two-connection replay and actual Server model validation PASS; no HTTP/ACK. PostgreSQL safety guard3 tests PASS. Python bytecode briefly entered WIP history and was removed in a normal follow-up commit with ignore rules; no secrets were in that artifact. CI pending.
+

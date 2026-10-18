@@ -61,7 +61,7 @@ public final class Rlc2PreviewStore {
     private static void owned(Connection db)throws Exception {
         try(Statement s=db.createStatement()) {
             try(ResultSet r=s.executeQuery("PRAGMA application_id")) { if(!r.next()||r.getInt(1)!=APPLICATION_ID)throw new IOException("not a preview-owned database"); }
-            try(ResultSet r=s.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")) {
+            try(ResultSet r=s.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT GLOB 'sqlite_*'")) {
                 int count=0;
                 while(r.next()) { count++;String name=r.getString(1);if(!Arrays.asList("preview_sessions","preview_claims","preview_sources","preview_receipts","preview_profiles","preview_records").contains(name))throw new IOException("foreign tables in preview database"); }
                 if(count!=6)throw new IOException("incomplete preview schema");

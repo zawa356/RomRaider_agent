@@ -375,3 +375,8 @@ Read-only RLC2/ledger/RLM1 Supervisor diagnostics implemented; product Worker/AC
 
 Executable Rlc2ProductAdapter projects validated source receipts through existing v1 converter in memory. Explicit synthetic gate; no Worker/outbox/HTTP/ACK integration. Windows x64 20 PASS, other environments pending. Current single-source product claim is incompatible with physical rotation; quarantine persistence planned in Phase D. Details: rlc2_product_projection.md.
 
+
+## 2026-10-18 12:10:37 +09:00 — acceleration Phase D (CI pending)
+
+Executable isolated source→RLC2→ledger→RLM1→shared v1 projection→SQLite preview→restart/replay path added, plus loopback test PostgreSQL verification. Dedicated application/schema ownership, atomic history/claims/cursors/receipts/records, immutable replay and CHECK ACK false. Actual local Server model JSON validation PASS without endpoint calls. Production Worker/claim schema/ACK routing unchanged. See rlc2_preview_e2e.md and acceleration worklog for per-environment counts and Linux harness RED/GREEN.
+

@@ -71,6 +71,11 @@ public final class Rlc2PreviewStoreTest {
         final File missing=target();final Rlc2PreviewStore incomplete=new Rlc2PreviewStore(true,missing);incomplete.ingest(p);execute(missing,"DELETE FROM preview_receipts WHERE rowid=(SELECT min(rowid) FROM preview_receipts)");
         rejects("missing persisted receipt refused rather than reconstructed",new Action(){public void run()throws Exception{incomplete.ingest(p);}});
         check(count(missing,"SELECT count(*) FROM preview_receipts")==3,"missing receipt not automatically repaired");
+        final File lostRecord=target();final Rlc2PreviewStore missingRecord=new Rlc2PreviewStore(true,lostRecord);missingRecord.ingest(p);execute(lostRecord,"DELETE FROM preview_records WHERE rowid=(SELECT min(rowid) FROM preview_records)");
+        rejects("missing persisted product projection refused rather than reconstructed",new Action(){public void run()throws Exception{missingRecord.ingest(p);}});
+        check(count(lostRecord,"SELECT count(*) FROM preview_records")==2,"missing projected record remains for review");
+        final File mixed=target();new Rlc2PreviewStore(true,mixed);execute(mixed,"CREATE TABLE sqlitex_foreign(value TEXT)");
+        rejects("owned preview rejects foreign tables including sqlite-like names",new Action(){public void run()throws Exception{new Rlc2PreviewStore(true,mixed);}});
         final File conflict=target();final Rlc2PreviewStore claimed=new Rlc2PreviewStore(true,conflict);
         execute(conflict,"INSERT INTO preview_claims VALUES('"+p.device+"','"+p.vehicle+"','"+p.payloadSession+"','legacy','other')");
         rejects("quarantine legacy lane claim blocks whole transaction",new Action(){public void run()throws Exception{claimed.ingest(p);}});
