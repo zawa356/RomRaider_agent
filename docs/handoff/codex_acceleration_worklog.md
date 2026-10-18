@@ -40,3 +40,10 @@
 - Existing vs new model/mapping documented in rlc2_product_projection.md; interfaces/history/progress and D-049 updated. Product single-source claim migration is explicitly BLOCKED, while pure preview is implemented.
 - Next: PR CI, review diff, normal merge and main CI; then Phase D quarantined SQLite persistence with atomic receipts/cursors and separate-JVM E2E/faults.
 
+
+## 2026-10-18 12:01:11 +09:00 — Phase C COMPLETE; Phase D START
+- Agent PR44 merged b862651902ad25dc86a3233c00df77dddcaa3919; PR CI39091762536/39091762488 and main39091939531/39091939477 success. Actual Windows/Linux projection+diagnostics and Zulu8 x86 steps ran. Existing real-Server gated workflow succeeded but actual E2E SKIPPED (no private Server read secret).
+- Server progress PR51 merged3d574d52ce716b5c2733ba3bc9f77414f1bf58bd; main CI39092090529 running (docs only). Full local product suites PASS; projection20/21/20.
+- Phase D base Agentb862651 / Server3d574d5; branch feat/rlc2-preview-store. Build dedicated named .rlc2-preview.db storage with application ID and preview-only schema guard. One transaction for manifest history, lane/source claims, raw receipts, v1 projections and highwater. No v1 tables and CHECK ack_eligible=0. Add restart/CLI E2E and faults on synthetic fixtures; PostgreSQL direct isolated verification later.
+- Next: implement preview store and opt-in CLI, real SQLite tests including idempotency and original preservation; retain UNKNOWN durability and no Server ACK.
+
