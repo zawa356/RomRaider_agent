@@ -80,3 +80,9 @@ shared scenario source so a stale class cannot hide a newly added assertion.
 The batch does not exercise ECU/X270, physical power loss, actual ENOSPC, production DBs,
 or existing Docker services. Windows directory durability remains UNKNOWN. All new preview
 storage stays ACK-ineligible; success of these development tests does not enable sending.
+
+## Phase I verification additions
+
+The existing Windows batch now also runs versioned schema, admitted integration, snapshot, strict schema and child-JVM candidate fault tests on actual x64/x86. The bounded workload validates both preview and versioned candidate bindings/admissions across independent sessions. Optional -RealServerHttp additionally uses both local checkouts and real loopback HTTP/private PostgreSQL schema, without requiring a private-repo GitHub secret. HTTP guards always run.
+
+GitHub Actions currently cannot schedule jobs because of account payment/spending-limit annotations (user suspects free quota). User selected local/VPS verification as the merge basis; preserve workflow definitions and record NOT RUN, not PASS. The supplementary private-checkout HTTP job still declares missing-secret NOT RUN. After quota/credential recovery, rerun on actual main and inspect applied steps.
