@@ -394,3 +394,10 @@
 - POSIX identityはpath-sampled（Javaはfstat不可）でWindowsのhandle bindingより弱い。この差異を試験に`DIFFERENCE`として残す。
 - 反例: previousなしの新readerは古い安全markerを受理、digest再計算の偽造markerを受理。永続highwater/expected identityをSQLite receiptと同一transactionで持つ3c設計が前提。製品writer/Worker/DB/ACKへ配線しない。
 - [設計・試験](phase_3b_rlc2_watermark.md)、実行結果は[Claude worklog](handoff/claude_phase3b_worklog.md)。
+
+## D-046 — 3c-1はRLC2の永続expected identity/highwaterを原文receiptと同一SQLite transactionで持つ独立PoC（2026-10-18）
+
+- 3bの反例（previousなしのstale受理、digest再計算の偽造コピー受理）を、claim済みsourceに対しては永続ledgerで拒否する。初回claimはTOFUで、初回前の置換は検出できない。
+- `BEGIN IMMEDIATE`の1トランザクションでlane排他、UUID/path claim、highwaterを`previouslyObserved`とした読取、expected identity照合、既存receipt完全照合、新receipt、highwater更新を行う。失敗時は全rollback。
+- receiptは常にACK対象外。Windows directory durabilityはUNKNOWNのまま。製品`v1_*`表、Worker、Server IFへは配線しない。ledger DB自体の改竄耐性は主張しない。
+- [設計・試験](phase_3c1_rlc2_ledger.md)。

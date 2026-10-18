@@ -40,6 +40,7 @@
 | 3a-compat（安全代替） | bound native READ/actual Zulu8 1.8.0_504 x86 | **独立fixture PASS、NOT_COMMITTED診断** | [PR32](https://github.com/zawa356/RomRaider_agent/pull/32) |
 | 3a-writer-binding（安全代替） | same native ID/write/flush/guard | **x64 writer44/x86 writer45 PASS、marker/DB非接続** | [PR33](https://github.com/zawa356/RomRaider_agent/pull/33) |
 | 3b（RLC2独立PoC） | 新version/identity-tag marker・確定手順・各段階故障注入 | **独立PoC（Windows x64/x86 PASS、Linux CIで判定）、Windows dir UNKNOWN、製品非接続** | [設計/試験](phase_3b_rlc2_watermark.md) |
+| 3c-1（RLC2 ledger独立PoC） | 永続expected identity/highwater/receipt同一SQLite transaction | **独立PoC（Windows x64/x86 PASS、Linux CIで判定）、ACK非接続** | [設計/試験](phase_3c1_rlc2_ledger.md) |
 | 2.1-D2b-2c-4b-2d-2b-3 | 新writer/reader/SQLite合成結合とrotation | **BLOCKED（永続highwater/dir durability未成立）、設計境界のみ** | [設計/ゲート](phase_4b_2d_2b_lock_watermark.md) |
 | 2.1-D3 | X270 Zulu8 32bit・disk-full・物理電源断・実車耐久 | 未着手 | Issue #7 |
 | 3 | ECU→RomRaider→Agent→Serverの停車状態での実車検証 | 未着手 | [Issue #8](https://github.com/zawa356/RomRaiderServer/issues/8) |
