@@ -126,7 +126,7 @@ def main():
             db.execute("INSERT INTO v1_devices(device_id,vehicle_id,token_sha256) VALUES(%s,%s,%s)", (device, vehicle, hashlib.sha256(token.encode()).hexdigest()))
         os.environ["DATABASE_URL"] = scoped
         sys.path.insert(0, str(root))
-        from product_v1.api import app
+        from product_v1.api import app, Batch
         listener = socket.socket()
         listener.bind(("127.0.0.1", 0))
         listener.listen(32)
@@ -231,8 +231,9 @@ def main():
         with psycopg.connect(scoped) as db:
             rows = db.execute("SELECT record_id,run_id,sequence,payload FROM v1_records ORDER BY record_id").fetchall()
             check(len(rows) == 4 and len({str(r[1]) for r in rows}) == 1, "real PostgreSQL has four immutable records in one rotated run")
-            expected = {r["record_id"]: r for r in records}
-            check(all(r[3] == expected[str(r[0])] for r in rows), "exact HTTP-originated JSON persisted in PostgreSQL")
+            canonical = Batch.model_validate(batch).model_dump(mode="json", exclude_none=True)["records"]
+            expected = {r["record_id"]: r for r in canonical}
+            check(all(r[3] == expected[str(r[0])] for r in rows), "exact Server-canonical HTTP JSON persisted in PostgreSQL")
             check(sorted(r[2] for r in rows if r[2] is not None) == [0, 1, 2], "logical observation sequence spans all three physical sources")
             check(db.execute("SELECT count(*) FROM v1_profile_revisions").fetchone()[0] == 1 and db.execute("SELECT count(*) FROM v1_values").fetchone()[0] == 3, "persisted profile and observation references agree")
         check(hashlib.sha256(path.read_bytes()).hexdigest() == fixture_hash, "test HTTP ACK never changes Agent candidate bytes or ACK state")
