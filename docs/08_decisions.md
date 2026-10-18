@@ -415,3 +415,10 @@
 - Fixed codes and content-free causes distinguish identity/claim/receipt/manifest/highwater/seal/quota failures. ACK is always ineligible; directory durability UNKNOWN. Stable filesystem+DB snapshot cannot be certified by this inspector.
 - Windows native opener remains test-only JNA; no dependency added to rrbridge.jar. See acceleration_diagnostics.md and acceleration worklog.
 
+
+## D-049 — Reuse v1 conversion through an isolated synthetic projection sink (2026-10-18 11:54:12 +09:00)
+
+- Extract only the output target from existing IncrementalTsvBridge.apply; existing constructors delegate to the same DurableSpool calls. RLC2 adapter buffers projected profiles/records without any outbox/transport.
+- Manifest order carries metadata; payload session and monotonic run sample sequence must continue across physical sources. Persisted ledger must exactly cover every projected marker; original source receipts remain separate from v1 record IDs.
+- Current v1_source_claims permits a single source key per payload session, so direct multi-source product integration stays BLOCKED. Preview schema will own a manifest-session plus source children; no silent schema/ACK migration. Projection is explicitly enabled, synthetic only. See rlc2_product_projection.md.
+
