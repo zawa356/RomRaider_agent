@@ -47,6 +47,13 @@ public final class IncrementalTsvBridge {
     private final DurableSpool spool;
     private final String deviceId,vehicleId;
     private final Runnable beforeCheckpoint;
+    /** Conversion target only: no source claim, cursor, transport or ACK behavior. */
+    public interface ProjectionSink {
+        void appendProfile(String id,String json)throws Exception;
+        void appendRecord(String id,String run,String segment,Long sequence,String kind,
+                          String profile,String capturedAt,String source,String json)throws Exception;
+    }
+    private final ProjectionSink sink;
 
     public IncrementalTsvBridge(DurableSpool spool,String deviceId,String vehicleId){
         this(spool,deviceId,vehicleId,null);
@@ -59,6 +66,25 @@ public final class IncrementalTsvBridge {
         this.deviceId=UUID.fromString(deviceId).toString();
         this.vehicleId=UUID.fromString(vehicleId).toString();
         this.beforeCheckpoint=beforeCheckpoint;
+        this.sink=new ProjectionSink(){
+            public void appendProfile(String id,String json)throws Exception { IncrementalTsvBridge.this.spool.appendProfile(id,json); }
+            public void appendRecord(String id,String run,String segment,Long sequence,String kind,
+                                     String profile,String at,String source,String json)throws Exception {
+                IncrementalTsvBridge.this.spool.appendRecord(id,run,segment,sequence,kind,profile,at,source,json);
+            }
+        };
+    }
+    private IncrementalTsvBridge(String device,String vehicle,ProjectionSink sink) {
+        if(sink==null)throw new IllegalArgumentException("Projection sink required");
+        this.spool=null;this.beforeCheckpoint=null;this.sink=sink;
+        this.deviceId=UUID.fromString(device).toString();this.vehicleId=UUID.fromString(vehicle).toString();
+    }
+    /** Pure projection of already validated rows; caller owns source validation and persistence. */
+    public static void projectRows(String device,String vehicle,String session,List<String> rows,ProjectionSink sink)throws Exception {
+        IncrementalTsvBridge converter=new IncrementalTsvBridge(device,vehicle,sink);
+        Map<String,Segment> state=new LinkedHashMap<String,Segment>();
+        long line=0;
+        for(String row:rows)converter.apply(row,++line,session,state);
     }
     private String uuid(String kind,String session,String segment,String key){
         return UUID.nameUUIDFromBytes(
@@ -190,8 +216,8 @@ public final class IncrementalTsvBridge {
                 +",\"segment_id\":"+str(segmentId)+",\"sequence\":"+seq
                 +",\"captured_at\":"+str(at)+",\"source_kind\":"+str(source)
                 +",\"profile_revision_id\":"+str(pid)+",\"values\":["+arr+"]}";
-            spool.appendProfile(pid,profileJson(pid,meta));
-            spool.appendRecord(rid,run,segmentId,Long.valueOf(seq),"observation",
+            sink.appendProfile(pid,profileJson(pid,meta));
+            sink.appendRecord(rid,run,segmentId,Long.valueOf(seq),"observation",
                                pid,at,source,json);
             meta.started=true;
             return 2;
@@ -208,7 +234,7 @@ public final class IncrementalTsvBridge {
             String usedSegment=segOrdinal>0?segmentId:null;
             if(usedSegment!=null)json+=",\"segment_id\":"+str(usedSegment);
             json+="}";
-            spool.appendRecord(rid,run,usedSegment,null,"event",null,at,"agent",json);
+            sink.appendRecord(rid,run,usedSegment,null,"event",null,at,"agent",json);
             return 3;
         }
         throw new IllegalArgumentException("Unexpected legacy kind at line "+lineNumber);

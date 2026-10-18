@@ -28,3 +28,9 @@
 - Phase C base Agent77089a3 / Servere056c05; branch feat/rlc2-product-projection. Plan pure opt-in synthetic projection using shared existing v1 row converter, strict RLC2/ledger alignment, manifest-order metadata, stable IDs and source receipts. No output to product spool or HTTP. Phase D will separately persist to quarantined preview tables, with no ACK column accepting true.
 - Next: extract a no-I/O conversion sink from IncrementalTsvBridge; implement Rlc2ProductAdapter and native/SQLite cross-platform tests. Existing production behavior must remain equivalent.
 
+
+## 2026-10-18 11:52:39 +09:00 — Phase C implementation checkpoint / tests running
+- Added no-I/O ProjectionSink to existing IncrementalTsvBridge and reused its exact apply/ID/profile logic. Default production sink still delegates to DurableSpool, with existing public constructors unchanged.
+- Rlc2ProductAdapter requires explicit enableSynthetic and synthetic-/TEST_ input. Requires clean diagnostics plus exact persisted marker/highwater alignment. Projects manifest-order metadata, stable v1 JSON and original source receipts in memory only. Rejects payload session/sequence reset, claim conflicts, changed snapshots and capacity overflow; no sender/outbox.
+- New real-platform scenario compares projected IDs/JSON/profile against independently invoked existing TSV importer, plus rotation/metadata/tail/ledger/gating cases. Windows tests running; Linux/x86 pending. Next: verify results and product regression, document source-claim migration boundary, push PR.
+
