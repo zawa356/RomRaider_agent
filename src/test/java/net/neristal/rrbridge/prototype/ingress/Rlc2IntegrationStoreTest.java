@@ -53,6 +53,7 @@ public final class Rlc2IntegrationStoreTest {
         check(!t1.isAlive()&&!t2.isAlive()&&(errors[0]==null||errors[1]==null),"two workers finish with at least one committed transaction");
         check(Rlc2PreviewStoreTest.count(concurrent,"SELECT count(*) FROM preview_records")==4&&Rlc2PreviewStoreTest.count(concurrent,"SELECT count(*) FROM preview_receipts")==5,"two workers converge on exact record and receipt sets");
         check(Rlc2PreviewStoreTest.count(concurrent,"SELECT count(*) FROM preview_records WHERE ack_eligible<>0")==0,"candidate never promotes ACK");
+        Files.write(new File("build/rlc2-integration-fixture.path").toPath(),concurrent.getAbsolutePath().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         System.out.println("RLC2 integration engine passed "+checks+" checks; explicit offline candidate; no Server ACK");
     }
 }

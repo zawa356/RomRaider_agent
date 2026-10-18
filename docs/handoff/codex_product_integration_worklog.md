@@ -39,3 +39,13 @@
 - RED0a27d0d accepted renamed ack_eligible column. Strict authoritative-schema verifier now checks every table/index/object and constraint/type/version plus quick_check/FK. Windows schema33 PASS, including genuine pre-I v0 DDL bytes and malformed DB unchanged. Diagnostic additive Supervisor axes implemented; Windows diagnostic/migration suite exit0, final counts in raw log.
 - Full preview/fault/load/schema/integration regression running. Intentional trigger injection now stops before ingest; an actual NOT NULL SQL failure inside transaction separately verifies rollback. I-3 actual x86 snapshot15 PASS.
 - CI billing block retained; PRs52/53/54 not merged. Continue real loopback Server HTTP E2E next, using own schema/credentials and test ACK only.
+
+## I-5 START — real loopback HTTP / owned PostgreSQL schema
+- Base3842a0c, branch test/rlc2-real-server-http. Build reproducible runner from both local checkouts, no private CI secret needed. Generate admitted three-source integration fixture, run actual Server migrations in invocation-owned schema only, bind actual Uvicorn/FastAPI to an owned loopback socket.
+- Test actual HTTP profile/batch persistence, duplicate/409/422/profile refs, database endpoint unavailability, real PG transaction failure, dropped HTTP response/retry, one run across rotation. Test ACK is observed but never written into candidate ACK state. Never stop shared local PG or touch production services.
+- Also exercise translated candidate schema migration transaction failure/rerun in owned PG schema. CI wiring later; scheduling remains blocked and merges prohibited.
+
+## I-5 HTTP implementation checkpoint / user CI policy update
+- Implemented actual socket-bound Uvicorn/FastAPI runner using both local checkouts, random invocation-owned PostgreSQL schema and synthetic credentials. Actual Server migrations twice/check plus candidate PostgreSQL transactional DDL failure/replay run without touching existing schema. Candidate fixture has3 admitted sources/5 receipts/4 records/one run.
+- First actual HTTP run passed unknown profile422, profile201, real response-drop proxy after committed PG write, identical batch four duplicates, same-ID conflict409 and malformed422. Harness initially expected422 for an already-persisted record with a changed undefined parameter, but Server correctly prioritized immutable-record409; corrected to a new record ID/sequence to isolate definition validation. Final HTTP run pending.
+- User clarified GitHub Actions likely exceeded free quota and requested local tests as the verification basis. Use full Windows/x86/VPS/isolated DB results and code review for normal merges; retain Actions definitions and record scheduling NOT RUN rather than PASS. No billing/settings changes.
