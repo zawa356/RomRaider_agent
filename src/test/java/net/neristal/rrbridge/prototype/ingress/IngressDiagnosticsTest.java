@@ -55,6 +55,8 @@ public final class IngressDiagnosticsTest {
         Map<String,byte[]> before=snapshot(healthy.dir);
         IngressDiagnostics.Report r=healthy.inspect();
         check(!r.requiresReview()&&r.has(Code.DURABILITY_UNKNOWN)&&!r.ackEligible,"healthy inspection never certifies durability or ACK");
+        check(r.exitCode()==0&&!r.operationalReady&&r.manualInterventionRequired&&"COMPLETED".equals(r.inspectionStatus())&&"VERIFIED_UNDER_QUIESCENCE".equals(r.sourceIntegrity()),"diagnostic success independently denies operation and requires manual durability gate");
+        check(r.json().contains("\"supervisor_contract_version\":2")&&r.json().contains("\"operational_ready\":false")&&r.json().contains("\"manual_intervention_required\":true"),"Supervisor axes are additive to legacy diagnostic schema");
         check(r.json().contains("\"schema_version\":1")&&!r.json().contains("synthetic-secret-fixture")&&!r.human().contains(healthy.dir.toString()),"output is structured and source-content/path free");
         same(before,snapshot(healthy.dir));
         Files.write(new java.io.File(healthy.db.toString()+"-wal").toPath(),new byte[]{1});

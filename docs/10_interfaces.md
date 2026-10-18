@@ -515,3 +515,7 @@ IngressDiagnostics JSON schema1 additively includes automatic_repair_allowed=fal
 
 ## C21 — Offline integration engine API
 - Rlc2IntegrationStore.ingest requires explicit external quiescence, Admission(directory,manifestSession,sourceUuids), closed ledger and legacy inventory. It writes only dedicated integration format through shared atomic preview backend, returns recordsAdded/receiptsAdded/ackEligible=false. No persistent ACK transition.
+
+## C22 — Supervisor axes and strict output ownership
+- Additive diagnostic Supervisor contract v2 keeps legacy schema_version1/exit codes; operational_ready=false, manual_intervention_required=true, independent inspection/source_integrity/source_review fields. ACK false/repair false/durability UNKNOWN unchanged. See acceleration_diagnostics.md.
+- Output schema verification includes full SQLite objects/constraints/indexes/version/quick_check/FK check; old legitimate v0 DDL supported. No schema repair or production migration.
