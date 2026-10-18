@@ -2,6 +2,8 @@
 /build/
 /dist/
 *.class
+__pycache__/
+*.py[cod]
 # 依存jar（ライセンス・サイズの都合でコミットしない。lib/README.md 参照）
 /lib/*.jar
 # 実行時に生成されるもの
