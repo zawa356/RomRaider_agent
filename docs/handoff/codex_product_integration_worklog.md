@@ -21,3 +21,11 @@
 - Reused full existing transaction engine via isolated-format constructor and transaction guard. All eight tables (including session binding/admissions) commit/rollback together. Explicit approved UUID set required for rotation; missing saved admissions cannot be reconstructed. Closed legacy inventory checked before ingest and precommit; live coexistence still blocked.
 - Windows17 x64 integration24 PASS: two-source projection/replay, unchanged legacy/input bytes, unapproved-source rejection, admitted third-source append, rollback all8, lane conflict and two-worker exact convergence. Actual x86 follows. Existing full preview/fault regression will be rerun after final snapshot/schema changes.
 - I-1 VPS schema13 plus preview42/fault36/load23 and10k44 PASS. CI still blocked at scheduling by account billing; no merges.
+
+## I-3 START — snapshot boundary
+- Base engine0c5139a, branch fix/rlc2-integration-snapshot. Reproduce a writer publishing/advancing ledger in the BEFORE_COMMIT hook after projection; old engine may commit a stale projection. Keep mandatory external quiescence; add bounded input fingerprint evidence from before projection through immediately before SQLite commit, not a claim of atomicity against uncooperative writers.
+- No source locks acquired by reader; output SQLite IMMEDIATE lock acquired only after projection, input checks do not wait on writer locks. Mutation causes output rollback and preserved inputs. Test source/marker, manifest, ledger and legacy changes independently.
+
+## I-3 RED/GREEN checkpoint
+- RED d08860d reproduced source+ledger advance after projection accepted at commit. Streaming bounded snapshot evidence now checked before/after projection, before output writes and immediately precommit; changes roll back output without repair. Quiescence and non-live contract remain mandatory.
+- Initial Windows x64 RED->GREEN3 checks; expanded independent manifest/ledger/legacy/unpublished-tail scenarios running (15 total expected). Next actual x86, Linux and PR. GitHub scheduling still billing-blocked; main unchanged.

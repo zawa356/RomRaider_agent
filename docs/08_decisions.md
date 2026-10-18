@@ -474,3 +474,7 @@
 
 ## D-058 — Shared atomic integration backend
 - Candidate format uses the existing transaction engine and converter rather than duplicating receipt/record logic. Transaction guards persist session path/run binding and explicit source admissions in the same transaction, reject missing past admissions and keep source UUID independent of run ID. No sender/Worker wiring.
+
+## D-059 — Keep quiescence mandatory and detect stale projection before commit
+- RED d08860d: writer publishes and updates ledger in BEFORE_COMMIT after projection; candidate incorrectly commits the old state. Bounded input snapshot evidence from before projection through precommit now rejects the change and rolls back all output state.
+- Checks detect source/marker/manifest/ledger/legacy/tail changes but do not prove atomic FS/DB consistency against uncooperative writers. No input lock acquisition or automatic writer stop; live ingestion remains BLOCKED. Output must be outside inputs.
