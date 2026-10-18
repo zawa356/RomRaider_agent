@@ -106,3 +106,9 @@
 - Existing RLC2 TEST harness now accepts Windows replacement refusal only if exact old marker, fully encoded expected staged next generation and writer-recorded source bytes all match. It records concurrent25-progress BLOCKED for that run and requires the reader to remain fail-closed; normal successful path still requires finalgen26. No staged cleanup, retry or product publish change.
 - Added deterministic held-marker+reader case, verifying pending data stays unreadable after writer and reader stop. This covers the refusal branch even when intermittent denial does not occur. Targeted native suite running; then full batch will rerun.
 
+
+## 2026-10-18 12:45:14 +09:00 — Phase F targeted native GREEN; full batch rerun
+- Freshly compiled Windows native suite passes; RLC2 101 checks including normal finalgen26 and deterministic pending-review refusal. Initial targeted invocation reused old common bytecode, so native test script now explicitly compiles shared WatermarkV2Scenarios with sourcepath; no stale pass is counted as new proof.
+- Corrected YAML now schedules all four CI jobs; Linux/Windows/PG jobs already success at0541317, x86 running. Superseded runs may cancel by design. Full Windows batch reruns after these actual corrections; prior failed batch remains recorded.
+- Valid wrong-JAR fixture replacement and wheel hash positive/negative checks PASS. No product publication/retry semantics changed.
+

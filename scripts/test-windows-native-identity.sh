@@ -10,7 +10,9 @@ fi
 printf '%s  %s\n' 34ed1e1f27fa896bca50dbc4e99cf3732967cec387a7a0d5e3486c09673fe8c6 "$jar" | sha256sum -c -
 if [[ "${1:-}" != "--run-only" ]]; then
 javac --release 8 -encoding UTF-8 -cp "$jar;build/ingress-journal-prototype" \
+  -sourcepath "src/main/java;src/test/java" \
   -d build/ingress-journal-prototype \
+  src/test/java/net/neristal/rrbridge/prototype/ingress/WatermarkV2Scenarios.java \
   src/test/java/net/neristal/rrbridge/prototype/ingress/WindowsNativeIdentityTest.java \
   src/test/java/net/neristal/rrbridge/prototype/ingress/WindowsBoundReadTest.java \
   src/test/java/net/neristal/rrbridge/prototype/ingress/WindowsNativeWriterTest.java \
