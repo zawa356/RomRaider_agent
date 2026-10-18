@@ -86,3 +86,10 @@
 - Preparation: isolated Windows Python venv installed psycopg3.3.6/binary3.3.6/typing-extensions4.16.0/tzdata2026.5 with full wheel hashes; deliberately wrong hash rejected before install. Wheel files remain workspace-only. Docker image digest observed from successful PostgreSQL CI, not guessed.
 - Next: implement automation and run the actual complete Windows batch with local disposable PG; CI verifies Linux hash lock and all test steps.
 
+
+## 2026-10-18 12:34:33 +09:00 — Phase F implementation checkpoint / full Windows batch running
+- Central SHA256 manifest verifies cached/downloaded SQLite/SLF4J jars; fetch-deps uses staged checked publication. CPython3.12 Win/Linux x64 driver lock has hashes for both native wheels and pinned transitive packages. PG CI image pinned to observed digest ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d.
+- Added configurable Windows PowerShell batch: compile Java8-compatible code on JDK17 x64, actual Zulu8 x86 runs, guarded optional test PG/Server-model checks, ignored build log and no tracked artifacts. Environment restored afterward; secrets stay in inherited process environment.
+- CI cache key follows hash manifest; push/PR runs share head-branch concurrency to cancel duplicates; generated artifacts/source mutations checked. Full actual Windows batch running with local test PG and actual Server models.
+- Next: batch result, wrong-valid-JAR cache negative verification, CI, docs/PR.
+

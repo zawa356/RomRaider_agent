@@ -13,6 +13,9 @@ on:
       - 'scripts/test-rlc2-preview.sh'
       - 'scripts/test-rlc2-preview-postgres.py'
       - 'scripts/test-rlc2-preview-postgres-guard.py'
+      - 'scripts/requirements-preview-cp312.lock'
+      - 'scripts/run-acceleration-tests.ps1'
+      - 'lib/test-dependencies.sha256'
       - '.github/workflows/ingress-journal-prototype-ci.yml'
   pull_request:
     paths:
@@ -26,12 +29,15 @@ on:
       - 'scripts/test-rlc2-preview.sh'
       - 'scripts/test-rlc2-preview-postgres.py'
       - 'scripts/test-rlc2-preview-postgres-guard.py'
+      - 'scripts/requirements-preview-cp312.lock'
+      - 'scripts/run-acceleration-tests.ps1'
+      - 'lib/test-dependencies.sha256'
       - '.github/workflows/ingress-journal-prototype-ci.yml'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: journal-proto-${{ github.workflow }}-${{ github.ref }}
+  group: journal-proto-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   isolated-journal:
@@ -73,6 +79,11 @@ jobs:
       - name: Assert no production RomRaider.jar is needed
         shell: bash
         run: test ! -f lib/RomRaider.jar
+      - name: Reject tracked build artifacts and test-created source changes
+        shell: bash
+        run: |
+          test -z "$(git ls-files -- build dist 'lib/*.jar' '*.class' '*.pyc')"
+          git diff --exit-code
 
   windows-java8-x86-identity:
     name: Test-only native identity and bound READ (Zulu8 x86)
@@ -119,7 +130,7 @@ jobs:
     timeout-minutes: 10
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
         env:
           POSTGRES_DB: romlogger_preview_e2e
           POSTGRES_HOST_AUTH_METHOD: trust
@@ -143,7 +154,7 @@ jobs:
       - name: Reject unsafe preview destinations before database access
         run: python scripts/test-rlc2-preview-postgres-guard.py
       - name: Install pinned synthetic PostgreSQL driver
-        run: python -m pip install 'psycopg[binary]==3.3.6'
+        run: python -m pip install --require-hashes --only-binary=:all: -r scripts/requirements-preview-cp312.lock
       - name: Generate validated native RLC2 preview in isolated SQLite
         run: |
           bash scripts/test-product-v1-spool.sh --deps-only

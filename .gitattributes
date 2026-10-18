@@ -3,3 +3,6 @@
 *.properties.example text eol=crlf
 *.sh   text eol=lf
 *.java text eol=lf
+*.sha256 text eol=lf
+*.lock text eol=lf
+*.ps1 text eol=lf

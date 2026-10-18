@@ -9,3 +9,8 @@
 | `slf4j-api.jar` / `slf4j-nop.jar` | Maven Central `org.slf4j:2.0.16` | **製品spoolの単独CI試験用**。実環境RomRaider同一JVMへの同梱・ログ経路はPhase 2.1-B以降に確認 |
 
 `scripts/fetch-deps.sh` で sqlite-jdbc を取得できます。RomRaider.jar は手動でコピーしてください。
+
+`test-dependencies.sha256` pins the three test jars byte-for-byte. Both the dependency-only
+and full product test scripts validate cached and downloaded jars against it; a valid ZIP
+alone is not accepted. JNA retains its separate existing test-only pinned hash. Dependency
+files remain ignored and are never committed or added to the running RomRaider JVM.

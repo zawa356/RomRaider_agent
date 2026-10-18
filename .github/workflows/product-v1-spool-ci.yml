@@ -9,6 +9,7 @@ on:
       - 'src/test/java/net/neristal/rrbridge/product/v1/**'
       - 'scripts/test-product-v1-spool.sh'
       - '.github/workflows/product-v1-spool-ci.yml'
+      - 'lib/test-dependencies.sha256'
   pull_request:
     paths:
       - 'src/main/java/net/neristal/rrbridge/product/v1/**'
@@ -16,13 +17,14 @@ on:
       - 'src/test/java/net/neristal/rrbridge/product/v1/**'
       - 'scripts/test-product-v1-spool.sh'
       - '.github/workflows/product-v1-spool-ci.yml'
+      - 'lib/test-dependencies.sha256'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: agent-v1-spool-${{ github.workflow }}-${{ github.ref }}
+  group: agent-v1-spool-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -46,7 +48,7 @@ jobs:
             lib/sqlite-jdbc.jar
             lib/slf4j-api.jar
             lib/slf4j-nop.jar
-          key: rrbridge-test-jars-${{ runner.os }}-sqlite-3.46.1.3-slf4j-2.0.16
+          key: rrbridge-test-jars-${{ runner.os }}-${{ hashFiles('lib/test-dependencies.sha256') }}
       - name: Compile Java 8-compatible durable spool and test real SQLite
         shell: bash
         run: bash scripts/test-product-v1-spool.sh
