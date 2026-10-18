@@ -372,3 +372,8 @@ Dedicated preview persistence and explicit CLI implemented. Windows SQLite31/x86
 
 Separate-JVM halt reproduced inability to reopen own preview rollback journal. Fixed only positively identified output recovery, preserving strict immutable input ledgers. Windows17 x64 preview34+fault36 PASS; actual x86 and VPS running. Added four transaction halts, concurrent workers, exclusive-lock review, real DB ABORT rollback, source-byte preservation and foreign product DB+journal refusal. RED and fix remain separate commits.
 
+
+## 2026-10-18 12:37:03 +09:00 — acceleration Phase F reproducible test automation
+
+SHA256 Java dependency manifest, hashed cp312 Win/Linux PostgreSQL driver lock, observed PG image digest and configurable Windows full batch added. Wrong wheel hash rejected before install; valid wrong JAR cache replaced only by pinned SQLite in scratch. Actual Windows full batch with local test PG/Server models is running. CI wrapper integration and duplicate-run cancellation implemented; final CI pending.
+

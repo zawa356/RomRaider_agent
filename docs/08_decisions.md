@@ -436,3 +436,10 @@
 - For a dedicated output only, verify regular paths, SQLite header magic/RLP1 app ID and no unexpected WAL/SHM before mode=rw SQLite-managed recovery, then verify owned schema. Never manually remove journal; foreign product DB+journal remains unchanged/refused.
 - Four halt stages, concurrent CLI, exclusive lock and actual SQLite insert failure verify all-or-none receipts/records, restart idempotency and ACK refusal. No physical power-loss claim. See rlc2_preview_e2e.md.
 
+
+## D-052 — Pin test dependency bytes and exercise one Windows x64/x86 batch (2026-10-18 12:37:03 +09:00)
+
+- Java cache/downloads must match lib/test-dependencies.sha256, not merely parse as ZIP. PostgreSQL CPython3.12 Win/Linux x64 wheel/transitive hashes are fixed; the CI PostgreSQL image uses a digest observed in a passing run.
+- Configurable PowerShell wrapper runs actual x64/x86/SQLite/diagnostics/projection/preview/fault tests, optionally guarded disposable PG and actual Server models, restores environment and records ignored logs. CI actual-x86 job invokes it. No production activation.
+- CI cancels duplicate PR/push runs on the same head branch and checks artifacts/source cleanliness. See acceleration_test_automation.md for commands and positive/negative artifact verification.
+

@@ -385,3 +385,8 @@ Executable isolated source→RLC2→ledger→RLM1→shared v1 projection→SQLit
 
 Isolated output restart bug reproduced with abrupt JVM stop, then fixed with header/app-ID/schema-gated SQLite rollback recovery. No input repair or ACK routing. Faults cover all transaction stages, competing CLI, DB lock/insert failure, no partial rows and preserved source evidence. Windows x64 fault36 PASS; other environments/CI pending. Operator dry-run/retry boundaries documented in rlc2_preview_e2e.md.
 
+
+## 2026-10-18 12:37:03 +09:00 — acceleration Phase F (verification running)
+
+Pinned Java/Python/PG CI artifacts and Windows one-command x64/x86/full regression with optional guarded PostgreSQL are implemented. Existing scripts stay cross-platform. CI checks generated artifacts and executes the actual Windows batch. See acceleration_test_automation.md / handoff/codex_acceleration_worklog.md for live proof and limits; no product sending gate changed.
+
