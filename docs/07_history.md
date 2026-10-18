@@ -377,3 +377,8 @@ Separate-JVM halt reproduced inability to reopen own preview rollback journal. F
 
 SHA256 Java dependency manifest, hashed cp312 Win/Linux PostgreSQL driver lock, observed PG image digest and configurable Windows full batch added. Wrong wheel hash rejected before install; valid wrong JAR cache replaced only by pinned SQLite in scratch. Actual Windows full batch with local test PG/Server models is running. CI wrapper integration and duplicate-run cancellation implemented; final CI pending.
 
+
+## 2026-10-18 13:18:30 +09:00 — acceleration Phase G manual preflight and workload proof
+
+Read-only manual hints/source-only RLC1/RLC2 inspection implemented. Final local migration18 Windows x64/19 actual x86 PASS; pending state not mislabeled corruption, mixed input blocks projection. Default1k/4-session and large10k/11-session workloads PASS; exact10100 records/10111 receipts/22 cursors, no ACK/original change. Same-format hex allocation optimization measured with full before/after table, and new x64 reader verified10001 old x86 receipts byte-identically. CI running; see ingress_preflight_load.md and worklog.
+

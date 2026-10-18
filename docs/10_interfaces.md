@@ -504,3 +504,8 @@ Existing positively identified RLP1 output with a safe rollback journal can unde
 
 PowerShell7 scripts/run-acceleration-tests.ps1 selects configurable JDK17 x64/Zulu8 x86/Git Bash/Python, restores test environment and writes ignored build logs. Optional -Postgres requires an inherited protected loopback test DSN and downstream strict destination guard; -ServerPath requires actual local Server model validation. Java/Python byte hashes and PG CI image digest are pinned. It never enables new-path sending. See acceleration_test_automation.md.
 
+
+## C19. Read-only recovery plan and migration preflight — 2026-10-18 13:18:30 +09:00
+
+IngressDiagnostics JSON schema1 additively includes automatic_repair_allowed=false and per-finding next_action (fixed manual hint only). --migration-preflight SOURCE.rlj [--json] inspects existing legacy/new envelopes and prefixes without opening/creating a ledger, creating markers, choosing mixed formats or migrating. Intact RLC1 still exits5 pending explicit identity/migration contract. Normal session diagnostics add mixed-format refusal and LEDGER_BEHIND. Load fixtures accept bounded ROMLOGGER_LOAD_OBSERVATIONS/ROMLOGGER_LOAD_SESSIONS; no runtime product activation. Details: ingress_preflight_load.md.
+

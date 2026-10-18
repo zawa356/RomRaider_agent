@@ -390,3 +390,8 @@ Isolated output restart bug reproduced with abrupt JVM stop, then fixed with hea
 
 Pinned Java/Python/PG CI artifacts and Windows one-command x64/x86/full regression with optional guarded PostgreSQL are implemented. Existing scripts stay cross-platform. CI checks generated artifacts and executes the actual Windows batch. See acceleration_test_automation.md / handoff/codex_acceleration_worklog.md for live proof and limits; no product sending gate changed.
 
+
+## 2026-10-18 13:18:30 +09:00 — acceleration Phase G (final CI pending)
+
+Manual next-action diagnostics, non-mutating source-only migration preflight, mixed-format/ledger-lag guards and real multi-session workload/replay added. RLC1 fileKey hash never promoted to native identity; ACK/repair disabled. Large10k/11-session tests pass on Linux17 and actual Zulu8 x86; identical-hex optimization retains old-ledger compatibility. Current product claim/cursor/directory-durability gates remain explicit. Details: ingress_preflight_load.md.
+

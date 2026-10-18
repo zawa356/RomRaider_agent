@@ -137,3 +137,9 @@
 - VPS optimized implementation retains all migration/diagnostic/preview/fault proof and10k/11-session load44 PASS. Metrics source297/ledger949/project614/commit1675/replay939 ms versus baseline297/1423/1485/1159/2086. Commit timing increased while CPU-heavy phases decreased; these are single cold-process observations, not a normalized speed guarantee. Exact stored lowercase hex format retained.
 - Windows x64 after-change existing suites and default load23 PASS. Added precise pending-update preflight classification: known staged state is not falsely labelled corrupt; final added case awaiting fresh compile/CI. Next: optimized x8610k, backward compatibility scan of an old10k ledger, docs/PR/main CI.
 
+
+## 2026-10-18 13:18:30 +09:00 — Phase G final local proof and review
+- Final migration x64 18 / actual x86 19 PASS. Optimized x86 large10k/11-session load45 PASS; metrics source1722/ledger3653/project4359/commit4807/replay5010 ms. New x64 inspector read10001 receipts from original formatter/actual x86 dataset, exit0 INSPECTED, every input byte unchanged.
+- Existing source/ledger data format unchanged; all timing phases and limitations retained in ingress_preflight_load.md. Final pending-classification case passed locally; CI will run final source on Linux/Windows/x86 and guarded PostgreSQL. F Server main39095397003 success.
+- Next: PR with final CI, normal merge/main CI, Server progress synchronization, final acceleration report/resume commands. No remaining production gate is silently relaxed.
+
