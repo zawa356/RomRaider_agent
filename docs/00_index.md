@@ -33,3 +33,5 @@
 - **[ユーザー発言]** ユーザーが会話で述べたこと
 - **[調査]** Web等の公開情報で確認したこと（日付つき）
 - **[推測]** 根拠はあるが未確認のこと
+
+- [Codex acceleration final report (2026-10-18)](handoff/codex_acceleration_report.md): Phase A–H code/PR/CI evidence, limits and resume plan.
