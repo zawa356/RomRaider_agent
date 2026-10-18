@@ -100,3 +100,9 @@
 - Workflow39094266492 rejected before jobs: inline pip --only-binary=:all: has a colon-space YAML token. Change to a block scalar. Existing passing pre-F runs retained.
 - Next: test-only harness verifies either all25 publications plus final read, or exact old-marker/staged/original preservation plus reader fail-closed; deterministically exercise pending-review reader case. Never delete staged files or retry originals automatically. Rerun actual batch and CI.
 
+
+## 2026-10-18 12:42:28 +09:00 — Phase F targeted harness/CI correction (verification running)
+- YAML pip install switched to block scalar so :all: cannot parse as a mapping delimiter.
+- Existing RLC2 TEST harness now accepts Windows replacement refusal only if exact old marker, fully encoded expected staged next generation and writer-recorded source bytes all match. It records concurrent25-progress BLOCKED for that run and requires the reader to remain fail-closed; normal successful path still requires finalgen26. No staged cleanup, retry or product publish change.
+- Added deterministic held-marker+reader case, verifying pending data stays unreadable after writer and reader stop. This covers the refusal branch even when intermittent denial does not occur. Targeted native suite running; then full batch will rerun.
+
