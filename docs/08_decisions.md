@@ -482,3 +482,7 @@
 ## D-060 — Schema identity and independent Supervisor axes
 - RED0a27d0d reproduced renamed ACK column accepted by name/application-only check. Compare every schema object with authoritative DDL, preserving literal contents; quick_check/FK/version checks reject malformed output before writable use. Pre-I v0 DDL compatibility fixture retained.
 - Add supervisor_contract_version2 fields without changing legacy JSON/exit semantics: inspection success, conditional source integrity, review, durability, operational readiness, ACK and repair remain independent. Read-only success never grants operation. Unexpected triggers refused; real SQL constraint rollback remains tested.
+
+## D-061 — Preserve SQL token boundaries; test candidate recovery in actual child JVMs
+- Schema whitespace canonicalization must not merge TEXT NOT NULL with TEXTNOTNULL. RED15f04f3 is retained; collapse whitespace while preserving boundaries/literals. Negative schema matrix35 and original v0 compatibility PASS locally.
+- Child JVMs use the parent's actual runtime for candidate transaction halts and two-worker convergence. Recovery preserves all eight-table atomicity and no ACK. Runtime.halt remains distinct from physical power loss.
