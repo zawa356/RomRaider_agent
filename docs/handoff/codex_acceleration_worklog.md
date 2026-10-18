@@ -93,3 +93,10 @@
 - CI cache key follows hash manifest; push/PR runs share head-branch concurrency to cancel duplicates; generated artifacts/source mutations checked. Full actual Windows batch running with local test PG and actual Server models.
 - Next: batch result, wrong-valid-JAR cache negative verification, CI, docs/PR.
 
+
+## 2026-10-18 12:40:59 +09:00 — Phase F RED: YAML quoting and existing Windows concurrency harness
+- Full Windows batch reached existing RLC2 concurrent reader/publisher scenario, then MoveFileExW error5. Preserved synthetic fixture: old marker gen24/seq25/offset1178 and staged gen25/seq26/offset1226; both marker digests and original prefix hashes valid, source size1226. Core publish correctly retained old marker and complete staged update; harness wrongly assumed every concurrent replacement must succeed.
+- Local JDK17 and Zulu8 source archives confirm NIO defaults shareRead/shareWrite/shareDelete=true; which external/transient handle caused denial is not proven. Do not attribute it to a specific process or loosen product replace/review behavior.
+- Workflow39094266492 rejected before jobs: inline pip --only-binary=:all: has a colon-space YAML token. Change to a block scalar. Existing passing pre-F runs retained.
+- Next: test-only harness verifies either all25 publications plus final read, or exact old-marker/staged/original preservation plus reader fail-closed; deterministically exercise pending-review reader case. Never delete staged files or retry originals automatically. Rerun actual batch and CI.
+
