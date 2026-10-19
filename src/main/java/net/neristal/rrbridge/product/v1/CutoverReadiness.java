@@ -59,4 +59,3 @@ public final class CutoverReadiness {
   Report r=inspect(true,true,l,new File(args[12]));System.out.println(r.json());System.exit("READY_FOR_SYNTHETIC_TEST".equals(r.state)?0:"BLOCKED_UNCOOPERATIVE_PROCESS".equals(r.state)?3:5);
  }
 }
-

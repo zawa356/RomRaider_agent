@@ -34,7 +34,26 @@ public final class DeploymentBinding {
   Path real=p.toRealPath();require(real.toString().equals(p.toString()),"PATH_ALIAS");
   String type=Files.getFileStore(p).type().toLowerCase(Locale.ROOT);
   require(type.equals("ntfs")||type.equals("ext4")||type.equals("ext3")||type.equals("xfs")||type.equals("btrfs")||type.equals("tmpfs")||type.equals("overlay"),"FILESYSTEM_UNSUPPORTED");
+  if(Files.isRegularFile(real,NOFOLLOW))singleLink(real);
   return real;
+ }
+ /** Canonical path does not collapse hardlinks: refuse unknown/multiple link counts. */
+ private static void singleLink(Path p)throws IOException {
+  if(!System.getProperty("os.name").startsWith("Windows")) {
+   try {require(((Number)Files.getAttribute(p,"unix:nlink",NOFOLLOW)).longValue()==1,"HARDLINK_ALIAS");return;}
+   catch(UnsupportedOperationException e){throw new Refusal("HARDLINK_INSPECTION_UNAVAILABLE");}
+   catch(IllegalArgumentException e){throw new Refusal("HARDLINK_INSPECTION_UNAVAILABLE");}
+  }
+  String system=System.getenv("SystemRoot");require(system!=null,"HARDLINK_INSPECTION_UNAVAILABLE");
+  File tool=new File(system,"System32\\fsutil.exe");require(tool.isFile(),"HARDLINK_INSPECTION_UNAVAILABLE");
+  Process process=new ProcessBuilder(tool.toString(),"hardlink","list",p.toString()).redirectErrorStream(true).start();
+  try {
+   boolean exited;try{exited=process.waitFor(5,java.util.concurrent.TimeUnit.SECONDS);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new Refusal("HARDLINK_INSPECTION_UNAVAILABLE");}
+   require(exited&&process.exitValue()==0,"HARDLINK_INSPECTION_UNAVAILABLE");
+   ByteArrayOutputStream out=new ByteArrayOutputStream();try(InputStream in=process.getInputStream()){byte[] b=new byte[1024];int n;while((n=in.read(b))!=-1){require(out.size()+n<=32768,"HARDLINK_INSPECTION_UNAVAILABLE");out.write(b,0,n);}}
+   int names=0;for(String line:new String(out.toByteArray(),StandardCharsets.UTF_8).split("\\r?\\n"))if(!line.trim().isEmpty()){require(line.trim().startsWith("\\"),"HARDLINK_INSPECTION_UNAVAILABLE");names++;}
+   require(names==1,"HARDLINK_ALIAS");
+  }finally{if(process.isAlive())process.destroyForcibly();}
  }
  public static void privateAccess(Path p)throws IOException {
   PosixFileAttributeView posix=Files.getFileAttributeView(p,PosixFileAttributeView.class,NOFOLLOW);

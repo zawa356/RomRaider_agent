@@ -57,7 +57,7 @@ public final class V1LaneMigration {
   if(source.getCanonicalFile().equals(target.getCanonicalFile()))throw new IOException("separate copied target required");
   Report report=inspect(source);closed(target);String before=hash(target);
   File owner=new File(target.getPath()+".migration-owner");
-  if(Files.isSymbolicLink(owner.toPath())||!Arrays.equals(Files.readAllBytes(owner.toPath()),("RMI1\n"+report.sourceSha+"\n").getBytes(StandardCharsets.US_ASCII)))throw new IOException("migration owner mismatch");
+  if(!owner.isFile()||Files.size(owner.toPath())>128||Files.isSymbolicLink(owner.toPath())||!Arrays.equals(Files.readAllBytes(owner.toPath()),("RMI1\n"+report.sourceSha+"\n").getBytes(StandardCharsets.US_ASCII)))throw new IOException("migration owner mismatch");
   try(Connection db=open(target,true)) {
    if(scalar(db,"PRAGMA application_id")!=APPLICATION_ID||scalar(db,"PRAGMA user_version")!=1||!schema(db).equals(candidateSchema())||!data(db).equals(report.dataSha))throw new IOException("candidate preservation mismatch");
    try(Statement statement=db.createStatement();ResultSet r=statement.executeQuery("SELECT version,source_sha,data_sha FROM lane_migration_v1")) {
@@ -103,6 +103,15 @@ public final class V1LaneMigration {
  }
  public static Report migrateCopy(boolean enable,boolean quiescent,File source,File target,Hook hook)throws Exception {
   if(!enable||!quiescent)throw new IOException("isolated migration and quiescence required");
+  // Reject alias/junction targets before guard creation or any SQLite writable open.
+  DeploymentBinding.safe(source);
+  java.nio.file.Path targetPath=target.toPath();
+  if(!targetPath.isAbsolute()||!targetPath.equals(targetPath.normalize()))throw new IOException("absolute isolated target required");
+  DeploymentBinding.safe(targetPath.getParent().toFile());
+  if(Files.exists(targetPath,java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+   if(Files.isSameFile(source.toPath(),targetPath))throw new IOException("source/target alias refused");
+   DeploymentBinding.safe(target);
+  }
   if(!target.getName().endsWith(".lane-migration.db")||source.getCanonicalFile().equals(target.getCanonicalFile())||Files.isSymbolicLink(target.toPath()))throw new IOException("dedicated isolated target required");
   try(LegacyWorkerGuard old=LegacyWorkerGuard.acquire(source);LegacyWorkerGuard output=LegacyWorkerGuard.acquire(target)) {
    Report report=inspect(source);
@@ -117,7 +126,7 @@ public final class V1LaneMigration {
     }
     Files.copy(source.toPath(),target.toPath());
    }
-   if(Files.isSymbolicLink(owner.toPath())||!Arrays.equals(Files.readAllBytes(owner.toPath()),ownerBytes))throw new IOException("migration copy owner mismatch");
+   if(!owner.isFile()||Files.size(owner.toPath())>128||Files.isSymbolicLink(owner.toPath())||!Arrays.equals(Files.readAllBytes(owner.toPath()),ownerBytes))throw new IOException("migration copy owner mismatch");
    for(String suffix:new String[]{"-wal","-shm","-journal"})if(Files.isSymbolicLink(new File(target.getPath()+suffix).toPath()))throw new IOException("unsafe target recovery file");
    // Only this positively owned copied target may undergo SQLite rollback recovery.
    byte[] header=new byte[100];try(java.io.RandomAccessFile h=new java.io.RandomAccessFile(target,"r")){h.readFully(header);}
