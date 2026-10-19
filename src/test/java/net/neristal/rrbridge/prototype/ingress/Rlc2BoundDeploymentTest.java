@@ -11,7 +11,10 @@ public final class Rlc2BoundDeploymentTest {
   final Rlc2IntegrationStore.Admission admission=Rlc2IntegrationStoreTest.admit(f);
   File ledger=home.resolve("ledger.db").toFile();Files.move(f.db,ledger.toPath());
   File legacy=home.resolve("old.db").toFile(),out=home.resolve("out.rlc2-integration.db").toFile();new DurableSpool(legacy);new Rlc2IntegrationStore(true,out);
-  File root=Files.createDirectory(home.resolve("root")).toFile();
+  File root=DeploymentBindingTest.privateDir(Files.createDirectory(home.resolve("root"))).toFile();
+  DeploymentBindingTest.privateDir(f.dir);
+  try(java.util.stream.Stream<Path> files=Files.walk(home)){for(java.util.Iterator<Path> it=files.iterator();it.hasNext();){Path path=it.next();if(Files.isRegularFile(path))DeploymentBindingTest.privateFile(path);}}
+
   final DeploymentBinding.Layout l=new DeploymentBinding.Layout(root,legacy,out,f.dir.toFile(),f.dir.resolve("rotation.manifest").toFile(),ledger,Rlc2ProductAdapterTest.DEVICE,Rlc2ProductAdapterTest.VEHICLE,Rlc2ProductAdapterTest.SESSION,admission.manifestSession);
   DeploymentBinding.bindSynthetic(true,true,l);
   byte[] old=Files.readAllBytes(legacy.toPath());final boolean[] reached={false};

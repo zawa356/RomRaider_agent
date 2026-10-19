@@ -17,11 +17,14 @@ public final class DeploymentBindingTest {
    acl.setAcl(Collections.singletonList(AclEntry.newBuilder().setType(AclEntryType.ALLOW).setPrincipal(user).setPermissions(EnumSet.allOf(AclEntryPermission.class)).setFlags(AclEntryFlag.DIRECTORY_INHERIT,AclEntryFlag.FILE_INHERIT).build()));
   }return p.toRealPath();
  }
+ public static void privateFile(Path p)throws Exception {
+  if(Files.getFileAttributeView(p,PosixFileAttributeView.class)!=null)Files.setPosixFilePermissions(p,PosixFilePermissions.fromString("rw-------"));
+ }
  static DeploymentBinding.Layout fixture()throws Exception {
   Path home=privateDir(Files.createTempDirectory("romlogger-rldb1-"));
-  File root=Files.createDirectory(home.resolve("root")).toFile(),session=Files.createDirectory(home.resolve("session")).toFile();
+  File root=privateDir(Files.createDirectory(home.resolve("root"))).toFile(),session=privateDir(Files.createDirectory(home.resolve("session"))).toFile();
   File legacy=home.resolve("old.db").toFile(),output=home.resolve("out.rlc2-integration.db").toFile(),ledger=home.resolve("ledger.db").toFile(),manifest=new File(session,"rotation.manifest");
-  for(File f:new File[]{legacy,output,ledger,manifest})Files.write(f.toPath(),new byte[]{1});
+  for(File f:new File[]{legacy,output,ledger,manifest}){Files.write(f.toPath(),new byte[]{1});privateFile(f.toPath());}
   return new DeploymentBinding.Layout(root,legacy,output,session,manifest,ledger,LaneOwnershipTest.D,LaneOwnershipTest.V,"synthetic", "8d034ae6-32ac-4d51-bdcb-4cf7cc199542");
  }
  static DeploymentBinding.Layout with(DeploymentBinding.Layout l,File root,File db,File out,File session,File manifest) {

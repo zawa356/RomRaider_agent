@@ -86,7 +86,9 @@ public final class DeploymentBinding {
  }
  private static Path anchor(Layout l){return Paths.get(l.legacy.getPath()+".deployment-binding");}
  private static void create(Path p,byte[] bytes)throws IOException {
-  try(FileChannel c=FileChannel.open(p,StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE)){ByteBuffer b=ByteBuffer.wrap(bytes);while(b.hasRemaining())c.write(b);c.force(true);}privateAccess(p);
+  Set<OpenOption> options=new HashSet<OpenOption>(Arrays.<OpenOption>asList(StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE));
+  FileAttribute<?>[] attrs=Files.getFileAttributeView(p.getParent(),PosixFileAttributeView.class)!=null?new FileAttribute<?>[]{PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))}:new FileAttribute<?>[0];
+  try(FileChannel c=FileChannel.open(p,options,attrs)){ByteBuffer b=ByteBuffer.wrap(bytes);while(b.hasRemaining())c.write(b);c.force(true);}privateAccess(p);
  }
  /** Only fresh isolated fixtures. Partial two-file enrollment remains evidence for manual review. */
  public static void bindSynthetic(boolean enable,boolean externallySingleActive,Layout l)throws Exception {
