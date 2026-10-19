@@ -17,13 +17,32 @@ public final class CutoverReadiness {
  public static boolean knownArtifact(File jar)throws Exception {
   DeploymentBinding.safe(jar);if(!jar.isFile()||jar.length()>32L*1024*1024)return false;
   Set<String> required=new HashSet<String>(Arrays.asList("ProductBridgeWorker","LegacyWorkerGuard","DurableSpool","IncrementalTsvBridge","ProductDeliveryCoordinator","ProductSender","ProductLegacyScanner","ProductJournalScanner","AgentWire","LaneOwnership"));int entries=0;
-  try(JarFile file=new JarFile(jar)) {Enumeration<JarEntry> all=file.entries();while(all.hasMoreElements()) {
-   JarEntry e=all.nextElement();if(++entries>1024)return false;if(!e.getName().endsWith(".class"))continue;
+  Set<String> seen=new HashSet<String>();
+  try(JarFile file=new JarFile(jar)) {
+   if(!manifestAllowed(file.getManifest()))return false;
+   Enumeration<JarEntry> all=file.entries();while(all.hasMoreElements()) {
+   JarEntry e=all.nextElement();if(++entries>1024)return false;
+   if(!seen.add(e.getName()))return false; // duplicate ZIP names: the checked and the loaded entry may differ
+   // Resources such as META-INF/services or signatures can redirect loading; only classes, directories and the manifest are known.
+   if(e.isDirectory()||e.getName().equals("META-INF/MANIFEST.MF"))continue;
+   if(!e.getName().endsWith(".class"))return false;
    if(!e.getName().startsWith("net/neristal/rrbridge/"))return false;
    InputStream current=CutoverReadiness.class.getResourceAsStream("/"+e.getName());if(current==null)return false;
    if(!Arrays.equals(bounded(current),bounded(file.getInputStream(e))))return false;
    if(e.getName().startsWith("net/neristal/rrbridge/product/v1/"))required.remove(e.getName().substring(e.getName().lastIndexOf('/')+1,e.getName().length()-6));
   }}return required.isEmpty();
+ }
+ /** Class-Path, launcher/boot agents, module opens or per-entry sections can pull code from outside the checked bytes. */
+ static boolean manifestAllowed(Manifest manifest) {
+  if(manifest==null)return true;
+  if(!manifest.getEntries().isEmpty())return false;
+  for(Map.Entry<Object,Object> a:manifest.getMainAttributes().entrySet()) {
+   String key=a.getKey().toString(),value=String.valueOf(a.getValue());
+   if(key.equalsIgnoreCase("Manifest-Version")||key.equalsIgnoreCase("Created-By"))continue;
+   if(key.equalsIgnoreCase("Premain-Class")&&value.equals("net.neristal.rrbridge.Agent"))continue;
+   if(key.equalsIgnoreCase("Main-Class")&&value.startsWith("net.neristal.rrbridge."))continue;
+   return false;
+  }return true;
  }
  private static long scalar(Connection c,String sql)throws SQLException {try(Statement s=c.createStatement();ResultSet r=s.executeQuery(sql)){r.next();return r.getLong(1);}}
  public static Report inspect(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout l,File artifact) {

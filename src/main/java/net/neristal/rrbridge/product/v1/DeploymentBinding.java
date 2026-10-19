@@ -44,16 +44,8 @@ public final class DeploymentBinding {
    catch(UnsupportedOperationException e){throw new Refusal("HARDLINK_INSPECTION_UNAVAILABLE");}
    catch(IllegalArgumentException e){throw new Refusal("HARDLINK_INSPECTION_UNAVAILABLE");}
   }
-  String system=System.getenv("SystemRoot");require(system!=null,"HARDLINK_INSPECTION_UNAVAILABLE");
-  File tool=new File(system,"System32\\fsutil.exe");require(tool.isFile(),"HARDLINK_INSPECTION_UNAVAILABLE");
-  Process process=new ProcessBuilder(tool.toString(),"hardlink","list",p.toString()).redirectErrorStream(true).start();
-  try {
-   boolean exited;try{exited=process.waitFor(5,java.util.concurrent.TimeUnit.SECONDS);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new Refusal("HARDLINK_INSPECTION_UNAVAILABLE");}
-   require(exited&&process.exitValue()==0,"HARDLINK_INSPECTION_UNAVAILABLE");
-   ByteArrayOutputStream out=new ByteArrayOutputStream();try(InputStream in=process.getInputStream()){byte[] b=new byte[1024];int n;while((n=in.read(b))!=-1){require(out.size()+n<=32768,"HARDLINK_INSPECTION_UNAVAILABLE");out.write(b,0,n);}}
-   int names=0;for(String line:new String(out.toByteArray(),StandardCharsets.UTF_8).split("\\r?\\n"))if(!line.trim().isEmpty()){require(line.trim().startsWith("\\"),"HARDLINK_INSPECTION_UNAVAILABLE");names++;}
-   require(names==1,"HARDLINK_ALIAS");
-  }finally{if(process.isAlive())process.destroyForcibly();}
+  int names=0;for(String line:fsutil("HARDLINK_INSPECTION_UNAVAILABLE","hardlink","list",p.toString()).split("\r?\n"))if(!line.trim().isEmpty()){require(line.trim().startsWith("\\"),"HARDLINK_INSPECTION_UNAVAILABLE");names++;}
+  require(names==1,"HARDLINK_ALIAS");
  }
  public static void privateAccess(Path p)throws IOException {
   PosixFileAttributeView posix=Files.getFileAttributeView(p,PosixFileAttributeView.class,NOFOLLOW);
@@ -71,9 +63,42 @@ public final class DeploymentBinding {
   }
   String owner=acl.getOwner().getName();require(acl.getOwner().equals(user)||owner.equalsIgnoreCase("BUILTIN\\Administrators")||owner.equalsIgnoreCase("NT AUTHORITY\\SYSTEM"),"UNKNOWN_OWNER");
  }
- private static String identity(Path p)throws IOException {
+ /**
+  * POSIX: (dev,ino)+birth time. Windows Java returns fileKey()==null and creation time is
+  * user-settable and tunneled on delete/recreate, so bind the NTFS volume serial + file ID.
+  */
+ static String identity(Path p)throws IOException {
   BasicFileAttributes a=Files.readAttributes(p,BasicFileAttributes.class,NOFOLLOW);
-  return String.valueOf(a.fileKey())+"|"+a.creationTime().toString();
+  if(a.fileKey()!=null)return String.valueOf(a.fileKey())+"|"+a.creationTime().toString();
+  require(System.getProperty("os.name").startsWith("Windows"),"IDENTITY_UNAVAILABLE");
+  Object vsn;try{vsn=Files.getFileStore(p).getAttribute("volume:vsn");}catch(UnsupportedOperationException e){throw new Refusal("IDENTITY_UNAVAILABLE");}
+  return "ntfs:"+vsn+":"+windowsFileId(p)+"|"+a.creationTime().toString();
+ }
+ /** Bounded read-only fsutil query. Localized text is ignored; exactly one hex file ID is required. */
+ private static String windowsFileId(Path p)throws IOException {
+  String text=fsutil("IDENTITY_UNAVAILABLE","file","queryfileid",p.toString());
+  java.util.regex.Matcher m=java.util.regex.Pattern.compile("0x([0-9a-fA-F]{16}|[0-9a-fA-F]{32})(?![0-9a-fA-F])").matcher(text);
+  require(m.find(),"IDENTITY_UNAVAILABLE");String id=m.group(1).toLowerCase(Locale.ROOT);require(!m.find(),"IDENTITY_UNAVAILABLE");
+  require(!id.matches("0+"),"IDENTITY_UNAVAILABLE");return id;
+ }
+ private static String fsutil(String unavailable,String... args)throws IOException {
+  String system=System.getenv("SystemRoot");require(system!=null,unavailable);
+  File tool=new File(system,"System32\\fsutil.exe");require(tool.isFile(),unavailable);
+  List<String> command=new ArrayList<String>();command.add(tool.toString());command.addAll(Arrays.asList(args));
+  Process process=new ProcessBuilder(command).redirectErrorStream(true).start();
+  try {
+   ByteArrayOutputStream out=new ByteArrayOutputStream();
+   // Drain while waiting: a full pipe must not turn into a hang or a silently truncated answer.
+   try(InputStream in=process.getInputStream()){byte[] b=new byte[1024];int n;long end=System.nanoTime()+5000000000L;
+    while(true){
+     if(in.available()>0||!process.isAlive()){n=in.read(b);if(n==-1)break;require(out.size()+n<=32768,unavailable);out.write(b,0,n);continue;}
+     require(System.nanoTime()<end,unavailable);
+     try{Thread.sleep(10);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new Refusal(unavailable);}
+    }}
+   boolean exited;try{exited=process.waitFor(5,java.util.concurrent.TimeUnit.SECONDS);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new Refusal(unavailable);}
+   require(exited&&process.exitValue()==0,unavailable);
+   return new String(out.toByteArray(),StandardCharsets.ISO_8859_1);
+  }finally{if(process.isAlive())process.destroyForcibly();}
  }
  private static Map<String,String> describe(Layout l)throws Exception {
   Map<String,String> m=new TreeMap<String,String>();m.put("version","RLDB1");m.put("mode","SYNTHETIC_ONLY");
@@ -121,6 +146,8 @@ public final class DeploymentBinding {
   require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");Map<String,String> expected=describe(l);
   Map<String,String> actual=read(l.root.toPath().resolve(NAME));Map<String,String> peer=read(anchor(l));
   require(actual.equals(peer),"ROOT_DB_BINDING_MISMATCH");String uuid=actual.remove("deployment_uuid");
+  // Phase IV: Windows RLDB1 records enrolled with the old creation-time-only identity cannot prove the same file.
+  for(Map.Entry<String,String> e:actual.entrySet())require(!e.getKey().endsWith("_identity")||!e.getValue().startsWith("null|"),"BINDING_IDENTITY_REENROLL_REQUIRED");
   try{require(UUID.fromString(uuid).toString().equals(uuid),"BINDING_OWNER");}catch(RuntimeException bad){throw new Refusal("BINDING_OWNER");}
   require(actual.equals(expected),"BINDING_LAYOUT_CHANGED");
  }
