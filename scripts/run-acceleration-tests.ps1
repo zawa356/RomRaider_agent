@@ -35,14 +35,14 @@ try {
     $env:PATH = (Join-Path $Jdk17 'bin') + ';' + $priorEnvironment['PATH']
     $env:ROMLOGGER_EXPECT_DATA_MODEL = '64'
     Invoke-TestCommand 'JDK17 x64 version' 'java' @('-version')
-    foreach ($script in @('test-ingress-journal-prototype.sh','test-ingress-sqlite-receipts.sh','test-windows-native-identity.sh','test-watermark-ledger.sh','test-ingress-diagnostics.sh','test-rlc2-preview.sh','test-phase2-lanes.sh','test-phase3-deployment.sh')) {
+    foreach ($script in @('test-ingress-journal-prototype.sh','test-ingress-sqlite-receipts.sh','test-windows-native-identity.sh','test-watermark-ledger.sh','test-ingress-diagnostics.sh','test-rlc2-preview.sh','test-phase2-lanes.sh','test-phase3-deployment.sh','test-phase4.sh')) {
         Invoke-TestCommand "Windows x64 $script" $BashPath @("scripts/$script")
     }
     $env:JAVA_HOME = $Java8x86
     $env:PATH = (Join-Path $Java8x86 'bin') + ';' + $priorEnvironment['PATH']
     $env:ROMLOGGER_EXPECT_DATA_MODEL = '32'
     Invoke-TestCommand 'Zulu8 x86 version' 'java' @('-version')
-    foreach ($script in @('test-windows-native-identity.sh','test-watermark-ledger.sh','test-ingress-diagnostics.sh','test-rlc2-preview.sh','test-phase2-lanes.sh','test-phase3-deployment.sh')) {
+    foreach ($script in @('test-windows-native-identity.sh','test-watermark-ledger.sh','test-ingress-diagnostics.sh','test-rlc2-preview.sh','test-phase2-lanes.sh','test-phase3-deployment.sh','test-phase4.sh')) {
         Invoke-TestCommand "Zulu8 x86 $script" $BashPath @("scripts/$script",'--run-only')
     }
     foreach ($class in @('JournalIdentityComparisonTest','SplitLockJournalPrototypeTest','DurableWatermarkPrototypeTest')) {
