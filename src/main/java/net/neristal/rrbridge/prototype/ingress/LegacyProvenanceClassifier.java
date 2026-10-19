@@ -233,6 +233,7 @@ public final class LegacyProvenanceClassifier {
     public static Report stageIsolated(boolean enable,boolean quiescent,File v1,List<Original> originals,WatermarkV2Prototype.ReadOpener reader,
             File vault,File rli2,StagingHook hook)throws Exception {
         if(!enable||!quiescent)throw new IOException("STAGING_REQUIRES_EXPLICIT_QUIESCENCE");
+        if(!rli2.getName().endsWith(".rlc2-integration.db"))throw new IOException("STAGING_RLI2_EXTENSION_REQUIRED");
         for(File f:new File[]{vault,rli2,marker(vault),LegacyStagingTargets.work(vault).toFile()})if(Files.exists(f.toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("STAGING_TARGET_EXISTS");
         for(File f:new File[]{vault,rli2})if(f.getCanonicalFile().equals(v1.getCanonicalFile()))throw new IOException("STAGING_TARGET_IS_SOURCE");
         if(vault.getCanonicalFile().equals(rli2.getCanonicalFile())||marker(vault).getCanonicalFile().equals(rli2.getCanonicalFile()))throw new IOException("STAGING_TARGET_ALIAS");
