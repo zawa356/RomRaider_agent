@@ -1,3 +1,5 @@
+> **2026-10-19 Phase II entry:** Read [development bootstrap](docs/ops/development_environment_bootstrap.md) and [Phase II worklog](docs/handoff/codex_phase2_worklog.md) first. Earlier dated handoffs below are historical; current main/progress/contracts govern.
+
 # AGENTS.md — AIエージェント向け作業ガイド
 
 > **2026-10-14 最新Codex日中指示の入口**：[Agent日中引継ぎ](docs/handoff/2026-10-14_codex_day_autonomy.md)と[Server日中指示全文](https://github.com/zawa356/RomRaiderServer/blob/main/docs/handoff/2026-10-14_codex_day_autonomy.md)を最初に読む。勤務中のユーザー確認なしで安全な合成開発・試験・PR・CI・マージを自律継続。実車、既存MCP/Caddy、不可逆操作は禁止。[追記式worklog](docs/handoff/codex_daytime_worklog.md)を先に更新してcommit/push。以下の2026-10-12の状態表は歴史資料であり、現在地ではない。
@@ -126,3 +128,4 @@ RR_TEST_PG_URL=postgresql://user@host:port/db python -m pytest -q tests   # Post
 - 引継ぎ資料（`docs/handoff/`）はユーザーがChatGPTのLibraryとClaudeのProjectでも共有している。更新したら同じ内容をProject側にも反映するとよい。
 - **接続口（コマンド、status のキー、転送形式、受信API、MCPツール、DBスキーマ、設定キー）を追加・変更したら、`docs/10_interfaces.md` を同じコミットで更新する。** 互換性の規則は同文書 §15。
 - コミットメッセージは日本語可。変更理由を書く。
+

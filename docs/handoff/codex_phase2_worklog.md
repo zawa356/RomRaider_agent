@@ -9,3 +9,6 @@
 - Gates: synthetic isolated tests only; no ECU/X270/OpenPort, production DB migration, auto-worker installation, formal ACK, original deletion, service restart or history rewrite. Windows directory durability UNKNOWN; physical power loss/real ENOSPC NOT RUN.
 - Planned small phases: II-0 bootstrap; II-1 versioned lane contract/RED; II-2 common ownership; II-3 opt-in product integration; II-4 publication guard; II-5 synthetic migration preflight; II-6/7 faults/platform/HTTP/load; report and resume evidence.
 - First baseline: pwsh -NoProfile -File scripts/run-acceleration-tests.ps1. Focused scripts will be recorded with RED/GREEN before full matrix. Remote tests use only fresh isolated directories and synthetic inputs; existing Docker services remain untouched.
+
+## 2026-10-19 09:36 +09:00 — II-0 verification
+VPS Linux17 reached through pinned helper; Docker14 containers Up. Bootstrap links checked, management endpoints explicitly unconfirmed. Documentation-only diff reviewed; no code/runtime/DB changes. Checkpoint4eafb4a pushed before implementation.
