@@ -1,4 +1,4 @@
-> **2026-10-19 Phase II entry:** Read [development bootstrap](docs/ops/development_environment_bootstrap.md) and [Phase II worklog](docs/handoff/codex_phase2_worklog.md) first. Earlier dated handoffs below are historical; current main/progress/contracts govern.
+> **2026-10-19 Phase III current entry:** Read [bootstrap](docs/ops/development_environment_bootstrap.md) → [Phase III report](docs/handoff/codex_phase3_report.md) → [product progress](docs/product_v1_implementation_progress.md). [Evidence](docs/handoff/phase3_validation_evidence.md) / [append-only worklog](docs/handoff/codex_phase3_worklog.md) record tested heads and limits. Fixed-Session synthetic acceptance does not authorize production cutover. Earlier dated handoffs below are historical.
 
 # AGENTS.md — AIエージェント向け作業ガイド
 

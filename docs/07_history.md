@@ -403,3 +403,7 @@ PR60–68: stable bootstrap, RLLO1 retained ownership/legacy gate, opt-in produc
 Reproduced UNBOUND_ROOT: existing RLLO1 can acquire the same session under two roots. Added paired deployment binding and bound RLI2 entry with rollback on precommit binding change. Actual Windows junction/ACL negative tests; platform evidence is recorded in Phase III handoff.
 
 Phase III adds RMI1 reference cleanup (RED10 leaked references, GREEN0 newly retained), strict read-only copy verification, bounded RLBA1 role/hash acceptance and isolated rehearsal. Partial/tampered copied evidence refuses; original v1 and ACK stay unchanged. Full new-harness copy/crash matrix remains an explicit next gate.
+
+## 2026-10-19 Phase III final publication
+
+PR70–73: RLDB1固定配置、read-only readiness、RLBA1 backup/RMI1 rehearsal、copy-state CLIと6子JVM fault boundaries。上記時点で未成立だった新harnessのcopy/crash matrixを今回追加した。hardlink target/source aliasとrecovery sidecar aliasの実RED→GREEN、schema reference leak cleanup。検証head ed8efd6、Windows64/actual32/Linux/HTTP35/Server57受入。詳細と未成立条件は [報告](handoff/codex_phase3_report.md)、[証跡](handoff/phase3_validation_evidence.md)、[追記log](handoff/codex_phase3_worklog.md)。CI NOT RUN。本番/正式ACK/Session rebindは未解禁。
