@@ -547,3 +547,7 @@ Phase VI child-JVM RED: an uncommitted journal created after classification was 
 
 RLDB1/RLDB2 describeLayout checks each distinct drive before examining layout files. Fixed PowerShell executable/program calls GetDriveTypeW and QueryDosDeviceW read-only; drive root is bounded stdin data, never shell interpolation. Only numeric Fixed and a stable local HarddiskVolume mapping pass; aliases/subst/Remote/Unknown/timeout/output errors fail closed. No external Java dependency is added. Query once per distinct root per description, without cross-call caching. Existing safe(file) is still a low-level path/FS check; safeLocal(file,probe) includes injected drive proof. Live drive mapping changes after observation remain outside global fencing. No real SMB was mounted or accessed.
 
+## D-077 — Keep a read-only offline preflight blocked when writer/process proof is absent
+
+Join approved offline artifact/runtime, active generation, exact manifest/admission and retained read-only cooperative lock observations without starting product entries or creating files. Report independent axes and leave unknown ones UNKNOWN. Even matching prerequisites never grants launch/production/ACK: noncooperative Writer absence is unproven and Windows process provenance is unknown. This is a safe partial implementation of VI-3/VI-5, not a pretend launcher or global exclusion of old binaries.
+
