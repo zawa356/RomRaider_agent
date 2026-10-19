@@ -407,3 +407,11 @@ Manual next-action diagnostics, non-mutating source-only migration preflight, mi
 - I-1–I-7 Agent PR52–58 normally merged; code main aa55dcd007b48728a320448fb827049254fcb6fd, tested tree be08629. Executable RLI2 versioned schema, admitted multi-source atomic engine, quiescence/snapshot guards, strict schema/Supervisor axes, explicit CLI and actual Server HTTP/owned PG process-failure verification.
 - Full Windows actual64/32 batch exit0; fresh VPS entire stack/10k and actualx86 10k PASS; actual HTTP35 including owned PG stop/restart and Server57 PASS. Actions could not schedule; user selected local/VPS verification, CI NOT RUN.
 - Full evidence/gates/resume: [codex_product_integration_report.md](handoff/codex_product_integration_report.md). Existing Worker/schema/send/ACK not automatically replaced; live coexistence and production adoption remain blocked, directory durability UNKNOWN.
+
+## 2026-10-19 — Phase II cooperative ownership candidate
+
+Agent PR60–68: RLLO1 retained common logical Lane, exact legacy Worker compatibility lock, opt-in TSV/Journal/spool scopes and precommit checks, synthetic Writer publication/snapshot boundary, strict copy-only v1 inventory migration, real JVM halt/recovery, advisory status/manual recovery and actual Worker/separate-Engine process competition. Final implementation head82e1d54; normal merge SHAs in [final report](handoff/codex_phase2_report.md).
+
+Windows x64/actual Zulu8x86/Linux focused26ownership/19migration/6publication/21fault/7Enginecompetition PASS; product and real Worker conflicts/retry PASS. Full Windows batch acceleration-20261019-095142 exit0, Linux broad suite and cooperative10k load59/actualx8660 PASS. Owned actual FastAPI/PG HTTP35 and Server pytest57 PASS. [Evidence/log digests](handoff/phase2_validation_evidence.md). Actions runner blocked by account payment/spending annotation, steps=[]: CI NOT RUN.
+
+No automatic installation/replacement, production schema migration, live Logger/ECU wiring or new formal ACK. Common-root/cooperating-process guarantee only; old unknown importers/noncooperative Writers/duplicate restored roots remain outside it. Windows directory durability UNKNOWN; physical power loss/real ENOSPC/X270 NOT RUN. Migration is isolated inventory/preservation candidate, not RLI2 production record conversion.

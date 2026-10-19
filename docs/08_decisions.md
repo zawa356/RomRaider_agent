@@ -489,3 +489,9 @@
 
 ## D-058 — Phase II cooperative lane ownership v1
 Use retained OS FileLock with owner UUID/generation and strict evidence validation; no expiring lease or PID takeover. Hold legacy .worker.lock for configured old DB while RLC2 snapshots/commits. Separate DB commits are not atomic. See [versioned contract](interfaces/lane_ownership_v1.md). Isolated opt-in only; no live/ACK/migration gate change.
+
+## D-059 — Cooperative publication boundary
+Retain a manifest-scoped boundary across synthetic publish/seal/rotation/Ledger and Reader snapshot→commit. Order legacy→lane→publication→SQLite; Writer does not acquire output DB/lane. No noncooperative/live atomicity or cross-DB transaction claim.
+
+## D-060 — Copy-only v1 inventory migration
+RMI1 preserves rows/rowids/ACK/cursors, source bytes and explicit claims. Strict known schema and owned copied-target recovery; unknown/partial evidence stays manual. No production in-place apply, automatic downgrade, RLI2 record conversion or sender activation.

@@ -395,3 +395,6 @@ Read-only manual hints/source-only RLC1/RLC2 inspection implemented. Final local
 ## 2026-10-18 Phase I final implementation record
 - PR52–58 integrate isolated multi-source storage contract/schema and shared atomic backend, snapshot-to-commit change detection, full output schema validation, independent Supervisor axes, actual loopback Server HTTP/private PG and owned process-stop faults, CLI and automated platform/load verification. D-057–D-061 and C20–C24 capture decisions/contracts.
 - RED d08860d/0a27d0d/15f04f3 were fixed and verified in the final stack. Actual Windows64/32/Linux and SQLite/PG/HTTP results are in handoff/codex_product_integration_report.md, with NOT RUN/blocked product adoption and Actions quota constraints explicitly retained. No production runtime migration, ECU operation or persistent new-path ACK enabled.
+
+## 2026-10-19 — Phase II cooperative ownership candidate
+PR60–68: stable bootstrap, RLLO1 retained ownership/legacy gate, opt-in product scopes, synthetic publication/snapshot boundary, copied-v1 inventory migration, real JVM failures, cooperative10k load, read-only status/manual recovery and actual Worker/Engine competition. See [final report](handoff/codex_phase2_report.md) for exact local/CI/merge evidence. Production migration/ACK and Windows directory durability remain independent gates.
