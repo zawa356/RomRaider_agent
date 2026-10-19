@@ -86,6 +86,10 @@ public final class IncrementalTsvBridge {
         long line=0;
         for(String row:rows)converter.apply(row,++line,session,state);
     }
+    /** Same deterministic run ID the converter assigns to a logical session (used by Phase IV provenance checks). */
+    public static String runId(String device,String session){
+        return UUID.nameUUIDFromBytes(("RomLogger-v1|"+UUID.fromString(device).toString()+"|run|"+session+"||").getBytes(StandardCharsets.UTF_8)).toString();
+    }
     private String uuid(String kind,String session,String segment,String key){
         return UUID.nameUUIDFromBytes(
             ("RomLogger-v1|"+deviceId+"|"+kind+"|"+session+"|"+segment+"|"+key)

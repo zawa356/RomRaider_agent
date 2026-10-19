@@ -27,3 +27,9 @@ Times are JST (+09:00). Append only; do not rewrite earlier entries.
 - DeploymentTransitionTest on real RLC2 sessions/ledger/RLI2 output: 63 checks PASS on JDK17 x64 (same-session update + source admission, interrupt/abandon/retry, held lane/legacy locks, ledger receipt tamper, ledger rollback, manifest rollback, restore clone root, copied session dir, next session, child JVM halt at ROOT_WRITTEN, old session no longer active, CLI read-only).
 - Test fixes during development (test expectations, not product weakening): record count 1 not 2; copied session dir refuses earlier (`NEW_MANIFEST_INVALID`); ledger tamper target made deterministic. One product fix: a fresh Session's sources legitimately appear in the shared ledger first; only a ledger path different from the new segment is `SOURCE_UUID_REUSED`.
 - Phase III deployment regression with IV-1 code: exit0 (JDK17 x64). x86/Linux pending in the IV-4 matrix.
+
+## 2026-10-19T18:25+09:00 — IV-2 / IV-3
+
+- IV-2 `ArtifactProvenance` (RLAP1): ArtifactProvenanceTest 21 PASS on Windows JDK17 (Windows process provenance UNKNOWN by design). Commit 315041e, PR #77 stacked on #76.
+- IV-3 `LegacyProvenanceClassifier` (RLPC1) + RLLV1 vault staging; `IncrementalTsvBridge.runId` exposes the existing deterministic run ID. LegacyProvenanceClassifierTest 33 PASS on JDK17 x64.
+- Product bug found by the test during development: a row-level VERIFIED record in a session with a CONFLICT was required in RLI2 although the session is (correctly) not migrated. Fixed by a single `migratable` rule (row VERIFIED and session VERIFIED) used for vault flags and verification.
