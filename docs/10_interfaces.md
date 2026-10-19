@@ -541,3 +541,8 @@ Phase III: CutoverReadiness adds bounded read-only current-build JAR classset/ol
 Phase III RLBA1: [backup/rehearsal contract](interfaces/isolated_backup_acceptance_v1.md), copied-target CLI --inspect-isolated-copy EVIDENCE TARGET (exits0/2/5, activation false), read-only RMI1 verifyIsolatedCopy and synthetic Java rehearsal. No product migration/restore/ACK activation.
 
 Phase III copy-state CLI/staged RMI1 API: [fault acceptance v1](interfaces/migration_copy_fault_acceptance_v1.md). Explicit external-quiescent/no-apply, existing READ lock observations, exits0/2/3/5, no repair/ACK/activation. Partial copies and committed-but-uncheckpointed WAL are conservatively classified.
+
+
+## Phase V RLPC1/RLLV1 isolated evidence hardening
+
+[RLPC1 contract](interfaces/legacy_v1_rli2_provenance_v1.md): journal cursor owner, exact absolute safe original path, integer sequence and RLC1 prefix/snapshot must agree. Whole-session conflicts block staging; canonical IDs/legacy ACK are unchanged. `IncrementalTsvBridge.journalCursorEvidence` is a read-only payload comparison helper, never an RLC2 receipt/highwater converter. Staging fixes a projection/input snapshot, validates all typed Vault columns/schema and all eight exact RLI2 table sets. Atomic private work-directory claim and no-replace completed-file publication preserve existing/partial artifacts. Targets require the same existing private local parent. `stagingState` success is `STAGED_LOCAL_HASHES_MATCH_INACTIVE`, solely local hashes; independent verification and current originals remain required. Formal ACK/production authorization stay false.

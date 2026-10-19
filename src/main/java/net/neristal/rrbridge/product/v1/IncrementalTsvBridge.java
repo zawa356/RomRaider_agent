@@ -90,6 +90,19 @@ public final class IncrementalTsvBridge {
     public static String runId(String device,String session){
         return UUID.nameUUIDFromBytes(("RomLogger-v1|"+UUID.fromString(device).toString()+"|run|"+session+"||").getBytes(StandardCharsets.UTF_8)).toString();
     }
+    /** Read-only RLC1 payload evidence. Never an RLC2 highwater, physical identity or ACK. */
+    public static String[] journalCursorEvidence(String device,String vehicle,String session,List<String> prefix)throws Exception {
+        if(prefix.isEmpty()||prefix.size()>100000)throw new IllegalArgumentException("bounded nonempty journal prefix required");
+        ProjectionSink discard=new ProjectionSink(){
+            public void appendProfile(String id,String json){}
+            public void appendRecord(String id,String run,String segment,Long seq,String kind,String profile,String at,String source,String json){}
+        };
+        IncrementalTsvBridge converter=new IncrementalTsvBridge(device,vehicle,discard);
+        Map<String,Segment> state=new LinkedHashMap<String,Segment>();
+        String chain="START";long seq=0;
+        for(String row:prefix){seq++;converter.apply(row,seq,session,state);chain=shaText(chain+"|"+seq+"|"+row.getBytes(StandardCharsets.UTF_8).length+"|"+row);}
+        return new String[]{shaText(prefix.get(0)),chain,encode(state)};
+    }
     private String uuid(String kind,String session,String segment,String key){
         return UUID.nameUUIDFromBytes(
             ("RomLogger-v1|"+deviceId+"|"+kind+"|"+session+"|"+segment+"|"+key)

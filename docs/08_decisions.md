@@ -522,3 +522,16 @@ RLAP1 describes exact ordered JAR hashes and runtime, and refuses wildcard, dire
 
 ## D-070 - Phase IV: legacy v1 rows are matched against real originals, never converted
 v1 JSON, claims and cursors cannot produce RLC2 physical UUIDs, committed frames, manifests or receipts. RLPC1 marks a v1 row VERIFIED_ORIGINAL only when an operator-supplied RLC2 original re-projects to the same record ID and v1 canonical hash and the journal claim names one of its sources. Everything else is LEGACY_WITHOUT_RLC2_PROVENANCE, CONFLICT or UNKNOWN_OR_INCOMPLETE. Staging writes a new RLLV1 vault (all rows, preserved v1 ACK state, no formal ACK) and a new RLI2 candidate from verified originals only, and a completion marker distinguishes complete staging from incomplete. [Contract](interfaces/legacy_v1_rli2_provenance_v1.md).
+
+
+## D-071 — Phase V provenance is whole-cursor and whole-session evidence
+
+UUID membership is insufficient. Compare cursor device/vehicle/session, exact absolute normalized real single-link path and independently recomputed RLC1 payload prefix/metadata state. Never reinterpret its chain/sequence as RLC2 durable highwater. Conflicts across supplied originals invalidate both earlier and later runs. Existing device/session-derived run IDs stay unchanged; multiple vehicle claims for one run fail closed. See the [RLPC1 contract](interfaces/legacy_v1_rli2_provenance_v1.md).
+
+## D-072 — Freeze originals and independently verify complete staged data
+
+One classification freezes original projections and bounded input snapshots. Exact typed Vault and all-eight-table RLI2 comparisons reject extras, omissions, content and schema changes. Growth is permitted before a fresh classification, not within its staging/verification boundary. RLLV1 retains all v1 record rows and historical ACK fields only; full v1 inventory remains in unchanged originals/RMI1. The local completion hashes cannot prove authenticity or authorize use. RLLV1 formal storage adoption is a proposal only, not approved by this implementation.
+
+## D-073 — Publish completed isolated files without opening final targets writable
+
+Claim a fresh private work directory atomically, CREATE_NEW internal DB files and retain the directory after success/failure. Force completed files and publish with atomic no-replace hardlink insertion; remove only the owned internal name. Existing targets, partial attempts, unknown aliases/ACLs and unavailable publication primitives fail closed. No automatic recovery or deletion. This is local file publication, not a two-DB transaction or global fencing; Windows directory durability remains UNKNOWN.

@@ -407,3 +407,8 @@ Phase III adds RMI1 reference cleanup (RED10 leaked references, GREEN0 newly ret
 ## 2026-10-19 Phase III final publication
 
 PR70–73: RLDB1固定配置、read-only readiness、RLBA1 backup/RMI1 rehearsal、copy-state CLIと6子JVM fault boundaries。上記時点で未成立だった新harnessのcopy/crash matrixを今回追加した。hardlink target/source aliasとrecovery sidecar aliasの実RED→GREEN、schema reference leak cleanup。検証head ed8efd6、Windows64/actual32/Linux/HTTP35/Server57受入。詳細と未成立条件は [報告](handoff/codex_phase3_report.md)、[証跡](handoff/phase3_validation_evidence.md)、[追記log](handoff/codex_phase3_worklog.md)。CI NOT RUN。本番/正式ACK/Session rebindは未解禁。
+
+
+## 2026-10-19 — Phase V initial hardening
+
+Reproduced 32 accepted cursor/output mutations against Phase IV main (9 controls/checks passed). Added whole-cursor RLC1 payload evidence, symmetric cross-run UUID collision rejection, frozen original projections, exact typed Vault/all-eight-table RLI2 verification and private no-overwrite staging publication. Initial expanded Windows x64 acceptance: 56/0 including four child-JVM halt boundaries. Final exact-head matrix and limitations are recorded in Phase V worklog/evidence. Historical Phase IV #79/Server #61 were already merged before this session. Production migration/ACK/real-car access remain disabled.

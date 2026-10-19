@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.util.*;
 import net.neristal.rrbridge.product.v1.IncrementalTsvBridge;
 import net.neristal.rrbridge.product.v1.LegacyWorkerGuard;
+import net.neristal.rrbridge.product.v1.DeploymentBinding;
 
 /**
  * RLPC1: classify legacy v1 records against available RLC2 originals (Phase IV, synthetic, read-only classification).
@@ -41,10 +42,17 @@ public final class LegacyProvenanceClassifier {
     public static final class Report {
         public final List<Row> rows;public final Map<String,String> sessions;public final String v1Sha256;
         public final Map<String,Set<String>> verifiedSources;public final List<String> conflicts;
-        Report(List<Row> rows,Map<String,String> sessions,String v1Sha,Map<String,Set<String>> verifiedSources,List<String> conflicts){
+        private final Map<String,Rlc2ProductAdapter.Projection> projections;
+        private final Map<String,String> directories;
+        private final List<Rlc2InputSnapshot> snapshots;
+        Report(List<Row> rows,Map<String,String> sessions,String v1Sha,Map<String,Set<String>> verifiedSources,List<String> conflicts,
+                Map<String,Rlc2ProductAdapter.Projection> projections,Map<String,String> directories,List<Rlc2InputSnapshot> snapshots){
             this.rows=Collections.unmodifiableList(rows);this.sessions=Collections.unmodifiableMap(sessions);v1Sha256=v1Sha;
             this.verifiedSources=Collections.unmodifiableMap(verifiedSources);this.conflicts=Collections.unmodifiableList(conflicts);
+            this.projections=Collections.unmodifiableMap(projections);this.directories=Collections.unmodifiableMap(directories);
+            this.snapshots=Collections.unmodifiableList(snapshots);
         }
+        void verifySnapshots()throws Exception{for(Rlc2InputSnapshot s:snapshots)s.verify();}
         public long count(Category c){long n=0;for(Row r:rows)if(r.category==c)n++;return n;}
         /** A row moves to the RLI2 candidate only if it verified AND its whole session verified (one CONFLICT blocks the run). */
         public boolean migratable(Row r){return r.category==Category.VERIFIED_ORIGINAL&&Category.VERIFIED_ORIGINAL.name().equals(sessions.get(r.runId));}
@@ -75,29 +83,51 @@ public final class LegacyProvenanceClassifier {
         Map<String,Map<String,String>> projectedByRun=new HashMap<String,Map<String,String>>();
         Map<String,Set<String>> sourcesByRun=new HashMap<String,Set<String>>();Map<String,String> sessionOfRun=new HashMap<String,String>();
         Map<String,String> brokenRun=new HashMap<String,String>();Map<String,String> sourceOwner=new HashMap<String,String>();
+        Map<String,Rlc2ProductAdapter.Projection> projections=new TreeMap<String,Rlc2ProductAdapter.Projection>();
+        Map<String,String> directories=new TreeMap<String,String>();List<Rlc2InputSnapshot> snapshots=new ArrayList<Rlc2InputSnapshot>();
         List<String> conflicts=new ArrayList<String>();
         for(Original o:originals) {
             Rlc2ProductAdapter.Projection p;
-            try{p=Rlc2ProductAdapter.project(true,o.directory,o.ledger,o.device,o.vehicle,reader);}
+            try{
+                DeploymentBinding.safe(o.directory.toFile());
+                Rlc2InputSnapshot snapshot=Rlc2InputSnapshot.capture(o.directory,o.ledger,v1);
+                p=Rlc2ProductAdapter.project(true,o.directory,o.ledger,o.device,o.vehicle,reader);snapshot.verify();snapshots.add(snapshot);
+            }
             catch(Exception e){
                 // We cannot know which run it was without a valid projection; record as an unusable original.
                 conflicts.add("ORIGINAL_UNVERIFIABLE");continue;
             }
             String run=IncrementalTsvBridge.runId(p.device,p.payloadSession);
             Map<String,String> recs=new HashMap<String,String>();for(Rlc2ProductAdapter.Record r:p.records){if(!r.run.equals(run))throw new IOException("ORIGINAL_RUN_MIXED");recs.put(r.id,v1Canonical(r));}
-            Set<String> ids=new HashSet<String>();for(Rlc2ProductAdapter.Source s:p.sources){ids.add(s.uuid);String prior=sourceOwner.put(s.uuid,run);if(prior!=null&&!prior.equals(run))brokenRun.put(run,"SOURCE_UUID_DUPLICATED");}
+            Set<String> ids=new HashSet<String>();for(Rlc2ProductAdapter.Source s:p.sources){ids.add(s.uuid);String prior=sourceOwner.put(s.uuid,run);if(prior!=null&&!prior.equals(run)){brokenRun.put(run,"SOURCE_UUID_DUPLICATED");brokenRun.put(prior,"SOURCE_UUID_DUPLICATED");}}
             if(projectedByRun.containsKey(run))brokenRun.put(run,"ORIGINAL_DUPLICATED_FOR_RUN");
             projectedByRun.put(run,recs);sourcesByRun.put(run,ids);sessionOfRun.put(run,p.device+"|"+p.vehicle+"|"+p.payloadSession);
+            projections.put(run,p);directories.put(run,o.directory.toFile().getCanonicalPath());
         }
         List<Row> rows=new ArrayList<Row>();Map<String,String> sessions=new TreeMap<String,String>();Map<String,Set<String>> verified=new TreeMap<String,Set<String>>();
         try(Connection c=IngressDiagnostics.readOnly(v1)) {
             // Claims → runs. A journal claim must name one of the original's physical sources to be verifiable.
             Map<String,String> claimKind=new HashMap<String,String>(),claimKey=new HashMap<String,String>();
             try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT device_id,vehicle_id,session_id,source_kind,source_key FROM v1_source_claims")) {
-                while(r.next()){String run=IncrementalTsvBridge.runId(r.getString(1),r.getString(3));claimKind.put(run,r.getString(4));claimKey.put(run,r.getString(5));}
+                while(r.next()){
+                    String run=IncrementalTsvBridge.runId(r.getString(1),r.getString(3));
+                    if(claimKind.containsKey(run))brokenRun.put(run,"CLAIM_RUN_COLLISION");
+                    claimKind.put(run,r.getString(4));claimKey.put(run,r.getString(5));
+                    if(sessionOfRun.containsKey(run)&&!sessionOfRun.get(run).equals(r.getString(1)+"|"+r.getString(2)+"|"+r.getString(3)))brokenRun.put(run,"CLAIM_OWNER_MISMATCH");
+                }
             }
-            Set<String> journalCursorUuids=new HashSet<String>();
-            try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT source_uuid FROM v1_journal_import_cursors")){while(r.next())journalCursorUuids.add(r.getString(1));}
+            Map<String,List<Cursor>> cursors=new HashMap<String,List<Cursor>>();
+            try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT source_uuid,source_path,device_id,vehicle_id,session_id,sequence,first_sha256,chain_sha256,segment_snapshot,typeof(sequence) FROM v1_journal_import_cursors")){
+                while(r.next()){
+                    Cursor cursor=new Cursor(r);List<Cursor> list=cursors.get(cursor.uuid);
+                    if(list==null){list=new ArrayList<Cursor>();cursors.put(cursor.uuid,list);}list.add(cursor);
+                    String run=IncrementalTsvBridge.runId(cursor.device,cursor.session);
+                    if(claimKey.containsKey(run)&&sourcesByRun.containsKey(run)&&sourcesByRun.get(run).contains(claimKey.get(run))&&!Objects.equals(claimKey.get(run),cursor.uuid))brokenRun.put(run,"ORPHAN_CURSOR");
+                }
+            }
+            for(String run:claimKey.keySet())if(projections.containsKey(run)&&"journal".equals(claimKind.get(run))&&!brokenRun.containsKey(run)){
+                String reason=cursorReason(claimKey.get(run),cursors,projections.get(run));if(reason!=null)brokenRun.put(run,reason);
+            }
             Map<String,long[]> receipts=new HashMap<String,long[]>();
             try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT batch_id,record_count FROM v1_ack_receipts")){while(r.next())receipts.put(r.getString(1),new long[]{r.getLong(2),0});}
             Set<String> profiles=new HashSet<String>();
@@ -122,7 +152,7 @@ public final class LegacyProvenanceClassifier {
                 else if(brokenRun.containsKey(run)){cat=Category.CONFLICT;reason=brokenRun.get(run);}
                 else if(!projectedByRun.containsKey(run)){cat=Category.LEGACY_WITHOUT_RLC2_PROVENANCE;reason="legacy".equals(claimKind.get(run))?"TSV_LANE_HAS_NO_RLC2_ORIGINAL":"NO_ORIGINAL_SUPPLIED";}
                 else if("legacy".equals(claimKind.get(run))){cat=Category.CONFLICT;reason="TSV_CLAIM_WITH_RLC2_ORIGINAL";}
-                else if(!sourcesByRun.get(run).contains(claimKey.get(run))||!journalCursorUuids.contains(claimKey.get(run))){cat=Category.CONFLICT;reason="JOURNAL_CLAIM_NOT_AN_ORIGINAL_SOURCE";}
+                else if(!"journal".equals(claimKind.get(run))||!sourcesByRun.get(run).contains(claimKey.get(run))){cat=Category.CONFLICT;reason="JOURNAL_CLAIM_NOT_AN_ORIGINAL_SOURCE";}
                 else {
                     String original=projectedByRun.get(run).get(rid);
                     if(original==null){cat=Category.UNKNOWN_OR_INCOMPLETE;reason="NOT_IN_COMMITTED_ORIGINAL";}
@@ -135,15 +165,44 @@ public final class LegacyProvenanceClassifier {
             // Session verdict: every v1 record of the run verified AND the original has no record the v1 lane lacks is not required
             // (an original may have grown); but a run with any non-verified record is not migratable as a whole.
             for(String run:claimKind.keySet()) {
-                String verdict=Category.LEGACY_WITHOUT_RLC2_PROVENANCE.name();boolean all=true,any=false;
-                for(Row r:rows)if(r.runId.equals(run)){any=true;if(r.category!=Category.VERIFIED_ORIGINAL)all=false;if(r.category==Category.CONFLICT)verdict=Category.CONFLICT.name();}
+                String verdict=Category.LEGACY_WITHOUT_RLC2_PROVENANCE.name();boolean all=true,any=false,unknown=false;
+                for(Row r:rows)if(r.runId.equals(run)){any=true;if(r.category!=Category.VERIFIED_ORIGINAL)all=false;if(r.category==Category.UNKNOWN_OR_INCOMPLETE)unknown=true;if(r.category==Category.CONFLICT)verdict=Category.CONFLICT.name();}
                 if(any&&all){verdict=Category.VERIFIED_ORIGINAL.name();verified.put(run,sourcesByRun.get(run));}
-                else if(!any)verdict=Category.UNKNOWN_OR_INCOMPLETE.name();
+                else if((!any||unknown)&&!Category.CONFLICT.name().equals(verdict))verdict=Category.UNKNOWN_OR_INCOMPLETE.name();
                 sessions.put(run,verdict);
             }
+            for(Row r:rows)if(!sessions.containsKey(r.runId))sessions.put(r.runId,Category.UNKNOWN_OR_INCOMPLETE.name());
         }
         if(!before.equals(DeploymentTransition.fileSha(v1)))throw new IOException("V1_CHANGED_DURING_CLASSIFICATION");
-        return new Report(rows,sessions,before,verified,conflicts);
+        for(Rlc2InputSnapshot snapshot:snapshots)snapshot.verify();
+        return new Report(rows,sessions,before,verified,conflicts,projections,directories,snapshots);
+    }
+
+    private static final class Cursor {
+        final String uuid,path,device,vehicle,session,first,chain,snapshot,sequence,type;
+        Cursor(ResultSet r)throws Exception{uuid=r.getString(1);path=r.getString(2);device=r.getString(3);vehicle=r.getString(4);session=r.getString(5);sequence=r.getString(6);first=r.getString(7);chain=r.getString(8);snapshot=r.getString(9);type=r.getString(10);}
+    }
+    private static String cursorReason(String uuid,Map<String,List<Cursor>> cursors,Rlc2ProductAdapter.Projection p)throws Exception {
+        Rlc2ProductAdapter.Source source=null;for(Rlc2ProductAdapter.Source s:p.sources)if(s.uuid.equals(uuid))source=s;
+        if(source==null)return "JOURNAL_CLAIM_NOT_AN_ORIGINAL_SOURCE";
+        List<Cursor> list=cursors.get(uuid);if(list==null)return "CURSOR_MISSING";if(list.size()!=1)return "CURSOR_UUID_DUPLICATED";
+        Cursor c=list.get(0);
+        if(!p.device.equals(c.device)||!p.vehicle.equals(c.vehicle)||!p.payloadSession.equals(c.session))return "CURSOR_OWNER_MISMATCH";
+        // Require an exact absolute, normalized, real single-link path. Do not bless aliases by canonicalizing them first.
+        try{if(!source.path.equals(c.path)||!DeploymentBinding.safe(new File(c.path)).toString().equals(c.path))return "CURSOR_PATH_MISMATCH";}
+        catch(Exception unknown){return "CURSOR_PATH_MISMATCH";}
+        long n;try{n=Long.parseLong(c.sequence);}catch(Exception bad){return "CURSOR_SEQUENCE_INVALID";}
+        if(!"integer".equals(c.type)||n<1||n>source.marker.sequence||n>100000)return "CURSOR_SEQUENCE_INVALID";
+        List<String> prefix=new ArrayList<String>();
+        for(Rlc2ProductAdapter.Receipt r:p.receipts)if(r.sourceUuid.equals(uuid)&&r.sequence<=n){if(r.sequence!=prefix.size()+1)return "CURSOR_SEQUENCE_INVALID";prefix.add(r.body);}
+        if(prefix.size()!=n)return "CURSOR_SEQUENCE_INVALID";
+        String[] expected;
+        try{expected=IncrementalTsvBridge.journalCursorEvidence(p.device,p.vehicle,p.payloadSession,prefix);}
+        catch(Exception incompatible){return "CURSOR_SNAPSHOT_MISMATCH";}
+        if(!expected[0].equals(c.first))return "CURSOR_FIRST_HASH_MISMATCH";
+        if(!expected[1].equals(c.chain))return "CURSOR_CHAIN_MISMATCH";
+        if(!expected[2].equals(c.snapshot))return "CURSOR_SNAPSHOT_MISMATCH";
+        return null;
     }
 
     // ------------------------------------------------------------------ isolated staging (synthetic opt-in)
@@ -162,18 +221,18 @@ public final class LegacyProvenanceClassifier {
     public static Report stageIsolated(boolean enable,boolean quiescent,File v1,List<Original> originals,WatermarkV2Prototype.ReadOpener reader,
             File vault,File rli2,StagingHook hook)throws Exception {
         if(!enable||!quiescent)throw new IOException("STAGING_REQUIRES_EXPLICIT_QUIESCENCE");
-        for(File f:new File[]{vault,rli2,marker(vault)})if(Files.exists(f.toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("STAGING_TARGET_EXISTS");
+        for(File f:new File[]{vault,rli2,marker(vault),LegacyStagingTargets.work(vault).toFile()})if(Files.exists(f.toPath(),LinkOption.NOFOLLOW_LINKS))throw new IOException("STAGING_TARGET_EXISTS");
         for(File f:new File[]{vault,rli2})if(f.getCanonicalFile().equals(v1.getCanonicalFile()))throw new IOException("STAGING_TARGET_IS_SOURCE");
+        if(vault.getCanonicalFile().equals(rli2.getCanonicalFile())||marker(vault).getCanonicalFile().equals(rli2.getCanonicalFile()))throw new IOException("STAGING_TARGET_ALIAS");
+        for(Original o:originals)for(File f:new File[]{vault,rli2})if(f.toPath().toAbsolutePath().startsWith(o.directory.toAbsolutePath())||f.getCanonicalFile().equals(o.ledger.getCanonicalFile()))throw new IOException("STAGING_TARGET_IS_SOURCE");
         try(LegacyWorkerGuard old=LegacyWorkerGuard.acquire(v1)) {
             Report report=classify(true,true,v1,originals,reader);
-            try(Connection db=DriverManager.getConnection("jdbc:sqlite:"+vault.getAbsolutePath())) {
+            LegacyStagingTargets targets=new LegacyStagingTargets(vault,rli2);
+            try(Connection db=DriverManager.getConnection("jdbc:sqlite:"+targets.vault.toURI().toASCIIString()+"?mode=rw")) {
                 try(Statement s=db.createStatement()) {
                     s.execute("PRAGMA journal_mode=DELETE");s.execute("PRAGMA synchronous=FULL");
                     s.execute("PRAGMA application_id="+VAULT_APPLICATION_ID);s.execute("PRAGMA user_version=1");
-                    s.execute("CREATE TABLE vault_meta(version INTEGER PRIMARY KEY CHECK(version=1),v1_sha256 TEXT NOT NULL,formal_ack INTEGER NOT NULL CHECK(formal_ack=0))");
-                    s.execute("CREATE TABLE vault_records(v1_local_id INTEGER PRIMARY KEY,record_id TEXT NOT NULL UNIQUE,run_id TEXT NOT NULL,v1_body_sha256 TEXT NOT NULL,body_json TEXT,"
-                        +"v1_acked INTEGER NOT NULL CHECK(v1_acked IN (0,1)),v1_acked_batch_id TEXT,v1_acked_at TEXT,category TEXT NOT NULL,reason TEXT NOT NULL,rli2_record INTEGER NOT NULL CHECK(rli2_record IN (0,1)))");
-                    s.execute("CREATE TABLE vault_sessions(run_id TEXT PRIMARY KEY,category TEXT NOT NULL)");
+                    LegacyStagedEvidence.createVault(s);
                 }
                 hook.at(StagingStage.VAULT_CREATED);
                 db.setAutoCommit(false);
@@ -185,21 +244,27 @@ public final class LegacyProvenanceClassifier {
                 try(PreparedStatement q=db.prepareStatement("INSERT INTO vault_sessions VALUES(?,?)")){for(Map.Entry<String,String> e:report.sessions.entrySet()){q.setString(1,e.getKey());q.setString(2,e.getValue());q.executeUpdate();}}
                 db.commit();
             }
+            targets.publish(targets.vault,vault);
             hook.at(StagingStage.VAULT_ROWS_WRITTEN);
-            new Rlc2IntegrationStore(true,rli2); // initializes the dedicated RLI2 format (CREATE only; target checked absent above)
-            for(Original o:originals) {
-                Rlc2ProductAdapter.Projection p;try{p=Rlc2ProductAdapter.project(true,o.directory,o.ledger,o.device,o.vehicle,reader);}catch(Exception e){continue;}
-                String run=IncrementalTsvBridge.runId(p.device,p.payloadSession);
+            Rlc2IntegrationSchema.initializeClaimed(targets.rli2);
+            report.verifySnapshots();
+            for(Map.Entry<String,Rlc2ProductAdapter.Projection> entry:report.projections.entrySet()) {
+                String run=entry.getKey();Rlc2ProductAdapter.Projection p=entry.getValue();
                 if(!Category.VERIFIED_ORIGINAL.name().equals(report.sessions.get(run)))continue;
-                importVerified(rli2,p,o);
+                importVerified(targets.rli2,p,report.directories.get(run));
             }
+            targets.publish(targets.rli2,rli2);
             hook.at(StagingStage.RLI2_WRITTEN);
+            String vaultHash=DeploymentTransition.fileSha(vault),rli2Hash=DeploymentTransition.fileSha(rli2);
             verifyStaged(v1,report,vault,rli2);
             Map<String,String> m=new TreeMap<String,String>();m.put("version","RLPC1-STAGED");m.put("v1_sha256",report.v1Sha256);
-            m.put("vault_sha256",DeploymentTransition.fileSha(vault));m.put("rli2_sha256",DeploymentTransition.fileSha(rli2));
+            m.put("vault_sha256",vaultHash);m.put("rli2_sha256",rli2Hash);
+            if(!vaultHash.equals(DeploymentTransition.fileSha(vault))||!rli2Hash.equals(DeploymentTransition.fileSha(rli2)))throw new IOException("STAGING_OUTPUT_CHANGED");
+            report.verifySnapshots();old.verify();
             net.neristal.rrbridge.product.v1.DeploymentBinding.createRecord(marker(vault).toPath(),net.neristal.rrbridge.product.v1.DeploymentBinding.encodeRecord(m));
             hook.at(StagingStage.VERIFIED);
-            old.verify();
+            report.verifySnapshots();old.verify();
+            if(!"STAGED_LOCAL_HASHES_MATCH_INACTIVE".equals(stagingState(vault,rli2)))throw new IOException("STAGING_OUTPUT_CHANGED");
             return report;
         }
     }
@@ -209,14 +274,13 @@ public final class LegacyProvenanceClassifier {
      * path uses the same transactional backend and records the same binding/admission rows, but only for a VERIFIED run,
      * only into the new output, and with the original's own sources/receipts. It never reads v1 bodies into RLI2.
      */
-    private static void importVerified(File rli2,final Rlc2ProductAdapter.Projection p,Original o)throws Exception {
-        final String directory=o.directory.toFile().getCanonicalPath(),run=p.records.get(0).run;
+    private static void importVerified(File rli2,final Rlc2ProductAdapter.Projection p,final String directory)throws Exception {
+        final String run=p.records.get(0).run;
         final Set<String> sources=new HashSet<String>();for(Rlc2ProductAdapter.Source s:p.sources)sources.add(s.uuid);
         new Rlc2PreviewStore(true,rli2,true).ingest(p,Rlc2PreviewStore.NO_FAULT,new Rlc2PreviewStore.TransactionGuard(){
             public void beforeWrite(Connection db){}
             public void claimsWritten(Connection db)throws Exception{
-                try(PreparedStatement q=db.prepareStatement("INSERT OR IGNORE INTO integration_bindings VALUES(?,?,?,2)")){q.setString(1,p.manifestSession);q.setString(2,directory);q.setString(3,run);q.executeUpdate();}
-                for(String uuid:sources)try(PreparedStatement q=db.prepareStatement("INSERT OR IGNORE INTO integration_admissions VALUES(?,?)")){q.setString(1,uuid);q.setString(2,p.manifestSession);q.executeUpdate();}
+                Rlc2IntegrationStore.saveBindingAndAdmissions(db,p.manifestSession,directory,run,sources);
             }
             public void beforeCommit(Connection db){}
         });
@@ -225,35 +289,31 @@ public final class LegacyProvenanceClassifier {
     /** Read-only verification of staged outputs against the v1 source; v1 bytes must be unchanged. */
     public static void verifyStaged(File v1,Report report,File vault,File rli2)throws Exception {
         if(!report.v1Sha256.equals(DeploymentTransition.fileSha(v1)))throw new IOException("V1_CHANGED");
-        try(Connection c=IngressDiagnostics.readOnly(vault)) {
-            try(Statement s=c.createStatement();ResultSet r=s.executeQuery("PRAGMA application_id")){r.next();if(r.getInt(1)!=VAULT_APPLICATION_ID)throw new IOException("VAULT_FORMAT");}
-            try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT count(*),sum(v1_acked),sum(rli2_record) FROM vault_records")) {
-                r.next();long acked=0,verified=report.migratable();for(Row x:report.rows)if(x.acked)acked++;
-                if(r.getLong(1)!=report.rows.size()||r.getLong(2)!=acked||r.getLong(3)!=verified)throw new IOException("VAULT_ROWS_MISMATCH");
-            }
-            try(PreparedStatement q=c.prepareStatement("SELECT record_id,v1_body_sha256,v1_acked,v1_acked_batch_id,category FROM vault_records WHERE v1_local_id=?")) {
-                for(Row x:report.rows){q.setLong(1,x.localId);try(ResultSet r=q.executeQuery()){
-                    if(!r.next()||!x.recordId.equals(r.getString(1))||!x.bodySha.equals(r.getString(2))||(r.getInt(3)==1)!=x.acked||!Objects.equals(x.ackedBatch,r.getString(4))||!x.category.name().equals(r.getString(5)))throw new IOException("VAULT_ROW_CHANGED");
-                }}
-            }
+        report.verifySnapshots();
+        String vaultHash=DeploymentTransition.fileSha(vault),outputHash=DeploymentTransition.fileSha(rli2);
+        try(Connection c=IngressDiagnostics.readOnly(vault)){LegacyStagedEvidence.vault(c,report);}
+        Map<String,List<Object[]>> expected=LegacyStagedEvidence.expected();
+        for(Map.Entry<String,Rlc2ProductAdapter.Projection> e:report.projections.entrySet())
+            if(Category.VERIFIED_ORIGINAL.name().equals(report.sessions.get(e.getKey())))
+                LegacyStagedEvidence.add(expected,e.getValue(),report.directories.get(e.getKey()));
+        try(Connection c=IngressDiagnostics.readOnly(rli2)){
+            Rlc2IntegrationSchema.verify(c);
+            for(Map.Entry<String,List<Object[]>> e:expected.entrySet())LegacyStagedEvidence.exact(c,e.getKey(),e.getValue());
         }
-        Set<String> expected=new HashSet<String>();for(Row x:report.rows)if(report.migratable(x))expected.add(x.recordId);
-        Set<String> stored=new HashSet<String>();
-        if(rli2.exists())try(Connection c=IngressDiagnostics.readOnly(rli2);Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT record_id FROM preview_records")){while(r.next())stored.add(r.getString(1));}
-        // Every verified v1 record exists in the RLI2 candidate; extra RLI2 rows can only come from the same verified originals.
-        if(!stored.containsAll(expected))throw new IOException("RLI2_MISSING_VERIFIED_RECORD");
-        for(Row x:report.rows)if(!report.migratable(x)&&stored.contains(x.recordId))throw new IOException("RLI2_CONTAINS_UNVERIFIED_RECORD");
+        report.verifySnapshots();
+        if(!report.v1Sha256.equals(DeploymentTransition.fileSha(v1))||!vaultHash.equals(DeploymentTransition.fileSha(vault))||!outputHash.equals(DeploymentTransition.fileSha(rli2)))throw new IOException("STAGED_EVIDENCE_CHANGED_DURING_VERIFY");
     }
 
-    /** Status of a staging directory without opening anything writable. */
+    /** Local completed-file hashes only. Does not prove current original provenance or authorize use. */
     public static String stagingState(File vault,File rli2) {
-        boolean m=Files.exists(marker(vault).toPath(),LinkOption.NOFOLLOW_LINKS),v=vault.exists(),r=rli2.exists();
+        boolean m=Files.exists(marker(vault).toPath(),LinkOption.NOFOLLOW_LINKS),v=Files.exists(vault.toPath(),LinkOption.NOFOLLOW_LINKS)||Files.exists(LegacyStagingTargets.work(vault),LinkOption.NOFOLLOW_LINKS),r=Files.exists(rli2.toPath(),LinkOption.NOFOLLOW_LINKS);
         if(!m&&!v&&!r)return "NO_STAGING";
         if(!m)return "INCOMPLETE_REVIEW_REQUIRED";
         try {
             Map<String,String> rec=net.neristal.rrbridge.product.v1.DeploymentBinding.readRecord(marker(vault).toPath());
-            if(!"RLPC1-STAGED".equals(rec.get("version"))||!rec.get("vault_sha256").equals(DeploymentTransition.fileSha(vault))||!rec.get("rli2_sha256").equals(DeploymentTransition.fileSha(rli2)))return "STAGED_EVIDENCE_MISMATCH";
-            return "STAGED_VERIFIED_INACTIVE";
+            DeploymentBinding.safe(vault);DeploymentBinding.safe(rli2);
+            if(rec.size()!=4||!"RLPC1-STAGED".equals(rec.get("version"))||rec.get("v1_sha256")==null||!rec.get("v1_sha256").matches("[0-9a-f]{64}")||!rec.get("vault_sha256").equals(DeploymentTransition.fileSha(vault))||!rec.get("rli2_sha256").equals(DeploymentTransition.fileSha(rli2)))return "STAGED_EVIDENCE_MISMATCH";
+            return "STAGED_LOCAL_HASHES_MATCH_INACTIVE";
         }catch(Exception e){return "STAGED_EVIDENCE_MISMATCH";}
     }
     private LegacyProvenanceClassifier(){}

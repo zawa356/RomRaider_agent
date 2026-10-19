@@ -53,6 +53,7 @@ public final class Phase5ProvenanceTest {
  }
  public static void main(String[] args)throws Exception {
   final Fixture f=new Fixture();
+  if(args.length==1&&"--load10000".equals(args[0])){load(f);return;}
   final String before=DeploymentTransition.fileSha(f.v1);
   test("valid RLC1 cursor payload evidence against real synthetic RLC2 original",new Action(){public void run()throws Exception{require(f.classify(f.v1).migratable()==f.p.records.size(),f.classify(f.v1).json());}});
   String[][] mutations={
@@ -81,6 +82,33 @@ public final class Phase5ProvenanceTest {
   test("orphan same-run cursor blocks the entire session",new Action(){public void run()throws Exception{
    File c=f.copy(f.v1);sql(c,"INSERT INTO v1_journal_import_cursors SELECT '"+UUID.randomUUID()+"',source_path,device_id,vehicle_id,session_id,sequence,first_sha256,chain_sha256,segment_snapshot FROM v1_journal_import_cursors");require(f.classify(c).migratable()==0,"orphan admitted");
   }});
+  test("duplicate UUID rows in damaged cursor table",new Action(){public void run()throws Exception{
+   File c=f.copy(f.v1);sql(c,"ALTER TABLE v1_journal_import_cursors RENAME TO saved_cursors");sql(c,"CREATE TABLE v1_journal_import_cursors AS SELECT * FROM saved_cursors");sql(c,"INSERT INTO v1_journal_import_cursors SELECT * FROM saved_cursors");
+   require(LegacyProvenanceClassifierTest.reasons(f.classify(c),"CURSOR_UUID_DUPLICATED")==f.p.records.size(),"duplicate UUID admitted");
+  }});
+  test("multiple vehicle claims collide on existing device/session run ID",new Action(){public void run()throws Exception{
+   File c=f.copy(f.v1);sql(c,"INSERT INTO v1_source_claims SELECT device_id,'"+UUID.randomUUID()+"',session_id,source_kind,source_key FROM v1_source_claims");require(f.classify(c).migratable()==0,"colliding claims admitted");
+  }});
+  test("same physical UUID across two runs rejects BOTH runs regardless of supplied order",new Action(){public void run()throws Exception{
+   String other=UUID.randomUUID().toString();File c=f.copy(f.v1);DurableSpool spool=new DurableSpool(c);
+   Rlc2ProductAdapter.Projection p2=Rlc2ProductAdapter.project(true,f.dir,f.ledger,other,V,f.env.reader());
+   spool.claimSourceSession(other,V,A,"journal",f.p.sources.get(0).uuid);
+   for(Map.Entry<String,String> e:p2.profiles.entrySet())spool.appendProfile(e.getKey(),e.getValue());
+   for(Rlc2ProductAdapter.Record r:p2.records)spool.appendRecord(r.id,r.run,r.segment,r.sequence,r.kind,r.profile,r.capturedAt,r.source,r.json);
+   LegacyProvenanceClassifier.Original a=f.originals.get(0),b=new LegacyProvenanceClassifier.Original(f.dir,f.ledger,other,V);
+   for(List<LegacyProvenanceClassifier.Original> originals:Arrays.asList(Arrays.asList(a,b),Arrays.asList(b,a))){
+    LegacyProvenanceClassifier.Report r=LegacyProvenanceClassifier.classify(true,true,c,originals,f.env.reader());
+    require(r.count(Category.VERIFIED_ORIGINAL)==0&&LegacyProvenanceClassifierTest.reasons(r,"SOURCE_UUID_DUPLICATED")==f.p.records.size()+p2.records.size(),"earlier run stayed verified");
+   }
+  }});
+  test("hardlink cursor alias is not normalized into an original",new Action(){public void run()throws Exception{
+   Path alias=f.home.resolve("alias.rlj");Files.createLink(alias,Paths.get(f.p.sources.get(0).path));
+   try{f.rejectsCursor("UPDATE v1_journal_import_cursors SET source_path="+quote(alias.toString()),"CURSOR_PATH_MISMATCH");}finally{Files.delete(alias);}
+  }});
+  test("source with a hardlink remains unverified even at exact original path",new Action(){public void run()throws Exception{
+   Path alias=f.home.resolve("alias2.rlj");Files.createLink(alias,Paths.get(f.p.sources.get(0).path));
+   try{require(f.classify(f.v1).migratable()==0,"multi-link original admitted");}finally{Files.delete(alias);}
+  }});
   final File vault=f.home.resolve("vault.db").toFile(),rli2=f.home.resolve("candidate.rlc2-integration.db").toFile();
   final LegacyProvenanceClassifier.Report staged=LegacyProvenanceClassifier.stageIsolated(true,true,f.v1,f.originals,f.env.reader(),vault,rli2,LegacyProvenanceClassifier.NO_FAULT);
   String[] columns={"v1_local_id=v1_local_id+100","record_id=record_id||'x'","run_id='tampered'","v1_body_sha256='tampered'","body_json='tampered'","v1_acked=1-v1_acked","v1_acked_batch_id='tampered'","v1_acked_at='tampered'","category='CONFLICT'","reason='tampered'","rli2_record=1-rli2_record"};
@@ -97,9 +125,32 @@ public final class Phase5ProvenanceTest {
    "UPDATE integration_admissions SET session_uuid='wrong'",
    "DELETE FROM integration_admissions",
    "UPDATE preview_sources SET prefix_sha256='wrong'",
-   "UPDATE integration_bindings SET session_path='wrong'"
+   "UPDATE integration_bindings SET session_path='wrong'",
+   "INSERT INTO preview_sources SELECT 'extra',session_uuid,999,'extra-path',identity_tag,identity_hex,generation,seq,offset_bytes,prefix_sha256,sealed FROM preview_sources LIMIT 1",
+   "CREATE TRIGGER surprise AFTER INSERT ON preview_records BEGIN DELETE FROM preview_receipts; END"
   })test("exact RLI2 evidence: "+mutation,new Action(){public void run()throws Exception{
    final File copy=f.copy(rli2);sql(copy,mutation);expectRefusal(new Action(){public void run()throws Exception{LegacyProvenanceClassifier.verifyStaged(f.v1,staged,vault,copy);}});
+  }});
+  for(final LegacyProvenanceClassifier.StagingStage stage:new LegacyProvenanceClassifier.StagingStage[]{LegacyProvenanceClassifier.StagingStage.VAULT_CREATED,LegacyProvenanceClassifier.StagingStage.VAULT_ROWS_WRITTEN,LegacyProvenanceClassifier.StagingStage.RLI2_WRITTEN})test("no overwrite when competitor creates target at "+stage,new Action(){public void run()throws Exception{
+   final File v=f.home.resolve("race-"+stage+".db").toFile(),r=f.home.resolve("race-"+stage+".rlc2-integration.db").toFile();
+   final File sentinel=stage==LegacyProvenanceClassifier.StagingStage.VAULT_CREATED?v:stage==LegacyProvenanceClassifier.StagingStage.VAULT_ROWS_WRITTEN?r:LegacyProvenanceClassifier.marker(v);
+   expectRefusal(new Action(){public void run()throws Exception{LegacyProvenanceClassifier.stageIsolated(true,true,f.v1,f.originals,f.env.reader(),v,r,new LegacyProvenanceClassifier.StagingHook(){public void at(LegacyProvenanceClassifier.StagingStage s)throws Exception{if(s==stage)Files.write(sentinel.toPath(),"competitor".getBytes(StandardCharsets.UTF_8),StandardOpenOption.CREATE_NEW);}});}});
+   require(new String(Files.readAllBytes(sentinel.toPath()),StandardCharsets.UTF_8).equals("competitor"),"competitor file changed");
+  }});
+  test("live legacy Worker lock refuses staging",new Action(){public void run()throws Exception{
+   try(LegacyWorkerGuard guard=LegacyWorkerGuard.acquire(f.v1)){expectRefusal(new Action(){public void run()throws Exception{LegacyProvenanceClassifier.stageIsolated(true,true,f.v1,f.originals,f.env.reader(),f.home.resolve("locked.db").toFile(),f.home.resolve("locked.rlc2-integration.db").toFile(),LegacyProvenanceClassifier.NO_FAULT);}});guard.verify();}
+  }});
+  for(final LegacyProvenanceClassifier.StagingStage stage:LegacyProvenanceClassifier.StagingStage.values())test("child JVM Runtime.halt boundary "+stage,new Action(){public void run()throws Exception{
+   final File v=f.home.resolve("halt-"+stage+".db").toFile(),r=f.home.resolve("halt-"+stage+".rlc2-integration.db").toFile();
+   File log=f.home.resolve("halt-"+stage+".log").toFile();
+   Process child=new ProcessBuilder(new File(System.getProperty("java.home"),"bin/java").toString(),"-cp",System.getProperty("java.class.path"),CrashChild.class.getName(),f.v1.toString(),f.dir.toString(),f.ledger.toString(),v.toString(),r.toString(),stage.name()).redirectErrorStream(true).redirectOutput(log).start();
+   if(!child.waitFor(60,java.util.concurrent.TimeUnit.SECONDS)){child.destroyForcibly();throw new AssertionError("child timeout");}
+   require(child.exitValue()==73,"child exit="+child.exitValue()+" "+new String(Files.readAllBytes(log.toPath()),StandardCharsets.UTF_8));
+   String state=LegacyProvenanceClassifier.stagingState(v,r);
+   require(state.equals(stage==LegacyProvenanceClassifier.StagingStage.VERIFIED?"STAGED_LOCAL_HASHES_MATCH_INACTIVE":"INCOMPLETE_REVIEW_REQUIRED"),state);
+   String hash=Files.exists(v.toPath())?DeploymentTransition.fileSha(v):"absent";
+   expectRefusal(new Action(){public void run()throws Exception{LegacyProvenanceClassifier.stageIsolated(true,true,f.v1,f.originals,f.env.reader(),v,r,LegacyProvenanceClassifier.NO_FAULT);}});
+   require(hash.equals(Files.exists(v.toPath())?DeploymentTransition.fileSha(v):"absent"),"retry changed partial artifact");
   }});
   test("original growth during staging is rejected",new Action(){public void run()throws Exception{
    expectRefusal(new Action(){public void run()throws Exception{LegacyProvenanceClassifier.stageIsolated(true,true,f.v1,f.originals,f.env.reader(),f.home.resolve("growing.db").toFile(),f.home.resolve("growing.rlc2-integration.db").toFile(),new LegacyProvenanceClassifier.StagingHook(){public void at(LegacyProvenanceClassifier.StagingStage s)throws Exception{
@@ -111,4 +162,25 @@ public final class Phase5ProvenanceTest {
   if(failed!=0)throw new AssertionError("Phase V negative tests failed: "+failed);
  }
  static void expectRefusal(Action a)throws Exception{try{a.run();}catch(Exception expected){return;}throw new AssertionError("tampered evidence accepted");}
+ static void load(final Fixture f)throws Exception {
+  try(WatermarkV2Scenarios.OwnedJournal writer=f.env.openOwned(RotationManifestPrototype.segment(f.dir,2))){
+   for(int i=2;i<10000;i++)writer.append("S\t"+A+"\t1\t"+i+"\t"+(1791838800000L+i*1000L)+"\tTEST_RPM=702");
+   WatermarkV2Scenarios.publish(f.env,RotationManifestPrototype.segment(f.dir,2),writer,WatermarkV2Prototype.NO_FAULT);
+  }
+  RotationManifestPrototype.ingestSession(f.dir,new WatermarkLedgerPrototype(f.ledger),f.env.reader(),null);
+  File vault=f.home.resolve("load.db").toFile(),rli2=f.home.resolve("load.rlc2-integration.db").toFile();
+  LegacyProvenanceClassifier.Report report=LegacyProvenanceClassifier.stageIsolated(true,true,f.v1,f.originals,f.env.reader(),vault,rli2,LegacyProvenanceClassifier.NO_FAULT);
+  require(report.migratable()==2,"original growth before classification should preserve old two rows");
+  require(Rlc2PreviewStoreTest.count(rli2,"SELECT count(*) FROM preview_records")==10000,"exact 10000 records");
+  require(Rlc2PreviewStoreTest.count(rli2,"SELECT count(*) FROM preview_receipts")==10001,"exact 10001 receipts");
+  LegacyProvenanceClassifier.verifyStaged(f.v1,report,vault,rli2);
+  System.out.println("Phase V load PASS: v1=2 historical rows, frozen original/RLI2=10000 records,10001 receipts; independent verification/reverification; JVM="+System.getProperty("sun.arch.data.model"));
+ }
+ public static final class CrashChild {
+  public static void main(String[] args)throws Exception {
+   Env env=Rlc2ProductAdapterTest.environment();
+   LegacyProvenanceClassifier.stageIsolated(true,true,new File(args[0]),Collections.singletonList(new LegacyProvenanceClassifier.Original(Paths.get(args[1]),new File(args[2]),D,V)),env.reader(),new File(args[3]),new File(args[4]),new LegacyProvenanceClassifier.StagingHook(){public void at(LegacyProvenanceClassifier.StagingStage s){if(s.name().equals(args[5]))Runtime.getRuntime().halt(73);}});
+   throw new AssertionError("halt point not reached");
+  }
+ }
 }

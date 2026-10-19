@@ -18,14 +18,22 @@ public final class Rlc2IntegrationSchema {
     public interface BeforeCommit { void run()throws Exception; }
     public static void initialize(boolean enable,File file)throws Exception {initialize(enable,file,new BeforeCommit(){public void run(){}});}
     static void initialize(boolean enable,File file,BeforeCommit hook)throws Exception {
+        initialize(enable,file,hook,false);
+    }
+    /** Only for CREATE_NEW files inside an exclusively claimed private staging directory. */
+    static void initializeClaimed(File file)throws Exception {
+        initialize(true,file,new BeforeCommit(){public void run(){}},true);
+    }
+    private static void initialize(boolean enable,File file,BeforeCommit hook,boolean claimed)throws Exception {
         if(!enable)throw new IllegalStateException("integration schema disabled");
         if(file==null||!file.getName().endsWith(".rlc2-integration.db"))throw new IOException("dedicated integration extension required");
         IngressDiagnostics.safePath(file.toPath());
         if(file.getAbsoluteFile().getParentFile()==null||!file.getAbsoluteFile().getParentFile().isDirectory())throw new IOException("existing parent required");
         Class.forName("org.sqlite.JDBC");
-        if(Files.exists(file.toPath())) {
+        if(Files.exists(file.toPath())&&!claimed) {
             try(Connection c=IngressDiagnostics.readOnly(file)){verify(c);}return;
         }
+        if(claimed&&(!Files.isRegularFile(file.toPath(),java.nio.file.LinkOption.NOFOLLOW_LINKS)||Files.size(file.toPath())!=0))throw new IOException("STAGING_CLAIM_NOT_EMPTY");
         try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+file.getAbsolutePath());Statement s=c.createStatement()) {
             s.execute("PRAGMA foreign_keys=ON");s.execute("PRAGMA synchronous=FULL");s.execute("BEGIN IMMEDIATE");
             try {
