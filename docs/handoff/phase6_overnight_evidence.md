@@ -72,3 +72,24 @@ These are d394103 broad results, not the later early-drive entry correction's re
 ## Final early-drive entry RED
 
 Test-onlyfd958d0 againstd394103 runtime: `build/phase6-drive-entry-red.log`, Windows17x64, exit1;1 passed/5 failed, SHA25620c24eaac87fb59762c6f0dc6135d77bfc103c1fe92e833a14aa7086434c2329. A synthetic Remote probe was never consulted before missing-binding refusal; commit also created Worker/Lane/Publication files in the fresh owned fixture. No actual network drive was queried or accessed. Final correction adds root-only proof before chain/lock I/O; normal SYSTEM/later layout checks are retained.
+## Owned actual HTTP at broad baseline d394103
+
+`C:\Dev\tools\venv-server\Scripts\python.exe scripts/test-rlc2-owned-postgres-http.py` with explicit owned-cluster opt-in, fixed PG16 binaries and the dedicated Server checkout passed35 checks, exit0. `../phase6-final-acceptance/build/owned-http-d394103.log` SHA2564c80823520139375efb0db58de42fd2ee042b7d4158b81b46ef55c9bfd8ec3ae. Actual FastAPI/Uvicorn HTTP includes a dropped committed response/retry, own PG immediate-stop→503/noACK→restart, persisted canonical records, and unchanged Agent candidate bytes/ACK state. Only the new invocation-owned build-directory cluster was stopped; final stop completed. Shared55432 was never stopped. The Agent fixture came from d394103; no final53f18a2 HTTP coverage is claimed or needed for the drive-entry-only runtime delta.
+## Final runtime/test head53f18a2 — Linux complete
+
+Fresh pinned-host root `/tmp/romlogger-phase6-53f18a2-j7RBxG`; source archive29a3f6e5f4ddae52043ed12446f8671cf36abbee3b0389b2dc66ab79aa2f995d verified before extraction, then repository dependency hashes verified. Explicit invocation-local `umask 077`, ROMLOGGER_EXPECT_DATA_MODEL=64, actual OpenJDK17.0.20.1/Linux x64. Local command log `../phase6-entry-acceptance/build/linux-53f18a2-driver.log`.
+
+| Command | Exit/result | Remote log SHA256 |
+|---|---|---|
+| `bash scripts/test-phase6.sh` | 0; writer161, drive33, preflight41, transition59 + child helpers, parent10; Windows native/early-drive cases explicitly NOT RUN | phase6.log9dea8b03863af0d0728a99615aec9309cd3e5743eff51efd87921b52abc526aa |
+| `bash scripts/test-phase4.sh` | 0; final runtime regression with actual model assertion | phase4.log520d8d20af5e59a0b1f09b6d77d78d04e1d29c6065f7e7bb1e715806adb6a13a |
+| `bash scripts/test-phase3-deployment.sh` | 0 | phase3.log77bc49fdf7aecbf800910405be0733e8660964d05ec802507e1d62ff93fe7b4d |
+| `bash scripts/test-phase5.sh` | 0;62 cases | phase5.log44f27f5d59b1c1413ff81823199821e3431305bfc793abdf03b7dd7437f531fb |
+
+No runtime/test sources changed after53f18a2. Final Windows focused tests use that same head; separate d394103 broad Windows batch remains at its own fixed source. Large loads/actual HTTP remain explicitly atd394103 because this final delta only extracts/reorders Windows drive checks.
+
+## CI execution and time ceiling
+
+Latest inspected runs: Agent80=39238610241,81=39337678090,82=39338106529,83=39338630078,84=39339586070,85=39340656457; Server62=39238624521,63=39340974721. Every observed job has steps0. CI NOT RUN (runner not started), not a code-test failure or PASS. Final PR86/doc heads are checked again at publication; no billing changes, dispatches or merges.
+
+The d394103 Windows batch's x64 section alone reached approximately28minutes before starting actual x86. With the added Phase VI suites and final drive-entry guards, raise the supplementary single-OS matrix ceiling30→60minutes (full Windows x64/x86 ceiling stays60). This is a maximum allowance only; YAML safe_load PASS using existing Server venv. Runtime/test head stays53f18a2; CI has not executed.

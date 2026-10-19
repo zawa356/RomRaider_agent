@@ -5,7 +5,7 @@
 ## 開始点・コード固定・PR
 
 - Agent開始main `4f80c5e9831ec39368f4e771d829337598eeaa76`、開始#80 `7da38372044792cde5271932a6134b7c6f156ccb`。Server開始main `d8c7a2f3b96ba278d269074dc40cca7741b4155b`、開始#62 `056958dd1973106173e0e9b4c8664324c001ad8a`。既存mainとPhase V worktreeは保護した。
-- **最終runtime/test固定head `53f18a27663c0f7f9c8f2398fd3390190f5f5749`**。追加レビューでtransition入口のdrive proof順序を補強した。`../phase6-entry-acceptance`でこの最終差分を重点検証する。**広域基準は別head `d3941031af4d22c7317055c6d9439cf10e75e364`**、`../phase6-final-acceptance`でWindows全体batch／実x86を実行し、Linux全体・負荷は完了した。広域基準と最終入口差分の結果を読み替えず、完了結果は証跡末尾へ追記する。53f18a2以後は文書だけ。
+- **最終runtime/test固定head `53f18a27663c0f7f9c8f2398fd3390190f5f5749`**。追加レビューでtransition入口のdrive proof順序を補強した。`../phase6-entry-acceptance`でこの最終差分を重点検証する。**広域基準は別head `d3941031af4d22c7317055c6d9439cf10e75e364`**、`../phase6-final-acceptance`でWindows全体batch／実x86を実行し、Linux全体・負荷と実HTTP35は完了した。最終53f18a2もLinux Phase VI/III/IV/Vが成功。広域基準と最終入口差分の結果を読み替えず、完了結果は証跡末尾へ追記する。53f18a2以後のruntime/test変更なし（CIの実行上限と引継ぎのみ）。
 - Server runtime/schema/wire/migrationは変更していない。Server文書同期は#62の上にstackする。
 
 | 順序 | PR / branch | base / code head | 状態 |
