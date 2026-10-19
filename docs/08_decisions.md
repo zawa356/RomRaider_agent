@@ -516,3 +516,6 @@ Java on Windows returns `fileKey()==null`, so RLDB1's Windows identity was creat
 
 ## D-068 - Phase IV: versioned deployment transition instead of editing RLDB1
 RLDB1 stays an immutable generation 0. RLDT1 records operator-approved generations as CREATE_NEW evidence (prepare → anchor → root → committed), never claimed as one atomic commit. Any interruption stops every caller until an operator records an abandon marker, and nothing is deleted. RLDB2 binds a manifest content floor rather than the manifest file identity, so legitimate seals need no rebind, while new sources, next Sessions and rollbacks go through an explicit plan digest. The old layout loses authority after a committed transition. Global fencing, post-commit rollback and old-binary exclusion remain outside the mechanism. [Contract](interfaces/deployment_transition_v1.md).
+
+## D-069 - Phase IV: process provenance is evidence-graded and fails to UNKNOWN
+RLAP1 describes exact ordered JAR hashes and runtime, and refuses wildcard, directory, shadowed, Class-Path and missing entries. A self report is a claim. Only a verifier-launched child or Linux same-user `/proc` evidence (command line plus bytes of the JARs the process actually has open) counts, and Windows stays UNKNOWN_PROCESS_PROVENANCE. No signature or administrator proof is fabricated. [Contract](interfaces/artifact_provenance_v1.md).

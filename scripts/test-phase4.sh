@@ -13,7 +13,9 @@ if [[ "${1:-}" != "--run-only" ]]; then
  javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath "src/main/java${sep}src/test/java" -d "$out" \
   "${entries[@]}" src/main/java/net/neristal/rrbridge/product/v1/*.java \
   src/test/java/net/neristal/rrbridge/product/v1/Phase4ReviewRedTest.java \
-  src/test/java/net/neristal/rrbridge/prototype/ingress/DeploymentTransitionTest.java
+  src/test/java/net/neristal/rrbridge/prototype/ingress/DeploymentTransitionTest.java \
+  src/test/java/net/neristal/rrbridge/product/v1/ArtifactProvenanceTest.java \
+  src/test/java/net/neristal/rrbridge/product/v1/ProvenanceChild.java
 fi
 run(){ java -cp "${out}${sep}${cp}" "$@"; }
 if [[ -n "${ROMLOGGER_EXPECT_DATA_MODEL:-}" ]]; then
@@ -22,4 +24,5 @@ if [[ -n "${ROMLOGGER_EXPECT_DATA_MODEL:-}" ]]; then
 fi
 run net.neristal.rrbridge.product.v1.Phase4ReviewRedTest
 run net.neristal.rrbridge.prototype.ingress.DeploymentTransitionTest
+run net.neristal.rrbridge.product.v1.ArtifactProvenanceTest
 echo "Phase IV focused tests completed"
