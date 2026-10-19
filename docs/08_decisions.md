@@ -543,3 +543,7 @@ Compare retained v1 JSON and canonical metadata fields with actual original proj
 
 Phase VI child-JVM RED: an uncommitted journal created after classification was ignored in vault-only staging because snapshots depended on usable originals. Retain an unconditional legacy snapshot and reject late sidecars without cleanup/adoption. Immutable reads can bypass even exclusive SQLite locks with no sidecar. Report WRITER_UNPROVEN independently and keep a read-only candidate proof gate BLOCKED; never probe existing DBs writable or treat operator quiescence as proof. Existing synthetic APIs remain scoped experiments.
 
+## D-076 — Prove Windows deployment roots fixed before filesystem access
+
+RLDB1/RLDB2 describeLayout checks each distinct drive before examining layout files. Fixed PowerShell executable/program calls GetDriveTypeW and QueryDosDeviceW read-only; drive root is bounded stdin data, never shell interpolation. Only numeric Fixed and a stable local HarddiskVolume mapping pass; aliases/subst/Remote/Unknown/timeout/output errors fail closed. No external Java dependency is added. Query once per distinct root per description, without cross-call caching. Existing safe(file) is still a low-level path/FS check; safeLocal(file,probe) includes injected drive proof. Live drive mapping changes after observation remain outside global fencing. No real SMB was mounted or accessed.
+

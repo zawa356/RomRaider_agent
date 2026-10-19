@@ -11,3 +11,9 @@
 - Local Bash is not on PATH; use installed Git Bash by absolute executable path. No environment installation required.
 
 Safety remains default-off / synthetic-only / production_authorized=false / ack_eligible=false. Windows directory durability and process provenance UNKNOWN; arbitrary future writer absence and global fencing unproven.
+## 2026-10-20 JST — first implementation checkpoint
+
+- VI-0 direct review and VI-1 source committed at `c52d7ba0e46b466d602602cb4ca45d780d6154a9`, pushed and stacked on PR80 as [PR81](https://github.com/zawa356/RomRaider_agent/pull/81), draft/unmerged.
+- Separate detached `phase6-writer-acceptance` at c52d7ba runs unedited sources. Windows17x64 writer154 + late-sidecar7 checks and Phase V62 cases exit0. Actual Zulu8x86 writer154+7 exit0. Linux archive SHA2564455577ed8b777dc52f8f523b4d8d0d73b021c9b75a72396bc48ae62e52bbada transferred into a newly created private test directory only; matrix running.
+- Reproduced defect: empty-originals staging missed a post-classification rollback journal (actual child PID8328). Fix retains a legacy-only snapshot. Sidecar-free lock limitation is separately reported as WRITER_UNPROVEN; a new read-only gate never grants proof.
+- Next branch `phase6/local-fixed-drive` stacks on c52d7ba. Remote+NTFS injected simulation RED. Actual native probe initially emitted localized PowerShell CLIXML progress; strict parser refused as intended. Disable progress in the fixed script; actual local Fixed control now passes. No dependency/runtime installation and no real SMB access.

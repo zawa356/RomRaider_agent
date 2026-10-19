@@ -420,3 +420,7 @@ Windows accepted a byte-identical physical source replacement between classifica
 
 Separate JVM reproduced reserved lock without sidecars and vault-only staging completion despite a late rollback journal. Added independent legacy snapshot and explicit unproven-writer stop gate. Tests use only new synthetic fixtures; final heads/platform results are maintained in [Phase VI evidence](handoff/phase6_overnight_evidence.md). No production/ACK/Worker/service action or merge.
 
+## 2026-10-20 — Phase VI mapped-drive gate
+
+Remote+NTFS simulation passed the old path-only gate (RED). Added read-only Win32 fixed-drive and stable device-map checks before RLDB1/RLDB2 layout traversal, with injected refusal and bounded subprocess tests. Existing local NTFS passes actual Win32 queries. Actual SMB/subst/volume-mount changes NOT RUN; no network share access. Fixed-head platform/transition regression follows in Phase VI evidence.
+

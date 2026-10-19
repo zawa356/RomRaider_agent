@@ -23,6 +23,13 @@ public final class DeploymentBinding {
   File[] files(){return new File[]{root,legacy,output,session,manifest,ledger};}
  }
  private static void require(boolean condition,String code)throws Refusal {if(!condition)throw new Refusal(code);}
+ /** Read-only local-root gate. Probe runs before any path/FS inspection, so Remote roots are not traversed. */
+ public static Path safeLocal(File file,WindowsDriveGate.Probe probe)throws IOException {
+  Path p=file.toPath();require(p.isAbsolute()&&p.equals(p.normalize()),"PATH_NOT_ABSOLUTE_NORMAL");
+  require(!p.toString().startsWith("\\\\"),"NETWORK_PATH_UNSUPPORTED");
+  if(System.getProperty("os.name").startsWith("Windows"))WindowsDriveGate.requireFixed(p.getRoot().toString(),probe);
+  return safe(file);
+ }
  /** Reject aliases/reparse points in EVERY existing component, before canonicalization. */
  public static Path safe(File file)throws IOException {
   Path p=file.toPath();require(p.isAbsolute()&&p.equals(p.normalize()),"PATH_NOT_ABSOLUTE_NORMAL");
@@ -101,6 +108,15 @@ public final class DeploymentBinding {
   }finally{if(process.isAlive())process.destroyForcibly();}
  }
  private static Map<String,String> describe(Layout l)throws Exception {
+  // Validate every distinct drive before accessing any layout file. No cache across calls: mappings can change.
+  if(System.getProperty("os.name").startsWith("Windows")){
+   Set<String> drives=new TreeSet<String>();
+   for(File f:l.files()){
+    Path p=f.toPath();require(p.isAbsolute()&&p.equals(p.normalize()),"PATH_NOT_ABSOLUTE_NORMAL");
+    require(!p.toString().startsWith("\\\\"),"NETWORK_PATH_UNSUPPORTED");drives.add(p.getRoot().toString().toUpperCase(Locale.ROOT));
+   }
+   for(String drive:drives)WindowsDriveGate.requireFixed(drive,WindowsDriveGate.SYSTEM);
+  }
   Map<String,String> m=new TreeMap<String,String>();m.put("version","RLDB1");m.put("mode","SYNTHETIC_ONLY");
   require(UUID.fromString(l.device).toString().equals(l.device)&&UUID.fromString(l.vehicle).toString().equals(l.vehicle)&&UUID.fromString(l.manifestSession).toString().equals(l.manifestSession),"IDENTITY_INVALID");
   require(l.payloadSession!=null&&!l.payloadSession.isEmpty()&&l.payloadSession.length()<=1024&&l.payloadSession.indexOf('\n')<0&&l.payloadSession.indexOf('\r')<0,"IDENTITY_INVALID");
