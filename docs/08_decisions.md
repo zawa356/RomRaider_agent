@@ -539,3 +539,7 @@ Claim a fresh private work directory atomically, CREATE_NEW internal DB files an
 ## D-074 — Phase V stored hashes and equal bytes do not establish full original correspondence
 
 Compare retained v1 JSON and canonical metadata fields with actual original projection, not only the stored hash. Reject missing unACKed bodies as UNKNOWN while retaining legitimate ACKed NULL historical bodies. Re-open every physical RLC2 source through the actual reader/captured marker at snapshot verification: Windows fileKey=null cannot detect byte-identical replacement by hashing alone. Dedicated RED/GREEN fixtures reproduced both classes of false verification. IDs, hash algorithm, old ACK state and source bytes are not rewritten.
+## D-075 — Always freeze the legacy DB and separate writer absence from content evidence
+
+Phase VI child-JVM RED: an uncommitted journal created after classification was ignored in vault-only staging because snapshots depended on usable originals. Retain an unconditional legacy snapshot and reject late sidecars without cleanup/adoption. Immutable reads can bypass even exclusive SQLite locks with no sidecar. Report WRITER_UNPROVEN independently and keep a read-only candidate proof gate BLOCKED; never probe existing DBs writable or treat operator quiescence as proof. Existing synthetic APIs remain scoped experiments.
+

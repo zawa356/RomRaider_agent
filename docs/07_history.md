@@ -416,3 +416,7 @@ Reproduced 32 accepted cursor/output mutations against Phase IV main (9 controls
 ## 2026-10-19 — Phase V additional RED/GREEN and final validation baseline
 
 Windows accepted a byte-identical physical source replacement between classification and staging; native RLC2 reader/marker revalidation now refuses it. Four stored-v1 mutations retaining the old hash were also accepted: body replacement, missing unACKed body, changed ACKed timestamp and changed sequence. Compare actual retained JSON/canonical fields; keep ACKed NULL bodies legitimate, missing unACKed bodies UNKNOWN. Final implementation b4b909c,61 focused cases pass on JDK17x64/actual Zulu8x86/Linux17; Linux Phase III/IV/large multi-session and actual owned HTTP35/Server57 verification are in the Phase V evidence. Windows full batch is recorded separately at its exact frozen head. Phase V PRs stay unmerged with CI NOT RUN.
+## 2026-10-20 — Phase VI writer concurrency RED and first correction
+
+Separate JVM reproduced reserved lock without sidecars and vault-only staging completion despite a late rollback journal. Added independent legacy snapshot and explicit unproven-writer stop gate. Tests use only new synthetic fixtures; final heads/platform results are maintained in [Phase VI evidence](handoff/phase6_overnight_evidence.md). No production/ACK/Worker/service action or merge.
+

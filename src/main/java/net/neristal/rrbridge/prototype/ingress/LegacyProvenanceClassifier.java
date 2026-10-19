@@ -73,7 +73,7 @@ public final class LegacyProvenanceClassifier {
             for(Category c:Category.values())b.append(",\"").append(c.name().toLowerCase(Locale.ROOT)).append("\":").append(count(c));
             Map<String,Integer> reasons=new TreeMap<String,Integer>();for(String c:conflicts)reasons.put(c,reasons.containsKey(c)?reasons.get(c)+1:1);
             b.append(",\"conflict_reasons\":{");boolean first=true;for(Map.Entry<String,Integer> e:reasons.entrySet()){if(!first)b.append(',');first=false;b.append('"').append(e.getKey()).append("\":").append(e.getValue());}
-            return b.append("},\"v1_sha256\":\"").append(v1Sha256).append("\",\"receipts_fabricated\":0,\"formal_ack\":false,\"production_authorized\":false,\"ack_eligible\":false}").toString();
+            return b.append("},\"v1_sha256\":\"").append(v1Sha256).append("\",\"writer_quiescence\":\"WRITER_UNPROVEN\",\"operational_readiness\":\"BLOCKED\",\"synthetic_only\":true,\"receipts_fabricated\":0,\"formal_ack\":false,\"production_authorized\":false,\"ack_eligible\":false}").toString();
         }
     }
     private static String sha(String text)throws Exception {return DeploymentTransition.sha(text.getBytes(StandardCharsets.UTF_8));}
@@ -95,6 +95,7 @@ public final class LegacyProvenanceClassifier {
         Map<String,String> brokenRun=new HashMap<String,String>();Map<String,String> sourceOwner=new HashMap<String,String>();
         Map<String,Rlc2ProductAdapter.Projection> projections=new TreeMap<String,Rlc2ProductAdapter.Projection>();
         Map<String,String> directories=new TreeMap<String,String>();List<Rlc2InputSnapshot> snapshots=new ArrayList<Rlc2InputSnapshot>();
+        snapshots.add(Rlc2InputSnapshot.captureLegacy(v1));
         List<String> conflicts=new ArrayList<String>();
         for(Original o:originals) {
             Rlc2ProductAdapter.Projection p;

@@ -546,3 +546,7 @@ Phase III copy-state CLI/staged RMI1 API: [fault acceptance v1](interfaces/migra
 ## Phase V RLPC1/RLLV1 isolated evidence hardening
 
 [RLPC1 contract](interfaces/legacy_v1_rli2_provenance_v1.md): journal cursor owner, exact absolute safe original path, integer sequence and RLC1 prefix/snapshot must agree. Whole-session conflicts block staging; canonical IDs/legacy ACK are unchanged. `IncrementalTsvBridge.journalCursorEvidence` is a read-only payload comparison helper, never an RLC2 receipt/highwater converter. Staging fixes a projection/input snapshot, validates all typed Vault columns/schema and all eight exact RLI2 table sets. Atomic private work-directory claim and no-replace completed-file publication preserve existing/partial artifacts. Targets require the same existing private local parent. `stagingState` success is `STAGED_LOCAL_HASHES_MATCH_INACTIVE`, solely local hashes; independent verification and current originals remain required. Formal ACK/production authorization stay false.
+# Phase VI additive synthetic diagnostics
+
+RLPC1 adds independent writer_quiescence=WRITER_UNPROVEN, operational_readiness=BLOCKED and synthetic_only=true fields. New read-only LegacyCandidateGate.inspect/requireWriterProof/CLI fail closed without writable DB probes, recovery, Worker/Sender or ACK. See [RLPC1](interfaces/legacy_v1_rli2_provenance_v1.md). Existing content classification and inactive staging are not writer-exclusion proof.
+
