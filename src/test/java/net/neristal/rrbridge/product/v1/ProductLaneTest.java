@@ -19,6 +19,15 @@ public final class ProductLaneTest {
   IncrementalTsvBridge importer=new IncrementalTsvBridge(b,LaneOwnershipTest.D,LaneOwnershipTest.V);
   if(importer.importNew(source,10).observations!=1||b.countPending()!=1||importer.importNew(source,10).processedLines!=0)throw new AssertionError("import/replay failed");
   if(b.loadImportCursor(source.getCanonicalPath()).lineNumber!=2)throw new AssertionError("cursor lost");
+  File childDb=new File(dir,"worker.db"),log=new File(dir,"worker.log");
+  File executable=new File(new File(System.getProperty("java.home"),"bin"),System.getProperty("os.name").startsWith("Windows")?"java.exe":"java");
+  try(LaneOwnership held=LaneOwnership.acquire(true,root,LaneOwnershipTest.D,LaneOwnershipTest.V,"synthetic");java.net.ServerSocket endpoint=new java.net.ServerSocket(0,1,java.net.InetAddress.getByName("127.0.0.1"))) {
+   ProcessBuilder worker=new ProcessBuilder(executable.toString(),"-cp",System.getProperty("java.class.path"),ProductBridgeWorker.class.getName(),"--once",dir.toString(),childDb.toString(),"http://127.0.0.1:"+endpoint.getLocalPort()).redirectErrorStream(true).redirectOutput(log);
+   worker.environment().put("ROMLOGGER_DEVICE_ID",LaneOwnershipTest.D);worker.environment().put("ROMLOGGER_VEHICLE_ID",LaneOwnershipTest.V);worker.environment().put("ROMLOGGER_DEVICE_TOKEN","synthetic-test-token");worker.environment().put("ROMLOGGER_SYNTHETIC_LANE_ROOT",root.toString());
+   Process child=worker.start();try{if(!child.waitFor(15,java.util.concurrent.TimeUnit.SECONDS)||child.exitValue()==0)throw new AssertionError("Worker did not refuse held lane");}finally{if(child.isAlive())child.destroyForcibly();}
+   if(new DurableSpool(childDb).countPending()!=0||!new String(Files.readAllBytes(log.toPath()),StandardCharsets.UTF_8).contains("LANE_BUSY"))throw new AssertionError("Worker ignored opt-in lane root");
+  }
+  System.out.println("PASS real Worker subprocess opt-in rejects held lane before import/delivery");
   System.out.println("PASS product cross-DB conflict, no writes, key guard, scope guard, exact import, cursor and replay (7 checks)");
  }
 }

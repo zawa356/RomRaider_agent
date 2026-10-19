@@ -79,8 +79,8 @@ public final class Rlc2IntegrationStore {
         Rlc2IntegrationSchema.requireUnclaimed(legacy,p.device,p.vehicle,p.payloadSession,run);
         return backend.ingest(p,hook,new Rlc2PreviewStore.TransactionGuard(){
             public void beforeWrite(Connection db)throws Exception{
-                legacyGuard.verify();if(lane!=null)lane.verify();if(publication!=null)publication.verify();
                 snapshot.verify();
+                legacyGuard.verify();if(lane!=null)lane.verify();if(publication!=null)publication.verify();
                 try(PreparedStatement q=db.prepareStatement("SELECT session_path,run_id FROM integration_bindings WHERE session_uuid=?")){
                     q.setString(1,p.manifestSession);try(ResultSet r=q.executeQuery()){
                         if(r.next()&&(!admission.directory.equals(r.getString(1))||!run.equals(r.getString(2))))throw new IOException("logical session moved or rebound");
@@ -103,8 +103,8 @@ public final class Rlc2IntegrationStore {
             }
             public void beforeCommit(Connection db)throws Exception{
                 Rlc2IntegrationSchema.requireUnclaimed(legacy,p.device,p.vehicle,p.payloadSession,run);
-                legacyGuard.verify();if(lane!=null)lane.verify();if(publication!=null)publication.verify();
                 snapshot.verify();
+                legacyGuard.verify();if(lane!=null)lane.verify();if(publication!=null)publication.verify();
             }
         });
     }
