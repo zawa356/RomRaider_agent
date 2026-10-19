@@ -21,18 +21,28 @@ public final class LaneOwnershipTest {
   if(args.length>0){try(LaneOwnership l=LaneOwnership.acquire(true,new File(args[1]),D,V,args[2])){Files.write(new File(args[3]).toPath(),new byte[]{1});Thread.sleep(30000);}return;}
   final File root=Files.createTempDirectory("romlogger-lane-").toFile();
   reject(new Action(){public void run()throws Exception{LaneOwnership.acquire(false,root,D,V,"s");}},"disabled before ownership");
+  check("MISSING".equals(LaneOwnership.diagnose(root,D,V,"s")),"status of absent lane creates no file");
   final LaneOwnership first=LaneOwnership.acquire(true,root,D,V,"s");
+  check("BUSY".equals(LaneOwnership.diagnose(root,D,V,"s")),"read-only status reports held owner busy");
   check(first.generation==1,"initial generation one");first.verify();
   reject(new Action(){public void run()throws Exception{LaneOwnership.acquire(true,root,D,V,"s");}},"same JVM conflict");
   first.verify();check(true,"failed duplicate does not release first owner");
   try(LaneOwnership other=LaneOwnership.acquire(true,root,D,V,"other")){other.verify();check(true,"different session progresses concurrently");}
   first.close();first.close();
+  check("IDLE".equals(LaneOwnership.diagnose(root,D,V,"s")),"read-only status reports idle without advancing generation");
+  File executable=new File(new File(System.getProperty("java.home"),"bin"),System.getProperty("os.name").startsWith("Windows")?"java.exe":"java");
+  Path diagnostic=root.toPath().resolve("status.log");
+  Process status=new ProcessBuilder(executable.toString(),"-cp",System.getProperty("java.class.path"),LaneOwnershipStatus.class.getName(),"--status",root.toString(),D,V,"s").redirectErrorStream(true).redirectOutput(diagnostic.toFile()).start();
+  check(status.waitFor(15,TimeUnit.SECONDS)&&status.exitValue()==0,"actual diagnostic CLI returns idle exit0");
+  String output=new String(Files.readAllBytes(diagnostic),"UTF-8");
+  check(output.contains("\"automatic_recovery\":false")&&!output.contains(root.toString()),"diagnostic CLI fixed output does not disclose paths or enable recovery");
   reject(new Action(){public void run()throws Exception{first.verify();}},"closed owner cannot commit");
   try(LaneOwnership next=LaneOwnership.acquire(true,root,D,V,"s")){check(next.generation==2&&!next.owner.equals(first.owner),"new UUID and monotonic generation; no PID identity");}
   Path ready=root.toPath().resolve("ready");Process holder=child(root,"s",ready);
   try {
    long end=System.nanoTime()+TimeUnit.SECONDS.toNanos(15);while(!Files.exists(ready)&&holder.isAlive()&&System.nanoTime()<end)Thread.sleep(20);
    check(Files.exists(ready),"child JVM acquired ownership");
+   check("BUSY".equals(LaneOwnership.diagnose(root,D,V,"s")),"read-only status detects separate JVM ownership");
    reject(new Action(){public void run()throws Exception{LaneOwnership.acquire(true,root,D,V,"s");}},"separate JVM conflict refuses");
    try(LaneOwnership other=LaneOwnership.acquire(true,root,D,V,"parallel")){check(true,"different JVM session remains available");}
   }finally{holder.destroyForcibly();check(holder.waitFor(15,TimeUnit.SECONDS),"forced child termination completes");}
@@ -41,6 +51,7 @@ public final class LaneOwnershipTest {
   String key=D+"|"+V+"|s";Path lock=root.toPath().resolve(UUID.nameUUIDFromBytes(key.getBytes("UTF-8"))+".lane.lock");
   Files.write(lock,"RLLO99\n".getBytes("UTF-8"));
   reject(new Action(){public void run()throws Exception{LaneOwnership.acquire(true,root,D,V,"s");}},"unknown version refuses without takeover");
+  check("INVALID".equals(LaneOwnership.diagnose(root,D,V,"s")),"status detects unknown version without repair");
   check(new String(Files.readAllBytes(lock),"UTF-8").equals("RLLO99\n"),"unknown evidence preserved");
   final LaneOwnership changed=LaneOwnership.acquire(true,root,D,V,"changed");
   java.lang.reflect.Field field=LaneOwnership.class.getDeclaredField("handle");field.setAccessible(true);
