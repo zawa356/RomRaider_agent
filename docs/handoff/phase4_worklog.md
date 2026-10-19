@@ -48,3 +48,8 @@ Times are JST (+09:00). Append only; do not rewrite earlier entries.
 - Real HTTP + owned PG16: 35 checks PASS. Only the owned cluster was stopped; 55432 still listening afterwards.
 - Windows bound 10,003 records: x64 61 s, x86 80 s, both exit0.
 - Remaining: PR merges (#75→#76→#77→#78→#79, Server #61) need the user; this session's merge attempt was refused by policy.
+
+## 2026-10-19T20:10+09:00 — merges with user approval
+
+- The user explicitly approved merging and asked for thorough comments. Before each merge, a pre-merge review comment was posted (scope, behaviour change, verification, remaining limits). Each stacked PR was retargeted to main after its predecessor merged.
+- Merged: #75 `2e6825c`, #76 `d95950c`, #77 `a76b35c`, #78 `dca2f4d`. #79 (this document) and Server #61 follow. A post-merge main re-run was not performed in this session.

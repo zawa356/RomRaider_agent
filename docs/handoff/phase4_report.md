@@ -13,14 +13,14 @@
 
 | Phase | PR | head | 状態 |
 |---|---|---|---|
-| IV-0 独立レビューの修正 | [#75](https://github.com/zawa356/RomRaider_agent/pull/75) → main | `418c23b` | **OPEN**（本セッションの権限ではmergeが拒否された。ユーザーの判断待ち） |
-| IV-1 RLDT1/RLDB2 | [#76](https://github.com/zawa356/RomRaider_agent/pull/76) → #75 | `ea9256f` | OPEN（stacked） |
-| IV-2 RLAP1 provenance | [#77](https://github.com/zawa356/RomRaider_agent/pull/77) → #76 | `315041e` | OPEN（stacked） |
-| IV-3/4 RLPC1・batch組込み | [#78](https://github.com/zawa356/RomRaider_agent/pull/78) → #77 | `04564c5` | OPEN（stacked） |
-| IV-5 引継ぎ文書 | 本PR → #78 | — | OPEN |
-| Server進捗の同期 | RomRaiderServer docs PR（文書のみ） | — | OPEN |
+| IV-0 独立レビューの修正 | [#75](https://github.com/zawa356/RomRaider_agent/pull/75) → main | `418c23b` | **MERGED** `2e6825c44cdcd1a0d62b6f9c6bd8345216b9e89d` |
+| IV-1 RLDT1/RLDB2 | [#76](https://github.com/zawa356/RomRaider_agent/pull/76) → main | `ea9256f` | **MERGED** `d95950c819629a2ebc64199e6cd465d984e505ea` |
+| IV-2 RLAP1 provenance | [#77](https://github.com/zawa356/RomRaider_agent/pull/77) → main | `315041e` | **MERGED** `a76b35c4cd51f174248e9adf9b435c8d8ffc8a4e` |
+| IV-3/4 RLPC1・batch組込み | [#78](https://github.com/zawa356/RomRaider_agent/pull/78) → main | `04564c5` | **MERGED** `dca2f4da28f8690f59860bb980439c79332bb73a` |
+| IV-5 引継ぎ文書 | [#79](https://github.com/zawa356/RomRaider_agent/pull/79) → main | — | 本文書を含むPR。merge SHAは自己参照になるため記載しない（GitHubのPRとmainで確認する） |
+| Server進捗の同期 | [RomRaiderServer#61](https://github.com/zawa356/RomRaiderServer/pull/61)（文書のみ） | — | ユーザーの承認後にmerge（SHAはPRで確認） |
 
-merge SHAはまだ存在しない。どのPRも、本番切替・本番DB migration・Workerの停止や置換・正式ACKを含まない。合成でopt-inした候補コードと文書だけで構成している。mergeの順序は #75 → #76 → #77 → #78 → IV-5（stacked）。
+2026-10-19、ユーザーの明示的な承認を受けて #75→#76→#77→#78 の順に通常mergeした。stackedのbaseは、それぞれ直前のmerge後にmainへ付け替えている。各PRには、merge前の確認記録コメントを残した。どのPRも、本番切替・本番DB migration・Workerの停止や置換・正式ACKを含まない。合成でopt-inした候補コードと文書だけで構成している。
 
 ## Phaseごとの判定
 
@@ -80,7 +80,7 @@ bash scripts/test-phase4.sh                                 # Phase IVだけを�
 
 次の作業候補:
 
-1. ユーザーがPRを確認し、#75から順にmergeする。
+1. mainで `pwsh -NoProfile -File scripts/run-acceleration-tests.ps1` を再実行し、merge後のmainを確認する（merge後のmainでの再試験は本セッションでは未実施）。
 2. RLDT1の「旧binary排除」を、Worker起動時に動くRLAP1のself report／`/proc`照合と組み合わせる。
 3. F3対策として、drive typeの照会を読み取り専用で追加する。
 4. RLPC1 stagingの子JVM halt試験と、同一Session内の `SOURCE_UUID_REUSED` 専用fixtureを追加する。

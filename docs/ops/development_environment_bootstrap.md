@@ -8,7 +8,7 @@ Verified 2026-10-19 JST (Phase IV update 2026-10-19 evening). This document cont
 2. [Phase IV final report](../handoff/phase4_report.md) / [append-only worklog](../handoff/phase4_worklog.md) / [validation evidence](../handoff/phase4_validation_evidence.md) / [independent review](../handoff/phase4_independent_review.md)
 3. [Agent progress](../product_v1_implementation_progress.md) and [Server progress](https://github.com/zawa356/RomRaiderServer/blob/main/docs/implementation_progress.md)
 
-Phase IV was delivered as stacked PRs #75→#76→#77→#78→IV-5. Check their state on GitHub first: if they are still open, read the PR branches, because main does not contain Phase IV yet. Phase III documents ([report](../handoff/codex_phase3_report.md)) are history.
+Phase IV PRs #75–#78 were merged to main on 2026-10-19 with the user's approval (#79 carries these handoff documents). Each PR has a pre-merge review comment. Phase III documents ([report](../handoff/codex_phase3_report.md)) are history.
 
 Read AGENTS.md, latest fetched main/PRs, current contracts and the latest report before edits. Older dated instructions describe history.
 
