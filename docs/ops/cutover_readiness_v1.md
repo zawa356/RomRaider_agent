@@ -1,0 +1,22 @@
+# Synthetic cutover readiness v1 / operator dry-run
+
+No command in this document stops an existing Worker or grants production cutover. Runtime old binaries do not learn new contracts from new environment variables.
+
+`CutoverReadiness --cutover-readiness-synthetic --external-single-active ROOT LEGACY OUTPUT SESSION MANIFEST LEDGER DEVICE VEHICLE PAYLOAD_SESSION MANIFEST_SESSION_UUID WORKER_JAR` is read-only. Same classpath as DeploymentBinding. Exit0 READY_FOR_SYNTHETIC_TEST,3 BLOCKED_UNCOOPERATIVE_PROCESS,5 REVIEW_REQUIRED,2 usage. JSON is additive to RLDB1 and includes ACK/unACK, source claim, cursor and ACK receipt counts; -1 means unavailable. No paths, bodies, credentials or exception text are emitted. production_authorized and automatic_cutover are always false.
+
+The external flag asserts a dedicated isolated system, no other importers/Writers/clones and quiescence for the entire observation. It cannot be inferred from absent locks. RLDB1 must verify. The exact existing `<legacy>.worker.lock` is opened READ with a short shared observation lock, never created/replaced/deleted; absence returns LEGACY_LOCK_ABSENT. A held exclusive lock returns LEGACY_WORKER_BUSY (the broad BLOCKED_UNCOOPERATIVE_PROCESS state does not identify the process). A diagnostic shared observation may cause a concurrently starting old nonblocking Worker to refuse; operators run diagnosis after stopping known workers, and tests wait for their owned Worker to start first. Observations are not retained startup permission.
+
+Artifact inspection bounds JAR bytes/entries and compares each class entry to this diagnostic build's classpath bytes, requiring the current Worker, guard, spool, import/scanner/sender/coordinator and wire/lane classes. Foreign classes/missing required classsets/changed bytes return UNKNOWN_WORKER_BINARY. This recognizes the tested build classset only: it does NOT prove the running process uses that artifact, resolve arbitrary classpath overrides, authenticate a distribution, or certify historical binaries/dependency closure. Operator provenance of the exact launch command and complete classpath remains required. An unknown old artifact stops here; do not add a caller-supplied arbitrary hash to bypass verification.
+
+Lane metadata is observed without advancing generation. BUSY refuses; unknown/stale-format evidence requires review. v1 immutable read-only inventory validates exact schema/quick_check/claims/cursors and all preserved data fingerprints. Nonzero retry_count, needs_review or ingress error latches require review. A normal future IDLE scheduling timestamp is not an incomplete delivery or fault. Pending records and ACK receipts are reported; no ACK changes/sending occurs.
+
+Operator-mediated sequence for a future approved cutover:
+
+1. Record exact build hashes/classpath/config, root/bindings, source ownership and original bytes; preserve all failed evidence. Identify every Worker/importer/Writer/clone. Unknown participants remain BLOCKED.
+2. Obtain separate authorization for actual service stopping and manual cutover. This synthetic phase does not exercise that authorization on existing services.
+3. Stop known processes manually in the approved future window; establish quiescence including manifest/ledger publication. Never clear a lock or use timeout/PID as takeover permission.
+4. Re-run diagnostic, retain JSON and timestamps; inspect pending delivery/errors. An exit0 is only eligibility for isolated synthetic rehearsal.
+5. Make isolated backup/candidate copies, validate complete record/rowid/ACK/cursor/receipt and original bytes. RMI1 inventory is separate from RLI2 conversion.
+6. Complete rehearsal and operator-mediated rollback acceptance. Present the exact candidate and independent production gates for manual approval. There is no automatic path/service/sender switch.
+
+Tests use only their newly spawned Worker with empty synthetic input and a loopback endpoint; stopping that test process never authorizes stopping an existing service. Readiness is advisory and global fencing/directory durability/physical power-loss gates are unchanged.

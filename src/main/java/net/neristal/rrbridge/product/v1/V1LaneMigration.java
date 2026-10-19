@@ -45,7 +45,7 @@ public final class V1LaneMigration {
    int columns=r.getMetaData().getColumnCount();while(r.next())for(int c=1;c<=columns;c++){Object v=r.getObject(c);byte[] b=v==null?new byte[0]:v instanceof byte[]?(byte[])v:v.toString().getBytes(StandardCharsets.UTF_8);String type=v==null?"NULL":v.getClass().getName();sha.update((type+":"+b.length+":").getBytes(StandardCharsets.UTF_8));sha.update(b);}
   }}return hex(sha.digest());
  }
- private static Report inspect(File source)throws Exception {
+ static Report inspect(File source)throws Exception {
   closed(source);String before=hash(source);Map<String,Long> counts=new LinkedHashMap<String,Long>();
   try(Connection db=open(source,true)){
    if(scalar(db,"PRAGMA application_id")!=0||scalar(db,"PRAGMA user_version")!=0||!schema(db).equals(baseline()))throw new IOException("unknown v1 schema; no migration");
