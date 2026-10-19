@@ -29,3 +29,11 @@
 - Initial owned HTTP attempt refused because this new checkout had not generated `build/rlc2-integration-fixture.path` yet. Owned cluster stopped in finally; no shared cluster stop. Re-run after the full batch produces the fixture.
 - PR80 Actions runs39232118574/579/549 failed before runner execution; journal run has all four jobs steps0. CI NOT RUN; no merge.
 - Full Windows batch started at d87108a before POSIX directory correction; record compilation/source boundary accurately and run final focused tests at the corrected exact head. Never relabel the earlier/mixed working-tree batch as a clean final-head run.
+
+## 2026-10-19 — additional P0 physical replacement RED → GREEN
+
+- Windows RED on compiled `69691a1` implementation: a fresh synthetic original replaced with byte-identical copied bytes at VAULT_ROWS_WRITTEN was accepted (exit1 assertion), because generic snapshot fileKey is null on Windows. RED log SHA256 `55f9d5b8a5c28b30cc95d25db20eb71e1d2a8bb4378a4a4888973fbdce0750ec`.
+- Fix: retain the actual original ReadOpener in the classification report, and re-open/revalidate every physical RLC2 source against its captured marker at each snapshot verification. Existing source codec/native identity must agree; hash-only equality is insufficient. GREEN standalone physical replacement test exits0, log SHA256 `e2005cff182c77c54d282bbcf5ad15a89bb12d0c33b8e6eee486100093b872ec`.
+- `69691a1` Linux focused56, phase4, phase3, exact10000 staging and preview/integration large workload/regressions all exit0 in `/tmp/romlogger-phase5-69691a1-j7tvfo`; hashes retained in ignored local console log. Windows corrected POSIX-head focused56/0 on x64/x86. These precede the physical revalidation fix; final focused/platform verification follows at the new head.
+- Owned actual FastAPI/PG HTTP35 exits0 after fixture generation, including process stop503/noACK/restart, committed response loss/retry and unchanged Agent ACK bytes. Dedicated Server d8c7a2f migrations twice/check and pytest57 pass (1 warning). No existing service was stopped.
+- Operational harness correction: waited for the SFTP upload completion before extraction. An initial premature SHA check refused a partial upload; nothing was extracted on that failed check. Correct complete archive hash verified before all Linux execution.

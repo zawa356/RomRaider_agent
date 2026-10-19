@@ -45,14 +45,24 @@ public final class LegacyProvenanceClassifier {
         private final Map<String,Rlc2ProductAdapter.Projection> projections;
         private final Map<String,String> directories;
         private final List<Rlc2InputSnapshot> snapshots;
+        private final WatermarkV2Prototype.ReadOpener reader;
         Report(List<Row> rows,Map<String,String> sessions,String v1Sha,Map<String,Set<String>> verifiedSources,List<String> conflicts,
-                Map<String,Rlc2ProductAdapter.Projection> projections,Map<String,String> directories,List<Rlc2InputSnapshot> snapshots){
+                Map<String,Rlc2ProductAdapter.Projection> projections,Map<String,String> directories,List<Rlc2InputSnapshot> snapshots,WatermarkV2Prototype.ReadOpener reader){
             this.rows=Collections.unmodifiableList(rows);this.sessions=Collections.unmodifiableMap(sessions);v1Sha256=v1Sha;
             this.verifiedSources=Collections.unmodifiableMap(verifiedSources);this.conflicts=Collections.unmodifiableList(conflicts);
             this.projections=Collections.unmodifiableMap(projections);this.directories=Collections.unmodifiableMap(directories);
             this.snapshots=Collections.unmodifiableList(snapshots);
+            this.reader=reader;
         }
-        void verifySnapshots()throws Exception{for(Rlc2InputSnapshot s:snapshots)s.verify();}
+        void verifySnapshots()throws Exception{
+            for(Rlc2InputSnapshot s:snapshots)s.verify();
+            // Windows BasicFileAttributes.fileKey() is null: identical bytes do not prove the same physical source.
+            for(Rlc2ProductAdapter.Projection p:projections.values())for(Rlc2ProductAdapter.Source source:p.sources){
+                WatermarkV2Prototype.Committed current=WatermarkV2Prototype.readCommitted(new File(source.path),reader,source.marker);
+                if(!Arrays.equals(WatermarkV2Prototype.encode(source.marker),WatermarkV2Prototype.encode(current.marker)))throw new IOException("ORIGINAL_PHYSICAL_SNAPSHOT_CHANGED");
+            }
+            for(Rlc2InputSnapshot s:snapshots)s.verify();
+        }
         public long count(Category c){long n=0;for(Row r:rows)if(r.category==c)n++;return n;}
         /** A row moves to the RLI2 candidate only if it verified AND its whole session verified (one CONFLICT blocks the run). */
         public boolean migratable(Row r){return r.category==Category.VERIFIED_ORIGINAL&&Category.VERIFIED_ORIGINAL.name().equals(sessions.get(r.runId));}
@@ -175,7 +185,8 @@ public final class LegacyProvenanceClassifier {
         }
         if(!before.equals(DeploymentTransition.fileSha(v1)))throw new IOException("V1_CHANGED_DURING_CLASSIFICATION");
         for(Rlc2InputSnapshot snapshot:snapshots)snapshot.verify();
-        return new Report(rows,sessions,before,verified,conflicts,projections,directories,snapshots);
+        Report report=new Report(rows,sessions,before,verified,conflicts,projections,directories,snapshots,reader);
+        report.verifySnapshots();return report;
     }
 
     private static final class Cursor {

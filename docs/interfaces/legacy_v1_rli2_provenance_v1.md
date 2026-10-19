@@ -67,3 +67,5 @@ Phase V adds full-cursor negative cases, both-run UUID reuse, claim run collisio
 RLLV1 is NOT a complete v1 database backup: it does not contain `v1_profiles`, `v1_ack_receipts`, import cursor tables, delivery or review state. RMI1 and the unchanged v1 original retain that complete inventory. No Vault-only full-restoration claim is made. Formal adoption of RLLV1 as a product storage version remains an unapproved proposal.
 
 Still NOT RUN unless recorded otherwise in Phase V evidence: real SQLite write-lock contention during RLPC1 reads, privileged Windows symlinks, external hostile directory replacement, physical power loss and real ENOSPC. Restored roots remain inactive and no global fencing is claimed.
+
+Phase V physical snapshot verification also re-opens every original source through the original RLC2 reader and compares the captured marker. This revalidates physical identity on Windows, where BasicFileAttributes.fileKey is null: byte-identical copy/replacement must not pass just because file hashes match. A dedicated Windows RED fixture reproduced this and is included in `scripts/test-phase5.sh`.
