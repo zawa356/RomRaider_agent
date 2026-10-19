@@ -9,11 +9,14 @@ import net.neristal.rrbridge.product.v1.DeploymentBinding;
 final class LegacyStagingTargets {
     final File vault,rli2;
     private final Path work;
+    private final Path parent;
+    private final String parentIdentity,workIdentity;
     static Path work(File vault){return Paths.get(vault.getAbsolutePath()+".rlpc1-work");}
     LegacyStagingTargets(File finalVault,File finalRli2)throws Exception {
-        Path parent=finalVault.getAbsoluteFile().getParentFile().toPath();
+        parent=finalVault.getAbsoluteFile().getParentFile().toPath();
         if(!parent.equals(finalRli2.getAbsoluteFile().getParentFile().toPath()))throw new IOException("STAGING_SAME_PRIVATE_PARENT_REQUIRED");
         DeploymentBinding.safe(parent.toFile());DeploymentBinding.privateAccess(parent);
+        parentIdentity=DeploymentBinding.fileIdentity(parent.toFile());
         work=work(finalVault);
         // Atomic directory claim. A partial attempt is retained and cannot be adopted/recovered on retry.
         try{
@@ -22,11 +25,18 @@ final class LegacyStagingTargets {
             else Files.createDirectory(work);
         }catch(FileAlreadyExistsException exists){throw new IOException("STAGING_TARGET_EXISTS");}
         DeploymentBinding.safe(work.toFile());DeploymentBinding.privateAccess(work);
+        workIdentity=DeploymentBinding.fileIdentity(work.toFile());
+        verify();
         vault=work.resolve("vault.db").toFile();rli2=work.resolve("candidate.rlc2-integration.db").toFile();
         Files.createFile(vault.toPath());Files.createFile(rli2.toPath());
     }
+    void verify()throws Exception {
+        if(!parentIdentity.equals(DeploymentBinding.fileIdentity(parent.toFile()))||!workIdentity.equals(DeploymentBinding.fileIdentity(work.toFile())))throw new IOException("STAGING_DIRECTORY_CHANGED");
+        DeploymentBinding.privateAccess(parent);DeploymentBinding.privateAccess(work);
+    }
     void publish(File staged,File target)throws Exception {
-        DeploymentBinding.safe(work.toFile());DeploymentBinding.privateAccess(work);
+        verify();
+        if(!target.getAbsoluteFile().getParentFile().toPath().equals(parent)||!staged.getAbsoluteFile().getParentFile().toPath().equals(work))throw new IOException("STAGING_DIRECTORY_CHANGED");
         DeploymentBinding.safe(staged);
         // Force file content before publication. Hard-link insertion is atomic no-replace, unlike ATOMIC_MOVE.
         try(FileChannel channel=FileChannel.open(staged.toPath(),StandardOpenOption.WRITE)){channel.force(true);}

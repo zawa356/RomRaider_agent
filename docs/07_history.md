@@ -424,3 +424,7 @@ Separate JVM reproduced reserved lock without sidecars and vault-only staging co
 
 Remote+NTFS simulation passed the old path-only gate (RED). Added read-only Win32 fixed-drive and stable device-map checks before RLDB1/RLDB2 layout traversal, with injected refusal and bounded subprocess tests. Existing local NTFS passes actual Win32 queries. Actual SMB/subst/volume-mount changes NOT RUN; no network share access. Fixed-head platform/transition regression follows in Phase VI evidence.
 
+## 2026-10-20 — Phase VI late parent-replacement RED/GREEN
+
+Actual child parent replacement caused the prior stager to write a competing empty internal RLI2 before later refusal. Native parent/work identity revalidation now refuses before that write; development10 checks PASS for directory replacement and actual Windows junction insertion, preserving competitor bytes, moved own evidence and original/ACK bytes. Exact tested source heads and final matrix follow in Phase VI evidence; no global race or power-loss claim.
+

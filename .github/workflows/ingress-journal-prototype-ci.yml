@@ -18,6 +18,7 @@ on:
       - 'scripts/test-phase3-deployment.sh'
       - 'scripts/test-phase4.sh'
       - 'scripts/test-phase5.sh'
+      - 'scripts/test-phase6*.sh'
       - 'scripts/test-rlc2-preview-postgres.py'
       - 'scripts/test-rlc2-preview-postgres-guard.py'
       - 'scripts/requirements-preview-cp312.lock'
@@ -41,6 +42,7 @@ on:
       - 'scripts/test-phase3-deployment.sh'
       - 'scripts/test-phase4.sh'
       - 'scripts/test-phase5.sh'
+      - 'scripts/test-phase6*.sh'
       - 'scripts/test-rlc2-preview-postgres.py'
       - 'scripts/test-rlc2-preview-postgres-guard.py'
       - 'scripts/requirements-preview-cp312.lock'
@@ -95,6 +97,7 @@ jobs:
           bash scripts/test-phase3-deployment.sh
           bash scripts/test-phase4.sh
           bash scripts/test-phase5.sh
+          bash scripts/test-phase6.sh
       - name: Assert no production RomRaider.jar is needed
         shell: bash
         run: test ! -f lib/RomRaider.jar

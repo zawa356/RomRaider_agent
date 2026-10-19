@@ -555,3 +555,7 @@ Join approved offline artifact/runtime, active generation, exact manifest/admiss
 
 RED with a separate JVM holding the old Lane showed abandon could create its marker while only the legacy Worker guard was checked. Record hash-derived exact old/new lock basenames in prepare and retain read-only shared observations of those existing files through abandon marker creation, while the Worker guard serializes transition/abandon callers. No partial files are deleted or adopted. Old incomplete prepares without this added evidence remain blocked for manual review; historical committed chains remain readable. No claim that RED demonstrated double activation, global fencing or process authenticity. Older binaries still need operational exclusion.
 
+## D-079 — Retain staging directory identities, not just their spelling
+
+A separate child JVM renamed the owned output parent and placed a new private directory/work tree at the same name. The old stager initialized and published the competitor's empty internal RLI2 before eventually refusing the absent vault (RED08ef56f). Capture parent/work physical identity (native NTFS ID on Windows) and verify before SQLite opens/imports/publication/marker creation. Preserve moved own evidence and competing bytes. Actual owned Windows junction insertion is also tested. This closes demonstrated boundary substitution; arbitrary hostile check-to-use races and directory durability/global fencing remain unproven.
+

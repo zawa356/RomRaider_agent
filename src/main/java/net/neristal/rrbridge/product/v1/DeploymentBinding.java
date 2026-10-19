@@ -81,6 +81,8 @@ public final class DeploymentBinding {
   Object vsn;try{vsn=Files.getFileStore(p).getAttribute("volume:vsn");}catch(UnsupportedOperationException e){throw new Refusal("IDENTITY_UNAVAILABLE");}
   return "ntfs:"+vsn+":"+windowsFileId(p)+"|"+a.creationTime().toString();
  }
+ /** Read-only physical identity after the existing strict path/alias checks. No creation-time-only Windows fallback. */
+ public static String fileIdentity(File file)throws IOException {return identity(safe(file));}
  /** Bounded read-only fsutil query. Localized text is ignored; exactly one hex file ID is required. */
  private static String windowsFileId(Path p)throws IOException {
   String text=fsutil("IDENTITY_UNAVAILABLE","file","queryfileid",p.toString());

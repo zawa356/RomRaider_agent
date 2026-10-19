@@ -242,6 +242,7 @@ public final class LegacyProvenanceClassifier {
         try(LegacyWorkerGuard old=LegacyWorkerGuard.acquire(v1)) {
             Report report=classify(true,true,v1,originals,reader);
             LegacyStagingTargets targets=new LegacyStagingTargets(vault,rli2);
+            targets.verify();
             try(Connection db=DriverManager.getConnection("jdbc:sqlite:"+targets.vault.toURI().toASCIIString()+"?mode=rw")) {
                 try(Statement s=db.createStatement()) {
                     s.execute("PRAGMA journal_mode=DELETE");s.execute("PRAGMA synchronous=FULL");
@@ -260,11 +261,13 @@ public final class LegacyProvenanceClassifier {
             }
             targets.publish(targets.vault,vault);
             hook.at(StagingStage.VAULT_ROWS_WRITTEN);
+            targets.verify();
             Rlc2IntegrationSchema.initializeClaimed(targets.rli2);
             report.verifySnapshots();
             for(Map.Entry<String,Rlc2ProductAdapter.Projection> entry:report.projections.entrySet()) {
                 String run=entry.getKey();Rlc2ProductAdapter.Projection p=entry.getValue();
                 if(!Category.VERIFIED_ORIGINAL.name().equals(report.sessions.get(run)))continue;
+                targets.verify();
                 importVerified(targets.rli2,p,report.directories.get(run));
             }
             targets.publish(targets.rli2,rli2);
@@ -275,6 +278,7 @@ public final class LegacyProvenanceClassifier {
             m.put("vault_sha256",vaultHash);m.put("rli2_sha256",rli2Hash);
             if(!vaultHash.equals(DeploymentTransition.fileSha(vault))||!rli2Hash.equals(DeploymentTransition.fileSha(rli2)))throw new IOException("STAGING_OUTPUT_CHANGED");
             report.verifySnapshots();old.verify();
+            targets.verify();
             net.neristal.rrbridge.product.v1.DeploymentBinding.createRecord(marker(vault).toPath(),net.neristal.rrbridge.product.v1.DeploymentBinding.encodeRecord(m));
             hook.at(StagingStage.VERIFIED);
             report.verifySnapshots();old.verify();
