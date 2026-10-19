@@ -16,7 +16,11 @@ final class LegacyStagingTargets {
         DeploymentBinding.safe(parent.toFile());DeploymentBinding.privateAccess(parent);
         work=work(finalVault);
         // Atomic directory claim. A partial attempt is retained and cannot be adopted/recovered on retry.
-        try{Files.createDirectory(work);}catch(FileAlreadyExistsException exists){throw new IOException("STAGING_TARGET_EXISTS");}
+        try{
+            if(Files.getFileAttributeView(parent,java.nio.file.attribute.PosixFileAttributeView.class)!=null)
+                Files.createDirectory(work,java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
+            else Files.createDirectory(work);
+        }catch(FileAlreadyExistsException exists){throw new IOException("STAGING_TARGET_EXISTS");}
         DeploymentBinding.safe(work.toFile());DeploymentBinding.privateAccess(work);
         vault=work.resolve("vault.db").toFile();rli2=work.resolve("candidate.rlc2-integration.db").toFile();
         Files.createFile(vault.toPath());Files.createFile(rli2.toPath());
