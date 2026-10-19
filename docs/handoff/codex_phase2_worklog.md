@@ -12,3 +12,6 @@
 
 ## 2026-10-19 09:36 +09:00 — II-0 verification
 VPS Linux17 reached through pinned helper; Docker14 containers Up. Bootstrap links checked, management endpoints explicitly unconfirmed. Documentation-only diff reviewed; no code/runtime/DB changes. Checkpoint4eafb4a pushed before implementation.
+
+## 2026-10-19 09:49 +09:00 — II-1/2 RED and lock implementation
+RED d32c346 test initially lacked the reflected Windows fixture in its focused classpath (harness failure, not RED). Recompiled pre-fix Store into build/phase2-red and reran with existing native fixtures: phase2-conflict-red.log records AssertionError: RLC2 committed while legacy Worker owns its compatibility lock. Fixed Store refuses, then imports3 records after release. New RLLO1 ownership test covers same-JVM and child-JVM exclusion, separate sessions, generation/owner changes, forced process termination, stale tokens and unknown-format preservation. Windows fileKey is null; cooperative creation-time/evidence fallback documented. Actual x86 immediate post-kill retry observed BUSY: test now retries boundedly until the kernel really grants the lock, never treats elapsed time as ownership. No product timeout/takeover added.
