@@ -1,9 +1,6 @@
 package net.neristal.rrbridge.product.v1;
 
 import java.io.File;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
-import java.nio.channels.OverlappingFileLockException;
 
 /**
  * EXPLICIT, separate-process legacy TSV scanner + durable HTTP retry worker.
@@ -44,13 +41,7 @@ public final class ProductBridgeWorker {
         File parent=dbFile.getParentFile();
         if(parent==null||(!parent.isDirectory()&&!parent.mkdirs()))
             throw new IllegalStateException("Cannot create private database directory");
-        File lockFile=new File(dbFile.getPath()+".worker.lock");
-        try(RandomAccessFile lockHandle=new RandomAccessFile(lockFile,"rw")){
-            FileLock lock=null;
-            try {lock=lockHandle.getChannel().tryLock();}
-            catch(OverlappingFileLockException alreadyRunning){}
-            if(lock==null)throw new IllegalStateException("Another product worker owns this spool");
-            try {
+        try(LegacyWorkerGuard workerGuard=LegacyWorkerGuard.acquire(dbFile)) {
                 String lanePath=System.getenv("ROMLOGGER_SYNTHETIC_LANE_ROOT");
                 DurableSpool spool=lanePath==null?new DurableSpool(dbFile):new DurableSpool(dbFile,new File(lanePath));
                 // A previously recorded ingress integrity fault blocks ALL
@@ -78,6 +69,7 @@ public final class ProductBridgeWorker {
                 do {
                     // Import local original into SQLite even while remote delivery
                     // is waiting: never block ingestion on a network outage.
+                    workerGuard.verify();
                     int importedLines;
                     if(journalMode) {
                         try {
@@ -94,6 +86,7 @@ public final class ProductBridgeWorker {
                     }else{
                         importedLines=scanner.scanOnce(256).importedLines;
                     }
+                    workerGuard.verify();
                     ProductDeliveryCoordinator.Result result=
                         coordinator.tick(System.currentTimeMillis());
                     // Never print credentials, record bodies or response URLs.
@@ -111,7 +104,6 @@ public final class ProductBridgeWorker {
                     if(!continuous)break;
                     Thread.sleep(result==ProductDeliveryCoordinator.Result.ACKED?50:1000);
                 } while(!Thread.currentThread().isInterrupted());
-            } finally {lock.release();}
         }
     }
 }
