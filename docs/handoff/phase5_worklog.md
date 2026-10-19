@@ -58,3 +58,19 @@
 - Independent code review found that internal staging uses a valid dedicated RLI2 filename but final publication could bypass the previous public backend's `.rlc2-integration.db` extension check. RED on b4b909c compiled code actually accepted final `product.db` with a valid synthetic source (exit1); SHA256 `f8eef2fb6a2c06902095251a6bd740642d71306cfee0584b86f1de176ba09e91`.
 - Restore the same dedicated-extension requirement at the start of stageIsolated, before any input access/claim/write. Specific code `STAGING_RLI2_EXTENSION_REQUIRED`; test verifies no staging artifacts are created. GREEN exit0; SHA256 `2859fcda58e56988b80984f45e05eb97267b0854c6f356341e5b72b2313df2d6`.
 - This is a one-guard delta plus a new negative test. The frozen broad Windows batch remains at b4b909c; do not relabel that whole batch as the new guard head. Re-run the entire focused suite62 cases on Windows x64/x86/Linux at the final guard head, and report both exact heads explicitly. No broader repetition is needed unless the focused results uncover another concern.
+
+## 2026-10-19 — final guard matrix complete
+
+- `928d43fb96452b4e4f989352d8627549c1e23a4d` focused62 cases PASS/exit0 on Windows17x64, actual Zulu8x86(JVM32), Linux17x64. Exact log hashes/archive/root recorded in evidence. Runtime comparison against the broad b4b909c baseline is one early output-extension guard only; no other runtime change.
+- Source/tests/CI code frozen after928d43f. Handoff-only changes follow. Broad b4b909c Windows batch is in actual x86 Phase IV after successful x64/actual x86 schema/copy/deployment regression. Wait for its final exit rather than inferring success.
+- Agent PR80 and Server PR62 are attached, currently draft, with implementation/evidence/remaining gates saved. No main merge; CI unexecuted. Original clean main checkouts preserved.
+
+## 2026-10-19 — CI duration ceiling follows observed local workload
+
+- Frozen full Windows b4b909c batch has exceeded the previous Windows CI job's15-minute ceiling (both actual x64 and x86 suites). Raise the full Windows job ceiling to60minutes and the single-OS journal matrix to30minutes; other jobs unchanged. This is a maximum runtime allowance, not a CI PASS or billing configuration change. No manual dispatch/retry. Final runtime/test source remains928d43f; handoff commit also includes this narrow YAML ceiling adjustment.
+
+## 2026-10-19T19:34+09:00 — final broad Windows acceptance complete
+
+- Frozen b4b909c Windows batch exit0; log acceleration-20261019-185632.log,2533 PASS lines,158308bytes, SHA256769fac249566bf33d38bfdddeef4f91fe325ca2e71d7164b44c7f94e2cd11504. All x64/actual x86 stages completed; final output-name delta remains separately proven by928d43f focused62×3, not relabelled as the same broad run.
+- Final artifacts: Agent PR80 / Server PR62, report/evidence/bootstrap/progress/decisions/interfaces/next designs. Main remains unchanged/unmerged because latest Actions have zero executed steps. Runtime/tests freeze928d43f; subsequent changes only handoff documents and CI maximum durations.
+- Implementation complete for P0 and major staging/collision P1; explicit remaining P1 lock/path and P2 F3/old-binary/Transition dedicated fixtures in followups. Production/ACK/real-car gates unchanged. Exact restart commands and test directories in report/evidence.

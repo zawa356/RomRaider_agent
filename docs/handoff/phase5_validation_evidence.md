@@ -30,13 +30,13 @@ Linux16db2c4 in `/tmp/romlogger-phase5-16db2c4-NHOevO`, source archive SHA256 `f
 
 Server runtime head `d8c7a2f3b96ba278d269074dc40cca7741b4155b`, `pwsh -NoProfile -File C:\Dev\tools\run-server-tests.ps1`: upgrade twice/check exit0; pytest57 passed,1 warning, exit0. Logs `C:\Dev\RomLogger\logs\server-migrate-20261019-183510.log` SHA256 `42419493a8b29a1104524db90bfbe2811cba1de9b5d10dfcc4d9b83a5a43ea24`; pytest log `server-pytest-20261019-183510.log` SHA256 `afbd32e89592f7fa484547376b9dda9a545c7f11fb43f26b7c5f749ddcd38a4f`.
 
-Actual `scripts/test-rlc2-owned-postgres-http.py` with invocation-owned PostgreSQL16 and real local Server passed35 checks, exit0 (`build/phase5-owned-http-final.log`; final hash below). It generated/stopped only its own build-directory cluster and retained unchanged Agent candidate ACK bytes. It covered dropped committed response/retry, actual owned PG stop503/noACK/restart and immutable persisted records. The first fixture came from the earlier mixed editing batch; do not label it as final-head Agent coverage. A final-head repeat is pending.
+Actual `scripts/test-rlc2-owned-postgres-http.py` with invocation-owned PostgreSQL16 and real local Server passed35 checks, exit0 (`build/phase5-owned-http-final.log`; final hash below). It generated/stopped only its own build-directory cluster and retained unchanged Agent candidate ACK bytes. It covered dropped committed response/retry, actual owned PG stop503/noACK/restart and immutable persisted records. The first fixture came from the earlier mixed editing batch; do not label it as final-head Agent coverage. A frozen b4b909c repeat passed35/0 as recorded below.
 
-## Final implementation b4b909cc3111c11e58f35b7600e47bea1d6aadfa
+## Broad regression baseline b4b909cc3111c11e58f35b7600e47bea1d6aadfa (before the final output-name guard)
 
-Frozen Windows checkout: `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-3\phase5-acceptance-final`. Command `pwsh -NoProfile -File scripts/run-acceleration-tests.ps1`. Final results/hashes pending.
+Frozen Windows checkout: `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-3\phase5-acceptance-final`. Command `pwsh -NoProfile -File scripts/run-acceleration-tests.ps1`. Completed exit0; see the final broad-batch table below.
 
-Final Linux archive `build/phase5-b4b909c.tar`, SHA256 `079f6778f891f03533b005ce4489ccd5b278103a89edabdc2d0abee467d4611e`, owned root `/tmp/romlogger-phase5-b4b909c-8rPW4i`. Final results/hashes pending.
+Final Linux archive `build/phase5-b4b909c.tar`, SHA256 `079f6778f891f03533b005ce4489ccd5b278103a89edabdc2d0abee467d4611e`, owned root `/tmp/romlogger-phase5-b4b909c-8rPW4i`. Completed exit0; exact hashes are recorded in the b4b909c milestone table below.
 
 ## CI and limits
 
@@ -58,4 +58,27 @@ Windows directory durability UNKNOWN; Runtime.halt is not physical power loss. R
 | Linux Phase5ProvenanceTest `--load10000`, remote phase5-load.log |0;10000 records/10001 receipts; v1 subset2 | `c83d46d31dcbe6be3957e6d17d2e928aa4293d291fc0156f8182141167036d21` |
 | Linux `ROMLOGGER_LOAD_OBSERVATIONS=10000 ROMLOGGER_LOAD_SESSIONS=10 bash scripts/test-rlc2-preview.sh`, remote preview-load-regression.log |0; large load59 checks,11sessions,10100records/10111receipts/22admissions/11bindings; further engine/schema/snapshot/JVM regressions also pass | `f0a895e7f6d5463ac25211ed02456575682dc7e58709fdd92f30a73dab2222c9` |
 
-Linux final root `/tmp/romlogger-phase5-b4b909c-8rPW4i`, JDK17.0.20.1 x64/Linux6.8.0-139/ext4 (findmnt); all archive/dependency hashes checked before execution. Local summary log `build/phase5-linux-b4b909c.log` SHA256 `54dc66af2ce106724d23d5efbbe4d2696170710e57d962b191b560d44b9c8312`. Frozen Windows full batch remains pending until its completion entry below. The obsolete16db2c4 batch was intentionally stopped and is not PASS evidence.
+Linux final root `/tmp/romlogger-phase5-b4b909c-8rPW4i`, JDK17.0.20.1 x64/Linux6.8.0-139/ext4 (findmnt); all archive/dependency hashes checked before execution. Local summary log `build/phase5-linux-b4b909c.log` SHA256 `54dc66af2ce106724d23d5efbbe4d2696170710e57d962b191b560d44b9c8312`. Frozen Windows full batch completed exit0; see its completion entry below. The obsolete16db2c4 batch was intentionally stopped and is not PASS evidence.
+
+## Final guard head928d43fb96452b4e4f989352d8627549c1e23a4d
+
+The runtime diff from b4b909c is exactly one early dedicated-output-name check in stageIsolated; source diff inspected directly. Existing valid-name behavior is exercised by the entire focused suite again. The final negative fixture actually accepted `product.db` on b4b909c (RED exit1, `build/phase5-name-red.log` SHA256 `f8eef2fb6a2c06902095251a6bd740642d71306cfee0584b86f1de176ba09e91`); restored guard rejects before staging writes (GREEN exit0, `build/phase5-name-green.log` SHA256 `2859fcda58e56988b80984f45e05eb97267b0854c6f356341e5b72b2313df2d6`). An initial discriminating assertion used a missing input and was tightened to a fully valid synthetic source before recording this acceptance RED.
+
+| Command / platform | Exit / cases | log SHA256 |
+|---|---|---|
+| `bash scripts/test-phase5.sh`, Windows JDK17x64, build/phase5-final-guard-x64.log |0;56+1+4+1=62 | `e7e86860ac0aef3cf474474234d211790eae838660470387d87270435f5d6d1b` |
+| `bash scripts/test-phase5.sh --run-only`, actual Zulu8x86, build/phase5-final-guard-x86.log |0;62, asserted JVM32 | `32700999e3ddaae2be9bcfeab62fa903beb10e9be6693ec2493e5e8ec53f46ea` |
+| `bash scripts/test-phase5.sh`, Linux17x64, remote phase5.log |0;62 | `424f21ceb341a41fc0fe88ba44d413ec2c42d843529f694ee94a4081e6f544dd` |
+
+Final Linux root `/tmp/romlogger-phase5-928d43f-6h49B6`, archive SHA256 `343dc1adac11c9f65b787492e5ce4eced8a4f049dfb5bf1e2ead953df40aebcd`. Archive and dependency hashes verified before compilation. Local summary build/phase5-linux-final-guard.log SHA256 `110416d8033fe45a28bdc4628e70d365ee45fb5250c788cd5fb772be9963194c`.
+
+Broad Windows/Linux regressions, large load and actual HTTP are explicitly reported at b4b909c; they have NOT been relabelled as runs at928d43f. The final guard delta receives the full62-case focused matrix; the complete broad matrix is not repeated for this one entry guard. Root test.sh/physical tests and remaining P1/P2 limitations remain NOT RUN as described above.
+
+## Frozen broad Windows batch completed (b4b909c only)
+
+- Checkout `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-3\phase5-acceptance-final`, detached `b4b909cc3111c11e58f35b7600e47bea1d6aadfa`, clean before/after. Command `pwsh -NoProfile -File scripts/run-acceleration-tests.ps1`, exit0.
+- Log `build/acceleration-20261019-185632.log`,158308bytes,2533 lines starting PASS, SHA256 `769fac249566bf33d38bfdddeef4f91fe325ca2e71d7164b44c7f94e2cd11504`. Created18:56:32+09, last write19:33:36+09 (about37min04; observational). Console `build/phase5-final-console.log` SHA256 `7eda92ccb71c98f1fa1cc159e1f891af44cae798fead7389766ad19fa13773d1`.
+- Actual x64 and Zulu8x86: Phase III/bound/copy/ownership/product/spool/ingress/SQLite/native/ledger/diagnostics/preview/integration regressions pass. Phase IV per architecture review9, transition64, provenance21, legacy34. Phase V at this baseline per architecture56 main +1 physical replacement +4 stored-body cases=61. The final output-name guard was tested separately at928d43f with62 cases on all3platforms, not falsely included in this b4b909c batch.
+- Batch optional direct PostgreSQL preview was NOT RUN (no -Postgres); actual owned PostgreSQL/FastAPI HTTP35 and Server migration/pytest were separately executed and passed as recorded above. No optional check is inferred from another head's historical PASS.
+- Existing loopback PG55432 ready after completion; own final HTTP cluster has no postmaster.pid and was stopped by its own helper. Original main checkouts preserved. Physical power loss/ENOSPC/ECU and remaining P1/P2 cases remain NOT RUN.
+- CI definition only: full Windows timeout ceiling60min, single-OS journal matrix30min, because observed local full matrix exceeded the old15min ceiling. No runner execution verifies the new ceiling yet; no billing change or manual dispatch. Final runtime/test source remains928d43f.

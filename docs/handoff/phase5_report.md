@@ -7,7 +7,7 @@
 ## 開始点と保存先
 
 - Agent開始main: `4f80c5e9831ec39368f4e771d829337598eeaa76`。Server開始main: `d8c7a2f3b96ba278d269074dc40cca7741b4155b`。開始時に両checkoutはclean、open PRは0件。Agent #79とServer #61は既にMERGEDだったため、古いbaseの変更・再マージは不要だった。
-- 実装branch: `phase5/provenance-hardening`、[Agent PR #80](https://github.com/zawa356/RomRaider_agent/pull/80)。実装の最終headは `b4b909cc3111c11e58f35b7600e47bea1d6aadfa`。以後の引継ぎcommitは文書のみで、コード・テスト・CI定義はこのheadと同一。
+- 実装branch: `phase5/provenance-hardening`、[Agent PR #80](https://github.com/zawa356/RomRaider_agent/pull/80)。Server同期は [PR #62](https://github.com/zawa356/RomRaiderServer/pull/62)（文書のみ）。実装の最終headは `928d43fb96452b4e4f989352d8627549c1e23a4d`。広域回帰の固定headは `b4b909cc3111c11e58f35b7600e47bea1d6aadfa`。両者のruntime差分は、公開先RLI2の専用拡張子を最初に検査する1行だけ。以後の引継ぎcommitは文書とCI時間上限のみ（runtime／test sourceは同一）。実測の全Windows batchが既存15分上限を超えたため、全Windows jobを60分、単一OS matrixを30分へ変更した。runner未開始のため、このCI設定の実行結果はNOT RUN。
 - 指定Windows開発VM、JDK17 x64、実Zulu8 x86、pin済み接続先のLinuxを使用。既存main checkoutを保護し、新しいworktreeと合成fixtureで作業した。
 
 ## 実装済み
@@ -20,20 +20,20 @@
 | P0 RLI2 | 分類時に固定した実原本Projectionから、8表すべての正確な集合・内容を独立生成して照合。Record／Profile／Receipt／Source・cursor／Session・Manifest／claim／binding／admissionの余剰・欠落・変更を拒否する。INSERT OR IGNORE後も既存binding／admissionの値を照合する。 |
 | P0 原本の固定 | v1・原本・ledgerのsnapshotをStaging／検証の前後で確認する。WindowsではfileKeyがNULLのため、同一バイト列への原本置換をhashだけでは検出できなかった。実RLC2 readerで物理識別子と捕捉済みmarkerも再検証する。分類前の原本成長は許可し、分類からStaging完了までの変更は拒否する。 |
 | P1 衝突 | 同じ物理UUIDが別runで再使用された場合、後続だけでなく先行runもCONFLICTにする。入力順の両方を検証。run IDは従来どおりdevice＋session由来とし、vehicle衝突はclaim衝突として拒否する。 |
-| P1 Staging | 新規の非公開work directoryを原子的にclaimし、CREATE_NEWの内部DBだけをSQLiteで書く。完成後forceし、上書きしないhardlink作成で公開する。既存の最終出力は書込みopenしない。競合ファイルと途中成果を保持し、再実行で採用・削除・上書きしない。4地点の子JVM halt、3地点の公開競合、旧Worker lockを検証した。 |
+| P1 Staging | 新規の非公開work directoryを原子的にclaimし、CREATE_NEWの内部DBだけをSQLiteで書く。完成後forceし、上書きしないhardlink作成で公開する。既存の最終出力は書込みopenしない。公開先にも従来の専用拡張子を必須とする。競合ファイルと途中成果を保持し、再実行で採用・削除・上書きしない。4地点の子JVM halt、3地点の公開競合、旧Worker lockを検証した。 |
 | 引継ぎ | report／evidence／worklog、Bootstrap、進捗、判断記録、interfaceと次回設計を更新。Phase IV #79／Server #61の実際のマージ状態も反映する。 |
 
 `stagingState`の成功値は `STAGED_LOCAL_HASHES_MATCH_INACTIVE` へ変更した。これは「完成した局所ファイルと局所markerのhashが一致」という意味であり、現在の原本の真正性・利用許可・完全復元を意味しない。原本が成長した後の古い候補を自動拡張せず、新たなsnapshotには別名の候補と再レビューを必要とする。
 
 RLLV1は全v1 Record行とhistorical ACK列の証跡であり、完全な旧DBバックアップではない。Profile／ACK receipt／Cursor／delivery／review等の完全な保全責務は、変更していないv1原本とRMI1にある。RLLV1の正式storage versionへの採用は未承認の提案に留める。
 
-## 検証済みと実行中を区別する
+## 検証結果（実行headを区別）
 
 最初に32件のCursor／出力改竄の誤受理をREDとして再現。その後、Windowsの同一バイト列原本置換1件、保存hashを残した本文・属性改竄4件も追加でRED→GREENにした。
 
-最終headの重点試験は、主試験56件＋物理置換1件＋保持本文4件＝61ケース。Windows JDK17 x64／実Zulu8 x86（JVM32）／Linux JDK17で成功。LinuxのPhase III／IV・preview／integration／schema／snapshot／子JVM回帰、1万件Stagingと1万件＋10 Sessionの負荷・冪等性、実x86の1万件Staging、実FastAPI＋専用PGのHTTP35件も成功している。Serverのmigration2回／checkと57試験も成功（warning1件）。
+最終headの重点試験は、主試験56件＋物理置換1件＋保持本文4件＋公開名1件＝62ケース。Windows JDK17 x64／実Zulu8 x86（JVM32）／Linux JDK17で成功。LinuxのPhase III／IV・preview／integration／schema／snapshot／子JVM回帰、1万件Stagingと1万件＋10 Sessionの負荷・冪等性、実x86の1万件Staging、実FastAPI＋専用PGのHTTP35件も成功している。Serverのmigration2回／checkと57試験も成功（warning1件）。
 
-**最終headのWindows全体バッチは実行中。完了した実結果を下記証跡で確定するまではPASSに数えない。** head・環境・command・exit・件数・log SHA256は [検証証跡](phase5_validation_evidence.md)。異なるheadの過去PASSや、編集途中／中止したbatchを最終headのPASSとしていない。
+**広域基準b4b909cのWindows全体バッチはexit0、PASS行2533で完了。** x64／実x86でPhase III回帰、Phase IV（review9／transition64／provenance21／legacy34）、重点61ケースを含む。最終ガード差分928d43fでは重点62ケースを3環境で再実行済み。全体バッチを928d43fで実行したとはしていない。 head・環境・command・exit・件数・log SHA256は [検証証跡](phase5_validation_evidence.md)。異なるheadの過去PASSや、編集途中／中止したbatchを最終headのPASSとしていない。
 
 ## 未完了・次回の範囲
 
@@ -67,4 +67,4 @@ git log -6 --oneline
 pwsh -NoProfile -File scripts/run-acceleration-tests.ps1
 ```
 
-固定検証checkoutは `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-3\phase5-acceptance-final`。実行中のBashファイルを編集しない。ignored logと途中合成fixtureを保全する。次の実装は [具体的なP1/P2設計](phase5_followups.md)から再開できる。これらの手順は既存の実DB／Workerや送信経路への操作を許可しない。
+広域基準b4b909cの固定検証checkoutは `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-3\phase5-acceptance-final`。実行中のBashファイルを編集しない。ignored logと途中合成fixtureを保全する。次の実装は [具体的なP1/P2設計](phase5_followups.md)から再開できる。これらの手順は既存の実DB／Workerや送信経路への操作を許可しない。
