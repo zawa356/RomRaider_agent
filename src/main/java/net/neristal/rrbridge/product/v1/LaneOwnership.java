@@ -68,6 +68,10 @@ public final class LaneOwnership implements AutoCloseable {
  private static void safe(Path path)throws IOException {
   for(Path p=path;p!=null;p=p.getParent())if(Files.isSymbolicLink(p))throw new IOException("LANE_UNSAFE_PATH");
  }
+ public boolean matches(String device,String vehicle,String session) {
+  String key=UUID.fromString(device).toString()+"|"+UUID.fromString(vehicle).toString()+"|"+session;
+  return new String(evidence,StandardCharsets.UTF_8).split("\n",-1)[1].equals(java.util.Base64.getEncoder().encodeToString(key.getBytes(StandardCharsets.UTF_8)));
+ }
  public synchronized void verify()throws IOException {
   if(closed||!lock.isValid()||!handle.getChannel().isOpen())throw new IOException("LANE_LOST");
   safe(path);

@@ -26,6 +26,34 @@ import java.util.UUID;
  */
 public final class DurableSpool {
     private final String jdbcUrl;
+    private final File laneRoot;
+    private final ThreadLocal<IngressScope> ingress=new ThreadLocal<IngressScope>();
+    public final class IngressScope implements AutoCloseable {
+        private final LaneOwnership lane;
+        private final Thread thread=Thread.currentThread();
+        private IngressScope(LaneOwnership lane){this.lane=lane;}
+        public void close()throws java.io.IOException {
+            if(thread!=Thread.currentThread())throw new java.io.IOException("LANE_THREAD_MISMATCH");
+            if(lane!=null){lane.close();if(ingress.get()==this)ingress.remove();}
+        }
+    }
+    public IngressScope beginIngress(String device,String vehicle,String session)throws Exception {
+        if(laneRoot==null)return new IngressScope(null);
+        if(ingress.get()!=null)throw new java.io.IOException("LANE_NESTED_SCOPE");
+        IngressScope scope=new IngressScope(LaneOwnership.acquire(true,laneRoot,device,vehicle,session));
+        ingress.set(scope);return scope;
+    }
+    private void verifyIngress()throws SQLException {
+        if(laneRoot==null)return;
+        IngressScope scope=ingress.get();
+        if(scope==null)throw new SQLException("LANE_SCOPE_REQUIRED");
+        try{scope.lane.verify();}catch(java.io.IOException e){throw new SQLException("LANE_LOST",e);}
+    }
+    private void verifyIngressKey(String device,String vehicle,String session)throws SQLException {
+        verifyIngress();
+        if(laneRoot!=null&&!ingress.get().lane.matches(device,vehicle,session))throw new SQLException("LANE_KEY_MISMATCH");
+    }
+
 
     public static final class PendingRecord {
         public final String recordId, runId, json;
@@ -69,7 +97,10 @@ public final class DurableSpool {
         }
     }
 
-    public DurableSpool(File file) throws Exception {
+    public DurableSpool(File file) throws Exception { this(file,null); }
+    /** Explicit isolated ownership configuration; existing constructor remains disabled. */
+    public DurableSpool(File file,File laneRoot) throws Exception {
+        this.laneRoot=laneRoot;
         if (file == null) throw new IllegalArgumentException("spool file required");
         File parent = file.getAbsoluteFile().getParentFile();
         if (parent == null || (!parent.isDirectory() && !parent.mkdirs())) {
@@ -171,6 +202,7 @@ public final class DurableSpool {
      */
     public synchronized void saveImportCursor(ImportCursor before, ImportCursor after)
             throws SQLException {
+        verifyIngress();
         if(after==null||after.sourcePath==null||after.snapshot==null||
            after.offsetBytes<=0||after.lineNumber<=0||
            (before!=null&&(after.offsetBytes<=before.offsetBytes||
@@ -207,7 +239,7 @@ public final class DurableSpool {
                     }
                 }
                 if(changed!=1)throw new IllegalStateException("Import cursor moved concurrently");
-                db.commit();
+                verifyIngress();db.commit();
             }catch(Exception ex){db.rollback();throw ex;}
         }
     }
@@ -238,6 +270,7 @@ public final class DurableSpool {
      */
     public synchronized void claimSourceSession(String device,String vehicle,
             String session,String kind,String key) throws Exception {
+        verifyIngressKey(device,vehicle,session);
         if(session==null||session.isEmpty()||session.indexOf('/')>=0||
            session.indexOf('\\')>=0||session.indexOf('\n')>=0||
            (!"legacy".equals(kind)&&!"journal".equals(kind))||
@@ -318,7 +351,7 @@ public final class DurableSpool {
                             throw new IllegalStateException("Conflicting source lane");
                     }
                 }
-                db.commit();
+                verifyIngress();db.commit();
             }catch(Exception ex){db.rollback();throw ex;}
         }
     }
@@ -392,6 +425,7 @@ public final class DurableSpool {
     /** Cursor CAS happens after apply(), NOT after Server ACK. */
     public synchronized void saveJournalCursor(JournalImportCursor before,
                                                JournalImportCursor after) throws Exception {
+        verifyIngress();
         if(after==null||after.sequence<1||after.snapshot==null||
            (before!=null&&(after.sequence!=before.sequence+1||
             !after.uuid.equals(before.uuid)||!after.path.equals(before.path)||
@@ -429,7 +463,7 @@ public final class DurableSpool {
                     }
                 }
                 if(changed!=1)throw new IllegalStateException("Journal cursor moved concurrently");
-                db.commit();
+                verifyIngress();db.commit();
             }catch(Exception ex){db.rollback();throw ex;}
         }
     }
@@ -518,6 +552,7 @@ public final class DurableSpool {
 
     /** Persist profile JSON before any observations using that profile are sent. */
     public synchronized void appendProfile(String profileId, String bodyJson) throws Exception {
+        verifyIngress();
         uuid(profileId); json(bodyJson);
         String hash = sha(bodyJson);
         try (Connection db = open()) {
@@ -536,7 +571,7 @@ public final class DurableSpool {
                             throw new IllegalStateException("Immutable profile content changed");
                     }
                 }
-                db.commit();
+                verifyIngress();db.commit();
             } catch (Exception ex) { db.rollback(); throw ex; }
         }
     }
@@ -584,6 +619,7 @@ public final class DurableSpool {
     public synchronized void appendRecord(String recordId, String runId,
         String segmentId, Long sequence, String kind, String profileId,
         String capturedAt, String sourceKind, String bodyJson) throws Exception {
+        verifyIngress();
         uuid(recordId); uuid(runId); json(bodyJson); timestamp(capturedAt);
         if (!"observation".equals(kind) && !"event".equals(kind) && !"gap".equals(kind))
             throw new IllegalArgumentException("Unknown record kind");
@@ -636,7 +672,7 @@ public final class DurableSpool {
                         }
                     }
                 }
-                db.commit();
+                verifyIngress();db.commit();
             } catch(Exception ex) { db.rollback(); throw ex; }
         }
     }

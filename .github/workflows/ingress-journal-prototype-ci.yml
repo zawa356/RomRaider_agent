@@ -12,6 +12,7 @@ on:
       - 'scripts/test-watermark-ledger.sh'
       - 'scripts/test-ingress-diagnostics.sh'
       - 'scripts/test-rlc2-preview.sh'
+      - 'scripts/test-phase2-lanes.sh'
       - 'scripts/test-rlc2-preview-postgres.py'
       - 'scripts/test-rlc2-preview-postgres-guard.py'
       - 'scripts/requirements-preview-cp312.lock'
@@ -29,6 +30,7 @@ on:
       - 'scripts/test-watermark-ledger.sh'
       - 'scripts/test-ingress-diagnostics.sh'
       - 'scripts/test-rlc2-preview.sh'
+      - 'scripts/test-phase2-lanes.sh'
       - 'scripts/test-rlc2-preview-postgres.py'
       - 'scripts/test-rlc2-preview-postgres-guard.py'
       - 'scripts/requirements-preview-cp312.lock'
@@ -77,7 +79,9 @@ jobs:
         run: bash scripts/test-ingress-diagnostics.sh
       - name: Isolated RLC2 preview SQLite and separate-JVM CLI
         shell: bash
-        run: bash scripts/test-rlc2-preview.sh
+        run: |
+          bash scripts/test-rlc2-preview.sh
+          bash scripts/test-phase2-lanes.sh
       - name: Assert no production RomRaider.jar is needed
         shell: bash
         run: test ! -f lib/RomRaider.jar

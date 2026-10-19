@@ -284,6 +284,7 @@ public final class IncrementalTsvBridge {
                first[1].indexOf('/')>=0||first[1].indexOf('\\')>=0)
                 throw new IllegalArgumentException("Invalid journal source session");
             String session=first[1];
+            try(DurableSpool.IngressScope lane=spool.beginIngress(deviceId,vehicleId,session)) {
             DurableSpool.JournalImportCursor cursor=spool.loadJournalCursor(sourceUuid);
             String firstHash=shaText(frames.get(0).row);
             if(cursor!=null){
@@ -323,6 +324,7 @@ public final class IncrementalTsvBridge {
                 if(kind==1)m++;else if(kind==2)o++;else if(kind==3)e++;
             }
             return new Result(m,o,e,done,false,offset);
+            }
         }
     }
 
@@ -332,6 +334,7 @@ public final class IncrementalTsvBridge {
             throw new IllegalArgumentException("Invalid source or import limit");
         String path=source.getCanonicalPath();
         String session=source.getName().substring(3,source.getName().length()-4);
+        try(DurableSpool.IngressScope lane=spool.beginIngress(deviceId,vehicleId,session)) {
         // A single logical session cannot be imported from both legacy TSV
         // and journal lanes. Claim is durable before parsing any source row.
         spool.claimSourceSession(deviceId,vehicleId,session,"legacy",path);
@@ -384,5 +387,6 @@ public final class IncrementalTsvBridge {
             }
         }
         return new Result(m,s,e,complete,partial,last);
+        }
     }
 }
