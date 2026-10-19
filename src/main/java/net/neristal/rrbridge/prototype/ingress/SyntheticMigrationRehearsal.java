@@ -1,4 +1,5 @@
-package net.neristal.rrbridge.product.v1;
+package net.neristal.rrbridge.prototype.ingress;
+import net.neristal.rrbridge.product.v1.*;
 import java.io.*;
 import net.neristal.rrbridge.prototype.ingress.WatermarkV2Prototype;
 /** Test-only preflight -> owned RMI1 copy -> preserved inventory -> backup acceptance. */

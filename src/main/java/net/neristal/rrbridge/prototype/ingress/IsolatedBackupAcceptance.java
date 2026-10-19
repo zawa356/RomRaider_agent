@@ -1,4 +1,5 @@
-package net.neristal.rrbridge.product.v1;
+package net.neristal.rrbridge.prototype.ingress;
+import net.neristal.rrbridge.product.v1.*;
 import java.io.*;
 import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;

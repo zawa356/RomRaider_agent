@@ -17,7 +17,7 @@ The reference schema helper now uses a fresh invocation-owned directory and `fin
 Read-only copied-target CLI:
 
 ```
-java -cp 'build/phase3:lib/*' net.neristal.rrbridge.product.v1.IsolatedBackupAcceptance --inspect-isolated-copy EVIDENCE.rlba1 COPIED_DIRECTORY
+java -cp 'build/phase3:lib/*' net.neristal.rrbridge.prototype.ingress.IsolatedBackupAcceptance --inspect-isolated-copy EVIDENCE.rlba1 COPIED_DIRECTORY
 ```
 
 Windows separator `;`. Exit0 verified isolated copy (no activation); exit2 usage; exit5 REVIEW_REQUIRED/BACKUP_VERIFICATION_REFUSED. Evidence writes CREATE_NEW + force; multiple artifact files/evidence/directory durability are not one atomic event. Evidence is deliberately not stored inside the copied directory, which requires an exact role set. Windows directory durability remains UNKNOWN.

@@ -30,3 +30,9 @@
 - Added read-only RMI1 verifyIsolatedCopy, existing-only RLI2 schema verification (no auto-create), RLBA1 bounded role/hash capture + copied-target inspection CLI, and test-only preflight/owned-copy/inventory/candidate/backup rehearsal.
 - Windows x64 backup/rehearsal20 checks PASS in phase3-backup-focused-x64.log: prepared-commit interruption/retry, row/ACK/cursor/receipt fingerprints, original unchanged, complete copied evidence/CLI, missing owner/tampered record/ACK/metadata/WAL/active guard/second importer/manifest-ledger refusal. First fixture used wrong payload_json SQL column; corrected to body_json, failure retained in phase3-backup-x64.log (not PASS).
 - No RMI1->RLI2 record conversion, restored deployment activation, cross-DB atomicity or global fence claim. New full after-owner/during-copy/after-commit fault matrix and actual operator cutover/rollback remain incomplete. Stable-source final matrix follows.
+
+## 2026-10-19T12:22:13.1282441+09:00 — final regression found product build boundary defect
+
+- Stable96487fe full batch FAIL at test-ingress-sqlite-receipts -> product-v1 wildcard compile: new backup/rehearsal classes in product.v1 depended on prototype ingress classes absent from that product build. Moved those synthetic-only helpers into prototype.ingress; product package remains independently buildable. This is a real introduced build regression, not an environmental skip. Final matrix restarts on corrected head.
+- HTTP independently PASS35 on96487fe with actual invocation-owned PG immediate-stop/restart; existing PG not stopped. Server test result pending collection.
+- Linux final archive extraction succeeded, then mkdir lib found tracked existing directory; harness setup failure NOT PASS. Continued only in the same fresh owned directory using explicitly named dependency files; first attempt retained. No existing service touched.
