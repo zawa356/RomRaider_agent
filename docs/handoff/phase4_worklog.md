@@ -33,3 +33,23 @@ Times are JST (+09:00). Append only; do not rewrite earlier entries.
 - IV-2 `ArtifactProvenance` (RLAP1): ArtifactProvenanceTest 21 PASS on Windows JDK17 (Windows process provenance UNKNOWN by design). Commit 315041e, PR #77 stacked on #76.
 - IV-3 `LegacyProvenanceClassifier` (RLPC1) + RLLV1 vault staging; `IncrementalTsvBridge.runId` exposes the existing deterministic run ID. LegacyProvenanceClassifierTest 33 PASS on JDK17 x64.
 - Product bug found by the test during development: a row-level VERIFIED record in a session with a CONFLICT was required in RLI2 although the session is (correctly) not migrated. Fixed by a single `migratable` rule (row VERIFIED and session VERIFIED) used for vault flags and verification.
+
+## 2026-10-19T19:10+09:00 — IV-4 matrix / IV-5 handoff
+
+- Batch script now runs `test-phase4.sh` on JDK17 x64 and Zulu8 x86 (commit 0e61251). Full Windows batch started on fixed worktree `C:\Dev\RomLogger\phase4-final-0e61251` (results appended when finished).
+- Linux VPS `/tmp/romlogger-phase4-0e61251` (archive SHA256 bfda3dc0…, deps hash-verified): phase4 exit0 (review 9/0, transition 64, provenance 22 incl. `/proc` match and replaced-after-start, legacy 34), phase3 exit0, bound 10,003 records exit0.
+- Linux pre-fix RED (`/tmp/romlogger-phase4-red-2b620c7`): F2/F2b RED; F1 not RED on Linux. Original F6 assertion did not discriminate (schema refusal hid the defect) → tightened in 04564c5; pre-fix RED / fixed GREEN confirmed.
+- Server main bb27cd1: migrate upgrade×2/check exit0, pytest 57 passed 1 warning. Server docs PR #61 opened (no runtime change).
+- PR #78 opened (IV-3/4). IV-5 docs: phase4_report, evidence, review update, bootstrap first-three links, AGENTS entry (Phase III line kept as history), Agent progress entry.
+
+## 2026-10-19T19:55+09:00 — IV-4 Windows matrix complete
+
+- Full batch on `0e61251` exit0 (2413 PASS lines, log SHA256 25d491aa…). Phase IV ran on JDK17 x64 and real Zulu8 x86 (JVM=32).
+- Real HTTP + owned PG16: 35 checks PASS. Only the owned cluster was stopped; 55432 still listening afterwards.
+- Windows bound 10,003 records: x64 61 s, x86 80 s, both exit0.
+- Remaining: PR merges (#75→#76→#77→#78→#79, Server #61) need the user; this session's merge attempt was refused by policy.
+
+## 2026-10-19T20:10+09:00 — merges with user approval
+
+- The user explicitly approved merging and asked for thorough comments. Before each merge, a pre-merge review comment was posted (scope, behaviour change, verification, remaining limits). Each stacked PR was retargeted to main after its predecessor merged.
+- Merged: #75 `2e6825c`, #76 `d95950c`, #77 `a76b35c`, #78 `dca2f4d`. #79 (this document) and Server #61 follow. A post-merge main re-run was not performed in this session.
