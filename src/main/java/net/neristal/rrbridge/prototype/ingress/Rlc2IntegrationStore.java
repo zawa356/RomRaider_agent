@@ -37,7 +37,7 @@ public final class Rlc2IntegrationStore {
     public Rlc2PreviewStore.Result ingest(boolean externallyQuiescent,final Admission admission,final Path directory,final File ledger,
             final File legacy,final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader,Rlc2PreviewStore.Hook hook)throws Exception {
         try(net.neristal.rrbridge.product.v1.LegacyWorkerGuard legacyGuard=net.neristal.rrbridge.product.v1.LegacyWorkerGuard.acquire(legacy)) {
-        return ingestOwned(externallyQuiescent,admission,directory,ledger,legacy,device,vehicle,reader,hook,legacyGuard,null);
+        return ingestOwned(externallyQuiescent,admission,directory,ledger,legacy,device,vehicle,reader,hook,legacyGuard,null,null);
         }
     }
     /** Isolated opt-in; payload session must match projection before any output writes. */
@@ -47,12 +47,24 @@ public final class Rlc2IntegrationStore {
         if(!enable)throw new IOException("LANE_DISABLED");
         try(net.neristal.rrbridge.product.v1.LegacyWorkerGuard old=net.neristal.rrbridge.product.v1.LegacyWorkerGuard.acquire(legacy);
             net.neristal.rrbridge.product.v1.LaneOwnership lane=net.neristal.rrbridge.product.v1.LaneOwnership.acquire(true,root,device,vehicle,payloadSession)) {
-            return ingestOwned(externallyQuiescent,admission,directory,ledger,legacy,device,vehicle,reader,hook,old,lane);
+            return ingestOwned(externallyQuiescent,admission,directory,ledger,legacy,device,vehicle,reader,hook,old,lane,null);
+        }
+    }
+    /** Cooperative synthetic Writer only; nonparticipating producers are outside this contract. */
+    public Rlc2PreviewStore.Result ingestPublished(boolean enable,File root,String payloadSession,
+            final Admission admission,final Path directory,final File ledger,final File legacy,
+            final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader,Rlc2PreviewStore.Hook hook)throws Exception {
+        if(!enable)throw new IOException("PUBLICATION_DISABLED");
+        if(root.getCanonicalFile().toPath().startsWith(directory.toFile().getCanonicalFile().toPath()))throw new IOException("publication locks must be outside snapshot");
+        try(net.neristal.rrbridge.product.v1.LegacyWorkerGuard old=net.neristal.rrbridge.product.v1.LegacyWorkerGuard.acquire(legacy);
+            net.neristal.rrbridge.product.v1.LaneOwnership lane=net.neristal.rrbridge.product.v1.LaneOwnership.acquire(true,root,device,vehicle,payloadSession);
+            net.neristal.rrbridge.product.v1.LaneOwnership publication=Rlc2PublicationBoundary.acquire(true,root,admission.manifestSession)) {
+            return ingestOwned(true,admission,directory,ledger,legacy,device,vehicle,reader,hook,old,lane,publication);
         }
     }
     private Rlc2PreviewStore.Result ingestOwned(boolean externallyQuiescent,final Admission admission,final Path directory,final File ledger,
             final File legacy,final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader,Rlc2PreviewStore.Hook hook,
-            final net.neristal.rrbridge.product.v1.LegacyWorkerGuard legacyGuard,final net.neristal.rrbridge.product.v1.LaneOwnership lane)throws Exception {
+            final net.neristal.rrbridge.product.v1.LegacyWorkerGuard legacyGuard,final net.neristal.rrbridge.product.v1.LaneOwnership lane,final net.neristal.rrbridge.product.v1.LaneOwnership publication)throws Exception {
         if(!externallyQuiescent)throw new IOException("external quiescence required throughout transaction");
         if(admission==null||!directory.toFile().getCanonicalPath().equals(admission.directory))throw new IOException("session directory not admitted");
         if(output.getCanonicalFile().toPath().startsWith(directory.toFile().getCanonicalFile().toPath())||output.getCanonicalFile().equals(ledger.getCanonicalFile())||output.getCanonicalFile().equals(legacy.getCanonicalFile()))throw new IOException("output must be separate from all input snapshots");
@@ -67,7 +79,7 @@ public final class Rlc2IntegrationStore {
         Rlc2IntegrationSchema.requireUnclaimed(legacy,p.device,p.vehicle,p.payloadSession,run);
         return backend.ingest(p,hook,new Rlc2PreviewStore.TransactionGuard(){
             public void beforeWrite(Connection db)throws Exception{
-                legacyGuard.verify();if(lane!=null)lane.verify();
+                legacyGuard.verify();if(lane!=null)lane.verify();if(publication!=null)publication.verify();
                 snapshot.verify();
                 try(PreparedStatement q=db.prepareStatement("SELECT session_path,run_id FROM integration_bindings WHERE session_uuid=?")){
                     q.setString(1,p.manifestSession);try(ResultSet r=q.executeQuery()){
@@ -91,7 +103,7 @@ public final class Rlc2IntegrationStore {
             }
             public void beforeCommit(Connection db)throws Exception{
                 Rlc2IntegrationSchema.requireUnclaimed(legacy,p.device,p.vehicle,p.payloadSession,run);
-                legacyGuard.verify();if(lane!=null)lane.verify();
+                legacyGuard.verify();if(lane!=null)lane.verify();if(publication!=null)publication.verify();
                 snapshot.verify();
             }
         });

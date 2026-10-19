@@ -18,3 +18,6 @@ RED d32c346 test initially lacked the reflected Windows fixture in its focused c
 
 ## 2026-10-19 10:03 +09:00 — II-3 product candidate integration
 Added opt-in constructor/Worker synthetic root, TSV/Journal per-session scopes, DurableSpool write/precommit checks and cooperative RLC2 API with explicit quiescence. Windows x64 focused ownership17/product7/cross-engine scenarios PASS; actual x86 ownership17 PASS. Existing product regression running separately. New default remains disabled; no DB schema, record ID or ACK changes. PR61 contains contract/core; dependent product integration branch retains ongoing work.
+
+## 2026-10-19 09:42 +09:00 — II-4 publication candidate and timestamp correction
+The preceding entries labelled09:49 and10:03 were entered with incorrect wall-clock labels; they describe work actually completed before this09:42 checkpoint. Use commit timestamps as authoritative evidence. Cooperative publication6 focused checks PASS: held Writer blocks Reader without writes; Reader blocks Writer before commit; published seal/rotation/Ledger update then extends the run by one admitted Source. No noncooperative/live claim. Server isolated migration upgrade twice/check and pytest57 PASS (server-pytest-20261019-094046.log). Existing Windows full matrix running; final source will be recompiled after remaining changes.
