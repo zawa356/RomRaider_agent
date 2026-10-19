@@ -38,6 +38,10 @@ public final class Rlc2IntegrationSchema {
             }catch(Exception failure){s.execute("ROLLBACK");throw failure;}
         }
     }
+    /** Existing closed candidate only. Never creates a missing DB or initializes schema. */
+    public static void verifyExistingReadOnly(File file)throws Exception {
+        try(Connection c=IngressDiagnostics.readOnly(file)){verify(c);}
+    }
     static void verify(Connection c)throws Exception {
         try(Statement s=c.createStatement()){
             try(ResultSet r=s.executeQuery("PRAGMA application_id")){if(!r.next()||r.getInt(1)!=APPLICATION_ID)throw new IOException("not integration-owned");}

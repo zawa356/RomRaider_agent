@@ -10,6 +10,13 @@ public final class Rlc2BoundDeploymentTest {
   final Rlc2ProductAdapterTest.Fixture f=new Rlc2ProductAdapterTest.Fixture(Rlc2ProductAdapterTest.environment(),false,Rlc2ProductAdapterTest.SESSION,1,home);
   final Rlc2IntegrationStore.Admission admission=Rlc2IntegrationStoreTest.admit(f);
   File ledger=home.resolve("ledger.db").toFile();Files.move(f.db,ledger.toPath());
+  String requested=System.getenv("ROMLOGGER_BOUND_LOAD_OBSERVATIONS");int extra=requested==null?0:Integer.parseInt(requested);
+  if(extra<0||extra>10000)throw new IllegalArgumentException("bounded synthetic load required");
+  if(extra>0) {
+   String[] rows=new String[extra];for(int i=0;i<extra;i++)rows[i]="S\t"+Rlc2ProductAdapterTest.SESSION+"\t1\t"+(i+2)+"\t"+(1791838802000L+i*1000L)+"\tTEST_RPM="+(702+i);
+   f.append(2,rows);RotationManifestPrototype.ingestSession(f.dir,new WatermarkLedgerPrototype(ledger),f.env.reader(),null);
+  }
+  final int expectedRecords=3+extra;
   File legacy=home.resolve("old.db").toFile(),out=home.resolve("out.rlc2-integration.db").toFile();new DurableSpool(legacy);new Rlc2IntegrationStore(true,out);
   File root=DeploymentBindingTest.privateDir(Files.createDirectory(home.resolve("root"))).toFile();
   DeploymentBindingTest.privateDir(f.dir);
@@ -26,13 +33,13 @@ public final class Rlc2BoundDeploymentTest {
   check(Rlc2PreviewStoreTest.count(out,"SELECT count(*) FROM preview_records")==0,"binding failure rolls back all output records");
   Files.write(root.toPath().resolve(DeploymentBinding.NAME),Files.readAllBytes(Paths.get(legacy+".deployment-binding")));
   Rlc2PreviewStore.Result result=Rlc2IntegrationStore.ingestBoundDeployment(true,true,l,admission,f.env.reader(),Rlc2PreviewStore.NO_FAULT);
-  check(result.recordsAdded==3&&!result.ackEligible,"bound synthetic entry imports actual two-source candidate without ACK");
+  check(result.recordsAdded==expectedRecords&&!result.ackEligible,"bound synthetic entry imports actual two-source candidate without ACK");
   check(Rlc2IntegrationStore.ingestBoundDeployment(true,true,l,admission,f.env.reader(),Rlc2PreviewStore.NO_FAULT).recordsAdded==0,"bound retry idempotent");
   check(java.util.Arrays.equals(old,Files.readAllBytes(legacy.toPath())),"legacy bytes unchanged");
   try(LegacyWorkerGuard worker=LegacyWorkerGuard.acquire(legacy)) {
    refused=false;try{Rlc2IntegrationStore.ingestBoundDeployment(true,true,l,admission,f.env.reader(),Rlc2PreviewStore.NO_FAULT);}catch(IOException expected){refused=true;}
    check(refused,"old exact Worker lock blocks bound engine");
   }
-  System.out.println("Bound deployment engine passed "+checks+" checks");
+  System.out.println("Bound deployment engine passed "+checks+" checks; records="+expectedRecords+"; actual JVM="+System.getProperty("sun.arch.data.model"));
  }
 }

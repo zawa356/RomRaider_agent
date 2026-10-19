@@ -16,6 +16,7 @@ public final class V1LaneMigrationTest {
   new IncrementalTsvBridge(spool,LaneOwnershipTest.D,LaneOwnershipTest.V).importNew(tsv,10);
   spool.markProfileAcked(spool.pendingProfileEntries().get(0).profileId,true);
   DurableSpool.Batch batch=spool.nextBatch(1,200000);spool.markBatchAcked(batch,new DurableSpool.Ack(batch.batchId,"committed",1,1,0));
+  spool.saveDeliveryState(3,1791838805000L,true,"NEEDS_REVIEW");spool.requireIngressReview("JOURNAL_IMPORT");
   final byte[] original=Files.readAllBytes(source.toPath());
   V1LaneMigration.Report report=V1LaneMigration.preflight(true,true,source);
   check(report.acked==1&&report.pending==1&&report.rows.get("v1_import_cursors")==1,"dry-run inventories ACK/unACK and cursor");
@@ -25,6 +26,10 @@ public final class V1LaneMigrationTest {
   check(injected[0]&&target.length()>0,"injection actually reached prepared migration commit");
   try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+target);Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT count(*) FROM sqlite_master WHERE name='lane_migration_v1'")){r.next();check(r.getInt(1)==0,"interruption rolls back metadata/inventory/guards atomically");}
   V1LaneMigration.Report migrated=V1LaneMigration.migrateCopy(true,true,source,target,V1LaneMigration.NO_FAULT);
+  check(migrated.rows.get("v1_delivery_state")==1&&migrated.rows.get("v1_ingress_review_state")==1,"nonempty retry/review latches retained in inventory");
+  try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+target.toURI().toASCIIString()+"?mode=ro&immutable=1");Statement q=c.createStatement();ResultSet r=q.executeQuery("SELECT retry_count,next_attempt_ms,needs_review,last_outcome,reason_code FROM v1_delivery_state JOIN v1_ingress_review_state USING(singleton)")) {
+   check(r.next()&&r.getInt(1)==3&&r.getLong(2)==1791838805000L&&r.getInt(3)==1&&r.getString(4).equals("NEEDS_REVIEW")&&r.getString(5).equals("JOURNAL_IMPORT")&&!r.next(),"exact retry schedule/outcome and ingress fault preserved without reset");
+  }
   check(migrated.dataSha.equals(report.dataSha)&&migrated.sourceSha.equals(report.sourceSha),"isolated copy preserves every original row/rowid/ACK/cursor/profile");
   check(V1LaneMigration.migrateCopy(true,true,source,target,V1LaneMigration.NO_FAULT).dataSha.equals(report.dataSha),"migration reexecution idempotent");
   check(java.util.Arrays.equals(original,Files.readAllBytes(source.toPath())),"original byte-for-byte unchanged after migration/retry");

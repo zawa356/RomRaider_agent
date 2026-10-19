@@ -535,3 +535,7 @@ Phase II: ROMLOGGER_SYNTHETIC_LANE_ROOT opts in isolated product scopes; LaneOwn
 
 ## Phase III RLDB1 deployment preflight
 [Deployment binding v1](interfaces/deployment_binding_v1.md): opt-in paired root/legacy anchor, bound synthetic entry, read-only CLI JSON/exits0/2/5. No wire/schema/ACK/default Worker change.
+
+Phase III: CutoverReadiness adds bounded read-only current-build JAR classset/old-lock/v1 inventory/latch diagnosis; exits0/2/3/5. [Contract and manual dry-run](ops/cutover_readiness_v1.md). No automatic stop or cutover.
+
+Phase III RLBA1: [backup/rehearsal contract](interfaces/isolated_backup_acceptance_v1.md), copied-target CLI --inspect-isolated-copy EVIDENCE TARGET (exits0/2/5, activation false), read-only RMI1 verifyIsolatedCopy and synthetic Java rehearsal. No product migration/restore/ACK activation.

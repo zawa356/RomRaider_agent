@@ -498,3 +498,9 @@ RMI1 preserves rows/rowids/ACK/cursors, source bytes and explicit claims. Strict
 
 ## D-062 — RLDB1 deployment binding and paired local anchor
 Use an explicit synthetic-only paired root/legacy anchor, strict canonical layout/identity/permissions and read-only inspection. Verify revised candidate before output open and at transaction boundaries. Same-DB second root refuses; coordinated clones/other hosts remain externally gated, never globally fenced. Existing default Worker and RLLO1 experiments unchanged. See [contract](interfaces/deployment_binding_v1.md).
+
+## D-063 - Readiness is advisory; historic binaries are unknown
+Inspect exact existing locks without creation, compare bounded current-build classsets, read immutable v1 inventory/latches. Require external quiescence/provenance. Missing lock never proves process absence; future IDLE timestamp alone is not a fault. No service or ACK actuation.
+
+## D-064 - Preserve immutable migration evidence and keep restores inactive
+Clean only exact schema-reference files created in a fresh own directory. Verify RMI1 without opening writable, capture bounded versioned backup roles/hashes and copy only to new isolated target. Keep original/ACK intact and restored binding inactive. RMI1 is not RLI2 conversion; global fencing and full new-harness copy fault matrix remain separate. [Contract](interfaces/isolated_backup_acceptance_v1.md).
