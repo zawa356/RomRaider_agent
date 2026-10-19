@@ -109,16 +109,20 @@ public final class DeploymentBinding {
    return new String(out.toByteArray(),StandardCharsets.ISO_8859_1);
   }finally{if(process.isAlive())process.destroyForcibly();}
  }
- private static Map<String,String> describe(Layout l)throws Exception {
-  // Validate every distinct drive before accessing any layout file. No cache across calls: mappings can change.
+ /** Validate all distinct drive roots without touching any layout file. No result cache across calls. */
+ public static void requireLocalDrives(Layout... layouts)throws IOException {requireLocalDrives(WindowsDriveGate.SYSTEM,layouts);}
+ public static void requireLocalDrives(WindowsDriveGate.Probe probe,Layout... layouts)throws IOException {
   if(System.getProperty("os.name").startsWith("Windows")){
    Set<String> drives=new TreeSet<String>();
-   for(File f:l.files()){
+   for(Layout layout:layouts)for(File f:layout.files()){
     Path p=f.toPath();require(p.isAbsolute()&&p.equals(p.normalize()),"PATH_NOT_ABSOLUTE_NORMAL");
     require(!p.toString().startsWith("\\\\"),"NETWORK_PATH_UNSUPPORTED");drives.add(p.getRoot().toString().toUpperCase(Locale.ROOT));
    }
-   for(String drive:drives)WindowsDriveGate.requireFixed(drive,WindowsDriveGate.SYSTEM);
+   for(String drive:drives)WindowsDriveGate.requireFixed(drive,probe);
   }
+ }
+ private static Map<String,String> describe(Layout l)throws Exception {
+  requireLocalDrives(l);
   Map<String,String> m=new TreeMap<String,String>();m.put("version","RLDB1");m.put("mode","SYNTHETIC_ONLY");
   require(UUID.fromString(l.device).toString().equals(l.device)&&UUID.fromString(l.vehicle).toString().equals(l.vehicle)&&UUID.fromString(l.manifestSession).toString().equals(l.manifestSession),"IDENTITY_INVALID");
   require(l.payloadSession!=null&&!l.payloadSession.isEmpty()&&l.payloadSession.length()<=1024&&l.payloadSession.indexOf('\n')<0&&l.payloadSession.indexOf('\r')<0,"IDENTITY_INVALID");

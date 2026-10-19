@@ -48,3 +48,24 @@ PowerShell Parser and Bash `-n` for Phase VI scripts PASS. YAML safe_load PASS u
 - Transition exclusion RED: test-onlydd36511 against unchanged Phase V transition runtime; actual child PID8452 holds old Lane, abandon still creates its marker. `build/phase6-abandon-red.log` exit1, SHA256e7655a630a14aec22b187189b550f1ddcce54fca354480b2161cf5db006b0249. Final correction is separately frozen/tested; no double-activation claim.
 
 Windows directory durability / running-process provenance UNKNOWN. Noncooperative writer absence WRITER_UNPROVEN; readiness BLOCKED. Real SMB, privileged Windows links, physical power loss, real ENOSPC, ECU/OpenPort/X270, production DB/Worker, production migration and new formal ACK NOT RUN/disabled. Root test.sh requires absent RomRaider.jar and is NOT RUN.
+## Final broad baseline d394103 — Linux completed
+
+First Linux run retained as FAIL: `phase6.log`, SHA25660f08c44d2221570a65b1d2667a2e6335c9e2a77b814e03b15afcd4c144b29b2. The SSH invocation's umask was0002; fixture Worker/Lane files created after initial privatization were group-writable, correctly causing UNSAFE_ACCESS in read-only preflight. No safety assertion was relaxed and no existing file was chmodded. The same source was rerun with invocation-local `umask 077`, creating fresh private fixtures and retaining the failed artifacts.
+
+All following commands completed exit0 atd394103 in `/tmp/romlogger-phase6-d394103-8UQIfi`, with the source/dependency archive hashes above verified:
+
+| Command (`umask 077`) | Result / remote log | SHA256 |
+|---|---|---|
+| `bash scripts/test-phase6.sh` | writer154+7; drive33 (native Windows cases NOT RUN); preflight41; transition59 plus child-lock helpers; parent10 (Linux symlink substitute); `phase6-private.log` | fb6dab96dcf076399637962b43e12b2f54b572e8e983f9616dd1a27a4a72bc10 |
+| `bash scripts/test-phase4.sh` | existing review/transition/provenance/legacy regressions; `phase4.log` | b95680647e5789e542b080ee98618baee6ad3733438ef9fd08af1028f78a7630 |
+| `bash scripts/test-phase3-deployment.sh` | binding/bound engine/readiness/copy/halt regressions; `phase3.log` | 77bc49fdf7aecbf800910405be0733e8660964d05ec802507e1d62ff93fe7b4d |
+| `bash scripts/test-phase5.sh` | 62 cases; `phase5.log` | c8ae3f35278459183e025c197552a859a8ac8853f2e42d4015910678ac8a3135 |
+| `ROMLOGGER_LOAD_OBSERVATIONS=10000 ROMLOGGER_LOAD_SESSIONS=10 bash scripts/test-rlc2-preview.sh` | large multi-session candidate + full preview/integration/JVM regressions; `preview-load.log` | 060ccee43f06c9c6ff2b9b6611e82ccbb282703d8744b4eb7eaef9e491fa5422 |
+| `java -cp build/phase5-classes:lib/sqlite-jdbc.jar:lib/slf4j-api.jar:lib/slf4j-nop.jar net.neristal.rrbridge.prototype.ingress.Phase5ProvenanceTest --load10000` | v1 subset2, original/RLI2 10000records/10001receipts; `staging-load.log` | c83d46d31dcbe6be3957e6d17d2e928aa4293d291fc0156f8182141167036d21 |
+| `ROMLOGGER_BOUND_LOAD_OBSERVATIONS=10000 java -cp build/phase3:lib/sqlite-jdbc.jar:lib/slf4j-api.jar:lib/slf4j-nop.jar net.neristal.rrbridge.prototype.ingress.Rlc2BoundDeploymentTest` | 10003records,6 checks; `bound-load.log` | 423c69fce1473aa07c955050203441146066dedd801de9ab43bf9ccedb16d0e6 |
+
+These are d394103 broad results, not the later early-drive entry correction's results. That correction changes only drive proof placement/extraction, with later plan/layout checks unchanged. Separate focused final-head evidence follows.
+
+## Final early-drive entry RED
+
+Test-onlyfd958d0 againstd394103 runtime: `build/phase6-drive-entry-red.log`, Windows17x64, exit1;1 passed/5 failed, SHA25620c24eaac87fb59762c6f0dc6135d77bfc103c1fe92e833a14aa7086434c2329. A synthetic Remote probe was never consulted before missing-binding refusal; commit also created Worker/Lane/Publication files in the fresh owned fixture. No actual network drive was queried or accessed. Final correction adds root-only proof before chain/lock I/O; normal SYSTEM/later layout checks are retained.

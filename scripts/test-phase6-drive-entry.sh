@@ -14,4 +14,4 @@ if [[ -n "${ROMLOGGER_EXPECT_DATA_MODEL:-}" ]]; then
  actual=$(java -XshowSettings:properties -version 2>&1 | sed -n 's/^ *sun.arch.data.model = //p')
  [[ "$actual" == "$ROMLOGGER_EXPECT_DATA_MODEL" ]] || { echo "data model $actual != $ROMLOGGER_EXPECT_DATA_MODEL"; exit 1; }
 fi
-java -cp "${out}${sep}${cp}" net.neristal.rrbridge.prototype.ingress/Phase6DriveEntryTest
+java -cp "${out}${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Phase6DriveEntryTest

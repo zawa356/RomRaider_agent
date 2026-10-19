@@ -257,12 +257,18 @@ public final class DeploymentTransition {
      */
     public static Plan plan(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout old,DeploymentBinding.Layout next,
             Set<String> admitted,String purpose,WatermarkV2Prototype.ReadOpener reader)throws Exception {
+        return planWithDriveProbe(enable,externallySingleActive,old,next,admitted,purpose,reader,net.neristal.rrbridge.product.v1.WindowsDriveGate.SYSTEM);
+    }
+    /** Scoped test seam; normal entry always uses the fixed system probe, with later layout verification too. */
+    static Plan planWithDriveProbe(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout old,DeploymentBinding.Layout next,
+            Set<String> admitted,String purpose,WatermarkV2Prototype.ReadOpener reader,net.neristal.rrbridge.product.v1.WindowsDriveGate.Probe probe)throws Exception {
         require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");
         require(purpose!=null&&!purpose.trim().isEmpty()&&purpose.length()<=1024,"PURPOSE_REQUIRED");
         Set<String> admit=new TreeSet<String>();for(String id:admitted)admit.add(UUID.fromString(id).toString());
         // Fixed deployment anchors: changing root/legacy/output/ledger/device/vehicle is a different deployment (BLOCKED).
         require(old.root.equals(next.root)&&old.legacy.equals(next.legacy)&&old.output.equals(next.output)&&old.ledger.equals(next.ledger),"DEPLOYMENT_ANCHOR_CHANGE_UNSUPPORTED");
         require(old.device.equals(next.device)&&old.vehicle.equals(next.vehicle),"DEVICE_OR_VEHICLE_CHANGE_UNSUPPORTED");
+        DeploymentBinding.requireLocalDrives(probe,old,next); // Before chain() opens any root/anchor evidence.
         Integer held=HELD.get();int own=held==null?0:held;
         Chain c=chain(old,own);Map<String,String> active=c.active();
         Map<String,String> oldObserved=DeploymentBinding.describeLayout(old);
@@ -361,7 +367,12 @@ public final class DeploymentTransition {
      */
     public static int commitSynthetic(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout old,DeploymentBinding.Layout next,
             Set<String> admitted,String purpose,String approvedPlanSha256,WatermarkV2Prototype.ReadOpener reader,Hook hook)throws Exception {
+        return commitWithDriveProbe(enable,externallySingleActive,old,next,admitted,purpose,approvedPlanSha256,reader,hook,net.neristal.rrbridge.product.v1.WindowsDriveGate.SYSTEM);
+    }
+    static int commitWithDriveProbe(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout old,DeploymentBinding.Layout next,
+            Set<String> admitted,String purpose,String approvedPlanSha256,WatermarkV2Prototype.ReadOpener reader,Hook hook,net.neristal.rrbridge.product.v1.WindowsDriveGate.Probe probe)throws Exception {
         require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");
+        DeploymentBinding.requireLocalDrives(probe,old,next); // Before creating/opening Worker/Lane/Publication files.
         List<AutoCloseable> held=new ArrayList<AutoCloseable>();
         try {
             try{held.add(LegacyWorkerGuard.acquire(old.legacy));}catch(IOException e){throw new Refusal("BLOCKED_UNCOOPERATIVE_PROCESS");}

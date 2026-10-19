@@ -558,3 +558,4 @@ RLDB1/RLDB2 layout description now checks every distinct Windows drive root with
 
 RLPC1 adds independent writer_quiescence=WRITER_UNPROVEN, operational_readiness=BLOCKED and synthetic_only=true fields. New read-only LegacyCandidateGate.inspect/requireWriterProof/CLI fail closed without writable DB probes, recovery, Worker/Sender or ACK. See [RLPC1](interfaces/legacy_v1_rli2_provenance_v1.md). Existing content classification and inactive staging are not writer-exclusion proof.
 
+Phase VI final drive entry correction: RLDT1 plan and commit now call `DeploymentBinding.requireLocalDrives` before chain/lock I/O. This is a read-only observation of roots, not a permission or global-fencing token. Later layout checks retain the existing proof. Additive utility API only; no Server/storage/wire change.
