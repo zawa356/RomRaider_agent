@@ -42,6 +42,12 @@ public final class LaneOwnershipTest {
   Files.write(lock,"RLLO99\n".getBytes("UTF-8"));
   reject(new Action(){public void run()throws Exception{LaneOwnership.acquire(true,root,D,V,"s");}},"unknown version refuses without takeover");
   check(new String(Files.readAllBytes(lock),"UTF-8").equals("RLLO99\n"),"unknown evidence preserved");
+  final LaneOwnership changed=LaneOwnership.acquire(true,root,D,V,"changed");
+  java.lang.reflect.Field field=LaneOwnership.class.getDeclaredField("handle");field.setAccessible(true);
+  java.io.RandomAccessFile handle=(java.io.RandomAccessFile)field.get(changed);handle.seek(handle.length()-2);handle.write('9');
+  reject(new Action(){public void run()throws Exception{changed.verify();}},"changed generation evidence fences current owner");
+  changed.close();
+  reject(new Action(){public void run()throws Exception{changed.verify();}},"lost OS lock cannot verify");
   reject(new Action(){public void run()throws Exception{LaneOwnership.acquire(true,new File(root,"missing"),D,V,"x");}},"missing root not created");
   check(root.listFiles().length>=4,"persistent lock files retained");
   System.out.println("Lane ownership passed "+checks+" checks; no expiring lease; power loss NOT RUN");

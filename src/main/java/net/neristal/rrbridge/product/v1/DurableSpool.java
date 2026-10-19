@@ -109,6 +109,9 @@ public final class DurableSpool {
         Class.forName("org.sqlite.JDBC");
         jdbcUrl = "jdbc:sqlite:" + file.getAbsolutePath();
         try (Connection db = open(); Statement sql = db.createStatement()) {
+            try(ResultSet identity=sql.executeQuery("PRAGMA application_id")) {
+                if(!identity.next()||identity.getInt(1)!=0)throw new IllegalStateException("Foreign/versioned DB cannot be a v1 spool");
+            }
             sql.execute("CREATE TABLE IF NOT EXISTS v1_profiles (" +
                 "profile_id TEXT PRIMARY KEY, body_sha256 TEXT NOT NULL," +
                 "body_json TEXT, acked INTEGER NOT NULL DEFAULT 0 CHECK (acked IN (0,1)))");

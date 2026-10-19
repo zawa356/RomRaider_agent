@@ -1,0 +1,42 @@
+package net.neristal.rrbridge.product.v1;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
+public final class V1LaneMigrationTest {
+ static int checks;interface Action{void run()throws Exception;}
+ static void check(boolean b,String s){if(!b)throw new AssertionError(s);checks++;System.out.println("PASS "+s);}
+ static void reject(Action a,String s)throws Exception {try{a.run();}catch(Exception e){check(true,s);return;}throw new AssertionError(s);}
+ static void execute(File db,String text)throws Exception {try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+db);Statement s=c.createStatement()){s.execute(text);}}
+ public static void main(String[] args)throws Exception {
+  final File dir=Files.createTempDirectory("romlogger-migration-").toFile(),source=new File(dir,"v1.db"),target=new File(dir,"copy.lane-migration.db");
+  DurableSpool spool=new DurableSpool(source);File tsv=new File(dir,"rr_synthetic.tsv");
+  Files.write(tsv.toPath(),("M\tsynthetic\t1\tRPM\tRPM\trpm\nS\tsynthetic\t1\t0\t1791838800000\tRPM=700\nS\tsynthetic\t1\t1\t1791838801000\tRPM=701\n").getBytes(StandardCharsets.UTF_8));
+  new IncrementalTsvBridge(spool,LaneOwnershipTest.D,LaneOwnershipTest.V).importNew(tsv,10);
+  spool.markProfileAcked(spool.pendingProfileEntries().get(0).profileId,true);
+  DurableSpool.Batch batch=spool.nextBatch(1,200000);spool.markBatchAcked(batch,new DurableSpool.Ack(batch.batchId,"committed",1,1,0));
+  final byte[] original=Files.readAllBytes(source.toPath());
+  V1LaneMigration.Report report=V1LaneMigration.preflight(true,true,source);
+  check(report.acked==1&&report.pending==1&&report.rows.get("v1_import_cursors")==1,"dry-run inventories ACK/unACK and cursor");
+  check(!target.exists()&&java.util.Arrays.equals(original,Files.readAllBytes(source.toPath())),"dry-run creates no target and changes no input bytes");
+  final boolean[] injected={false};
+  reject(new Action(){public void run()throws Exception{V1LaneMigration.migrateCopy(true,true,source,target,new V1LaneMigration.Hook(){public void beforeCommit()throws Exception{injected[0]=true;throw new IOException("injected interruption");}});}},"interrupted migration refuses");
+  check(injected[0]&&target.length()>0,"injection actually reached prepared migration commit");
+  try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+target);Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT count(*) FROM sqlite_master WHERE name='lane_migration_v1'")){r.next();check(r.getInt(1)==0,"interruption rolls back metadata/inventory/guards atomically");}
+  V1LaneMigration.Report migrated=V1LaneMigration.migrateCopy(true,true,source,target,V1LaneMigration.NO_FAULT);
+  check(migrated.dataSha.equals(report.dataSha)&&migrated.sourceSha.equals(report.sourceSha),"isolated copy preserves every original row/rowid/ACK/cursor/profile");
+  check(V1LaneMigration.migrateCopy(true,true,source,target,V1LaneMigration.NO_FAULT).dataSha.equals(report.dataSha),"migration reexecution idempotent");
+  check(java.util.Arrays.equals(original,Files.readAllBytes(source.toPath())),"original byte-for-byte unchanged after migration/retry");
+  reject(new Action(){public void run()throws Exception{execute(target,"UPDATE v1_records SET acked=0");}},"old SQL writers blocked by candidate guard");
+  reject(new Action(){public void run()throws Exception{new DurableSpool(target);}},"new Worker refuses versioned candidate as v1 DB");
+  execute(target,"DROP TRIGGER lane_guard_v1_records_UPDATE");
+  reject(new Action(){public void run()throws Exception{V1LaneMigration.migrateCopy(true,true,source,target,V1LaneMigration.NO_FAULT);}},"rerun rejects missing preservation trigger");
+  final File unknown=new File(dir,"unknown.db");Files.copy(source.toPath(),unknown.toPath());execute(unknown,"CREATE TABLE future_schema(value TEXT)");
+  reject(new Action(){public void run()throws Exception{V1LaneMigration.preflight(true,true,unknown);}},"unknown schema refuses");
+  execute(source,"UPDATE v1_source_claims SET source_key='conflicting-source'");
+  reject(new Action(){public void run()throws Exception{V1LaneMigration.preflight(true,true,source);}},"claim/cursor conflict refuses without auto-adoption");
+  reject(new Action(){public void run()throws Exception{V1LaneMigration.preflight(false,true,null);}},"disabled before filesystem");
+  reject(new Action(){public void run()throws Exception{V1LaneMigration.preflight(true,false,null);}},"quiescence mandatory");
+  System.out.println("V1 lane migration passed "+checks+" checks; isolated copy only; no automatic downgrade/apply");
+ }
+}
