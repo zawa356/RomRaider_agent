@@ -63,15 +63,15 @@ public final class Rlc2PreviewLoadTest {
         check(retry.recordsAdded==0&&retry.receiptsAdded==0,"fresh projection and reopened DB replay add no duplicates");
         check(fresh.records.get(0).id.equals(p.records.get(0).id)&&fresh.records.get(observations-1).json.equals(p.records.get(observations-1).json),"first and last product identities/content remain stable");
         check(Rlc2PreviewStoreTest.count(db,"SELECT count(DISTINCT record_id) FROM preview_records")==observations,"real SQL verifies every distinct record");
-        File candidateDb=Rlc2IntegrationStoreTest.target(),legacy=Rlc2IntegrationStoreTest.legacy();Rlc2IntegrationStore candidate=new Rlc2IntegrationStore(true,candidateDb);
-        start=System.nanoTime();Rlc2PreviewStore.Result admitted=candidate.ingest(true,admission(large,p),large.dir,large.ledger.toFile(),legacy,p.device,p.vehicle,env.reader());long candidateMillis=ms(System.nanoTime()-start);
+        File candidateDb=Rlc2IntegrationStoreTest.target(),legacy=Rlc2IntegrationStoreTest.legacy(),ownership=Files.createTempDirectory("romlogger-load-lanes-").toFile();Rlc2IntegrationStore candidate=new Rlc2IntegrationStore(true,candidateDb);
+        start=System.nanoTime();Rlc2PreviewStore.Result admitted=candidate.ingestPublished(true,ownership,p.payloadSession,admission(large,p),large.dir,large.ledger.toFile(),legacy,p.device,p.vehicle,env.reader(),Rlc2PreviewStore.NO_FAULT);long candidateMillis=ms(System.nanoTime()-start);
         check(admitted.recordsAdded==observations&&admitted.receiptsAdded==observations+1&&!admitted.ackEligible,"versioned candidate commits every large-workload source atomically");
-        check(candidate.ingest(true,admission(large,p),large.dir,large.ledger.toFile(),legacy,p.device,p.vehicle,env.reader()).recordsAdded==0,"large admitted candidate replay is exact");
+        check(candidate.ingestPublished(true,ownership,p.payloadSession,admission(large,p),large.dir,large.ledger.toFile(),legacy,p.device,p.vehicle,env.reader(),Rlc2PreviewStore.NO_FAULT).recordsAdded==0,"large admitted candidate replay is exact");
         for(int i=0;i<additional;i++) {
             Workload small=create(env,"synthetic-load-session-"+i,10);Map<String,String> before=Rlc2PreviewStoreTest.hashes(small.dir);
             check(store.ingest(small.project(env)).recordsAdded==10,"independent session "+i+" owns a distinct record namespace");
             Rlc2ProductAdapter.Projection smallProjection=small.project(env);
-            check(candidate.ingest(true,admission(small,smallProjection),small.dir,small.ledger.toFile(),legacy,p.device,p.vehicle,env.reader()).recordsAdded==10,"versioned candidate retains independent session "+i);
+            check(candidate.ingestPublished(true,ownership,smallProjection.payloadSession,admission(small,smallProjection),small.dir,small.ledger.toFile(),legacy,p.device,p.vehicle,env.reader(),Rlc2PreviewStore.NO_FAULT).recordsAdded==10,"versioned candidate retains independent session "+i);
             check(before.equals(Rlc2PreviewStoreTest.hashes(small.dir)),"session "+i+" input bytes unchanged");
         }
         check(Rlc2PreviewStoreTest.count(db,"SELECT count(*) FROM preview_sessions")==1+additional&&Rlc2PreviewStoreTest.count(db,"SELECT count(*) FROM preview_claims")==1+additional,"separate manifest/session claims persist independently");

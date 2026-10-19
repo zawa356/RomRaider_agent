@@ -107,6 +107,10 @@ public final class DurableSpool {
             throw new IllegalStateException("Cannot create spool directory");
         }
         Class.forName("org.sqlite.JDBC");
+        if(file.getName().endsWith(".lane-migration.db")||new File(file.getPath()+".migration-owner").exists())throw new IllegalStateException("Isolated migration candidate cannot be a v1 spool");
+        if(file.isFile()&&file.length()>0)try(Connection check=DriverManager.getConnection("jdbc:sqlite:"+file.toURI().toASCIIString()+"?mode=ro&immutable=1");Statement query=check.createStatement();ResultSet identity=query.executeQuery("PRAGMA application_id")) {
+            if(!identity.next()||identity.getInt(1)!=0)throw new IllegalStateException("Foreign/versioned DB cannot be a v1 spool");
+        }
         jdbcUrl = "jdbc:sqlite:" + file.getAbsolutePath();
         try (Connection db = open(); Statement sql = db.createStatement()) {
             try(ResultSet identity=sql.executeQuery("PRAGMA application_id")) {
