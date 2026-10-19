@@ -30,7 +30,7 @@ public final class V1LaneMigration {
   if(!f.isFile()||Files.isSymbolicLink(f.toPath())||f.length()>128L*1024*1024)throw new IOException("bounded closed regular DB required");
   MessageDigest sha=MessageDigest.getInstance("SHA-256");try(java.io.InputStream in=Files.newInputStream(f.toPath())){byte[] b=new byte[32768];int n;long total=0;while((n=in.read(b))!=-1){total+=n;if(total>128L*1024*1024)throw new IOException("DB grew past migration capacity");sha.update(b,0,n);}}return hex(sha.digest());
  }
- private static void closed(File f)throws IOException {for(String suffix:new String[]{"-wal","-shm","-journal"})if(Files.exists(new File(f.getPath()+suffix).toPath()))throw new IOException("closed checkpointed DB required");}
+ private static void closed(File f)throws IOException {for(String suffix:new String[]{"-wal","-shm","-journal"})if(Files.exists(new File(f.getPath()+suffix).toPath(),java.nio.file.LinkOption.NOFOLLOW_LINKS))throw new IOException("closed checkpointed DB required");}
  private static Map<String,String> schema(Connection db)throws SQLException {
   Map<String,String> m=new TreeMap<String,String>();try(Statement s=db.createStatement();ResultSet r=s.executeQuery("SELECT type,name,sql FROM sqlite_master WHERE name NOT GLOB 'sqlite_*' ORDER BY type,name")){while(r.next())m.put(r.getString(1)+":"+r.getString(2),r.getString(3));}return m;
  }
