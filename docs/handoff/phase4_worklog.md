@@ -41,3 +41,10 @@ Times are JST (+09:00). Append only; do not rewrite earlier entries.
 - Linux pre-fix RED (`/tmp/romlogger-phase4-red-2b620c7`): F2/F2b RED; F1 not RED on Linux. Original F6 assertion did not discriminate (schema refusal hid the defect) → tightened in 04564c5; pre-fix RED / fixed GREEN confirmed.
 - Server main bb27cd1: migrate upgrade×2/check exit0, pytest 57 passed 1 warning. Server docs PR #61 opened (no runtime change).
 - PR #78 opened (IV-3/4). IV-5 docs: phase4_report, evidence, review update, bootstrap first-three links, AGENTS entry (Phase III line kept as history), Agent progress entry.
+
+## 2026-10-19T19:55+09:00 — IV-4 Windows matrix complete
+
+- Full batch on `0e61251` exit0 (2413 PASS lines, log SHA256 25d491aa…). Phase IV ran on JDK17 x64 and real Zulu8 x86 (JVM=32).
+- Real HTTP + owned PG16: 35 checks PASS. Only the owned cluster was stopped; 55432 still listening afterwards.
+- Windows bound 10,003 records: x64 61 s, x86 80 s, both exit0.
+- Remaining: PR merges (#75→#76→#77→#78→#79, Server #61) need the user; this session's merge attempt was refused by policy.

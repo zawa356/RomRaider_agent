@@ -36,3 +36,14 @@ Each row records the exact code under test, the command, the result and the log 
 | Server main `bb27cd1`, dedicated loopback test DB | `pwsh -File C:\Dev\tools\run-server-tests.ps1` | migrate upgrade, upgrade again and check exit0; pytest **57 passed, 1 warning** | `C:\Dev\RomLogger\logs\server-pytest-20261019-170508.log` |
 
 Linux counts differ from Windows by design: Windows-only checks (F1d, junction fixture) and Linux-only checks (F6, `/proc` matching) are platform-gated and printed as SKIP/NOT RUN where unavailable.
+
+## IV-4 Windows full matrix (fixed worktree `C:\Dev\RomLogger\phase4-final-0e61251`, head `0e61251`)
+
+| Target | Command | Result | Log SHA256 |
+|---|---|---|---|
+| Acceleration batch: JDK17 x64 + real Zulu8 x86, all Bash suites including `test-phase4.sh` on both | `pwsh -NoProfile -File scripts/run-acceleration-tests.ps1` | **exit0**, 2413 PASS lines. Phase IV x64: review 9/0, transition 64 (JVM=64), provenance 21, legacy 34. Phase IV x86: review 9/0, transition 64 (JVM=32), provenance 21, legacy 34 (JVM=32). Phase III both: binding18/engine6/readiness11/backup32/stages52. Pre-existing gates unchanged (Windows live reader BLOCKED, POSIX-only NOT RUN, symlink fixtures NOT RUN, PostgreSQL preview option NOT RUN) | `25d491aae5e7dd97369efd6ab47a74334d9b39acfc49d9870530df98f4c0802a` (`acceleration-20261019-170343.log`) |
+| Real FastAPI/Uvicorn HTTP + invocation-owned PostgreSQL16 (actual Server checkout `bb27cd1`) | `ROMLOGGER_OWNED_PG_HTTP_ENABLE=1 … python scripts/test-rlc2-owned-postgres-http.py` | exit0: **35 checks**, owned cluster immediate stop/restart PASS, test ACK never changed Agent bytes/ACK state, only the owned cluster stopped; existing 55432 still listening afterwards | `4c80823520139375efb0db58de42fd2ee042b7d4158b81b46ef55c9bfd8ec3ae` |
+| Bound large, JDK17 x64 | `ROMLOGGER_BOUND_LOAD_OBSERVATIONS=10000 java … Rlc2BoundDeploymentTest` | exit0, records=10003, JVM=64, 61 s wall (single run, not a benchmark) | `b24f684e3e11316cb0b4ede2e62b23535b11d78d5282cc5bfc1146a7e27464f6` |
+| Bound large, Zulu8 x86 | same with Zulu8 | exit0, records=10003, JVM=32, 80 s wall | `f4bddd689a11c7897e7cf1f988ef226a991a16303dbc3f3d6465093bf45e372a` |
+
+The Windows matrix ran the F6 test before the assertion was tightened (`04564c5`). On Windows it is SKIP anyway (no symlink privilege), and the tightened version was run on Linux, before and after the fix.

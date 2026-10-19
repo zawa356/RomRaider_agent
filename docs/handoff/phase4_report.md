@@ -45,12 +45,13 @@ merge SHAはまだ存在しない。どのPRも、本番切替・本番DB migrat
 | 対象 | 結果 |
 |---|---|
 | Windows JDK17 x64／Zulu8 x86（IV-0、`418c23b`） | review 9/0（両Java）。Phase III回帰exit0（両Java）。acceleration batchはexit0、PASS行2157 |
-| Windows全体batch（`0e61251`、Phase IVを組込み） | 証跡を参照（本報告の作成時点では実行中。結果は証跡とIV-5 PRに追記する） |
+| Windows全体batch（`0e61251`、Phase IVを組込み） | **exit0**、PASS行2413。x64・x86の両方で review 9/0、transition 64、provenance 21、legacy 34。Phase III回帰も同じ件数で通過 |
 | Linux JDK17（`0e61251`） | phase4 exit0: review 9/0、transition 64、provenance 22（`/proc`の照合と、起動後のJAR差替え検出を含む）、legacy 34。phase3 exit0: binding17・engine6・readiness11・backup32・stages52 |
 | Linuxの修正前コード（`2b620c7`） | F2・F2b・F6がRED。F1はLinuxでは発生しない（Windows固有の欠陥であることを確認） |
 | Linux bound 1万レコード（`0e61251`） | 10,003 records、6 checks、exit0 |
 | Server main `bb27cd1`（専用テストDB） | migration upgrade×2とcheckがexit0、pytest 57 passed（warning 1件） |
-| 実HTTP＋invocation-owned PG（35項目） | 証跡を参照 |
+| 実HTTP＋invocation-owned PG（35項目） | exit0、35 PASS。停止したのは自分で起動したclusterだけで、既存の55432は稼働したまま |
+| Windows bound 1万レコード | x64・x86ともexit0（10,003 records） |
 
 ## 変更していないことの確認
 
