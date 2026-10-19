@@ -10,4 +10,7 @@ Logs are ignored local artifacts; no raw payloads, credentials or test databases
 
 ## Persistent gates
 
+- Windows actual Zulu8x86 first preflight at556f4ff refused `DRIVE_TYPE_UNPROVEN` during fixture enrollment. This is a preserved FAIL (fe898caf3c911e7821882b31836331984e1f5e2731c1a58adc279cb41af7fa0c), not PASS. Independent direct native x86 drive probe then passed36+1 checks; one justified preflight rerun at the same frozen code passed41. Product code performs no retry or relaxation of unknown-drive refusal.
+- Transition exclusion RED: test-onlydd36511 against unchanged Phase V transition runtime; actual child PID8452 holds old Lane, abandon still creates its marker. `build/phase6-abandon-red.log` exit1, SHA256e7655a630a14aec22b187189b550f1ddcce54fca354480b2161cf5db006b0249. Final correction is separately frozen/tested; no double-activation claim.
+
 Windows directory durability / running-process provenance UNKNOWN. Noncooperative writer absence WRITER_UNPROVEN; readiness BLOCKED. Real SMB, privileged Windows links, physical power loss, real ENOSPC, ECU/OpenPort/X270, production DB/Worker, production migration and new formal ACK NOT RUN/disabled. Root test.sh requires absent RomRaider.jar and is NOT RUN.

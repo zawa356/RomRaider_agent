@@ -345,6 +345,11 @@ public final class DeploymentTransition {
         f.put("admitted_sources",String.join(",",admit));f.put("purpose_sha256",sha(purpose.getBytes(StandardCharsets.UTF_8)));
         f.put("new_record_sha256",sha(DeploymentBinding.encodeRecord(record)));
         f.put("operator_assertion","EXTERNAL_SINGLE_ACTIVE_DECLARED_NOT_PROVEN");
+        // Hash-derived exact lock names let abandon retain BOTH old/new scopes, without storing payload text.
+        f.put("old_lane_lock",lockName(old.device,old.vehicle,old.payloadSession));
+        f.put("new_lane_lock",lockName(next.device,next.vehicle,next.payloadSession));
+        f.put("old_publication_lock",lockName(DOMAIN,old.manifestSession,PUBLICATION));
+        f.put("new_publication_lock",lockName(DOMAIN,next.manifestSession,PUBLICATION));
         return new Plan(kind,generation,f,record);
     }
 
@@ -411,15 +416,54 @@ public final class DeploymentTransition {
     public static void abandonSynthetic(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout l,int generation,String reason)throws Exception {
         require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");
         require(reason!=null&&!reason.trim().isEmpty()&&reason.length()<=1024,"PURPOSE_REQUIRED");
+        DeploymentBinding.describeLayout(l); // Local fixed-drive/path checks precede Worker-lock access.
         require(Files.isRegularFile(prepare(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_NOT_PREPARED");
         require(!Files.exists(committed(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_ALREADY_COMMITTED");
         require(!Files.exists(abandoned(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_ALREADY_ABANDONED");
         try(LegacyWorkerGuard old=LegacyWorkerGuard.acquire(l.legacy)) {
+            // The Worker guard serializes transition/abandon callers; publication writers also need their exact locks observed.
+            DeploymentBinding.safe(l.root);DeploymentBinding.privateAccess(l.root.toPath());
+            Map<String,String> prepared=DeploymentBinding.readRecord(prepare(l,generation));
+            require("RLDT1-PREPARE".equals(prepared.get("version"))&&String.valueOf(generation).equals(prepared.get("generation")),"TRANSITION_EVIDENCE_INCONSISTENT");
+            require(!Files.exists(committed(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_ALREADY_COMMITTED");
+            require(!Files.exists(abandoned(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_ALREADY_ABANDONED");
+            List<AbandonObservation> observations=new ArrayList<AbandonObservation>();
+            try{
+                Set<String> names=new LinkedHashSet<String>();
+                for(String key:new String[]{"old_lane_lock","new_lane_lock","old_publication_lock","new_publication_lock"}){
+                    String name=prepared.get(key);require(name!=null&&name.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.lane\\.lock"),"ABANDON_LOCK_SET_UNKNOWN");names.add(name);
+                }
+                require(lockName(l.device,l.vehicle,l.payloadSession).equals(prepared.get("old_lane_lock"))&&lockName(DOMAIN,l.manifestSession,PUBLICATION).equals(prepared.get("old_publication_lock")),"ABANDON_LAYOUT_MISMATCH");
+                for(String name:names)observations.add(new AbandonObservation(l.root.toPath().resolve(name)));
+                old.verify();for(AbandonObservation observation:observations)observation.verify();
             Map<String,String> a=new TreeMap<String,String>();a.put("version","RLDT1-ABANDONED");a.put("generation",String.valueOf(generation));
             a.put("plan_sha256",sha(Files.readAllBytes(prepare(l,generation))));a.put("reason_sha256",sha(reason.getBytes(StandardCharsets.UTF_8)));
             DeploymentBinding.createRecord(abandoned(l,generation),DeploymentBinding.encodeRecord(a));
+            }finally{for(int i=observations.size()-1;i>=0;i--)observations.get(i).close();}
         }catch(IOException e){if(e instanceof DeploymentBinding.Refusal)throw e;if(e.getMessage()!=null&&e.getMessage().startsWith("LEGACY_WORKER_BUSY"))throw new Refusal("BLOCKED_UNCOOPERATIVE_PROCESS");throw e;}
         chain(l);
+    }
+    private static String lockName(String device,String vehicle,String payload){return UUID.nameUUIDFromBytes((device+"|"+vehicle+"|"+payload).getBytes(StandardCharsets.UTF_8)).toString()+".lane.lock";}
+    /** Never creates or rewrites a lock. Legacy prepares without the exact lock set stay blocked for manual review. */
+    private static final class AbandonObservation implements AutoCloseable {
+        final Path path;final java.nio.channels.FileChannel channel;final java.nio.channels.FileLock lock;
+        final byte[] bytes;
+        AbandonObservation(Path path)throws Exception {
+            this.path=path;require(Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS),"ABANDON_LOCK_SET_UNKNOWN");
+            DeploymentBinding.safe(path.toFile());DeploymentBinding.privateAccess(path);
+            channel=java.nio.channels.FileChannel.open(path,java.nio.file.StandardOpenOption.READ);java.nio.channels.FileLock held=null;
+            try{
+                try{held=channel.tryLock(0,Long.MAX_VALUE,true);}catch(java.nio.channels.OverlappingFileLockException busy){throw new Refusal("BLOCKED_UNCOOPERATIVE_PROCESS");}
+                require(held!=null,"BLOCKED_UNCOOPERATIVE_PROCESS");lock=held;bytes=read();verify();
+            }catch(Exception failure){if(held!=null)held.release();channel.close();throw failure;}
+        }
+        byte[] read()throws Exception {
+            try(java.io.InputStream in=Files.newInputStream(path);java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){
+                byte[] b=new byte[1024];int n;while((n=in.read(b))!=-1){require(out.size()+n<=4096,"ABANDON_LOCK_SET_UNKNOWN");out.write(b,0,n);}return out.toByteArray();
+            }
+        }
+        void verify()throws Exception {DeploymentBinding.safe(path.toFile());require(lock.isValid()&&channel.isOpen()&&Arrays.equals(bytes,read()),"ABANDON_LOCK_CHANGED");}
+        public void close()throws Exception{try{lock.release();}finally{channel.close();}}
     }
 
     // ------------------------------------------------------------------ read-only CLI

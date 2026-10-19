@@ -15,3 +15,7 @@ Baseline: Agent PR80 `7da38372044792cde5271932a6134b7c6f156ccb`, inspected direc
 | Product entries | ProductBridgeWorker/Once can use old TSV/journal/spool/Sender. Rlc2IntegrationCli and bound store APIs are separate offline candidates. Old low-level APIs remain callable. | New preflight cannot fence arbitrary old binaries. No existing Worker automatically stopped or modified. VI-3 remains separate. |
 
 Safety invariants: default-off, synthetic-only, production_authorized=false, ack_eligible=false. External quiescence is a declaration. Missing sidecars/locks and equal bytes do not establish future writer absence. No formal ACK, sender invocation, real old DB opening, service operation, physical power-loss claim or directory durability claim.
+
+## Additional reproduced transition gap
+
+`DeploymentTransition.abandonSynthetic` at Phase V runtime (unchanged through556f4ff) checked only the Worker guard. Test-only checkpointdd36511 reproduces abandon marker creation while actual child PID8452 holds the old Lane; `build/phase6-abandon-red.log` exit1, SHA256e7655a630a14aec22b187189b550f1ddcce54fca354480b2161cf5db006b0249. This proves missing lock exclusion; simultaneous double authorization was not demonstrated. D-078 adds exact old/new lock names and retained read-only observations, and explicitly blocks historical incomplete prepares lacking that evidence. Final matrix and four halt-stage results follow in evidence.

@@ -551,3 +551,7 @@ RLDB1/RLDB2 describeLayout checks each distinct drive before examining layout fi
 
 Join approved offline artifact/runtime, active generation, exact manifest/admission and retained read-only cooperative lock observations without starting product entries or creating files. Report independent axes and leave unknown ones UNKNOWN. Even matching prerequisites never grants launch/production/ACK: noncooperative Writer absence is unproven and Windows process provenance is unknown. This is a safe partial implementation of VI-3/VI-5, not a pretend launcher or global exclusion of old binaries.
 
+## D-078 — Abandon must exclude old/new Lane and Publication holders
+
+RED with a separate JVM holding the old Lane showed abandon could create its marker while only the legacy Worker guard was checked. Record hash-derived exact old/new lock basenames in prepare and retain read-only shared observations of those existing files through abandon marker creation, while the Worker guard serializes transition/abandon callers. No partial files are deleted or adopted. Old incomplete prepares without this added evidence remain blocked for manual review; historical committed chains remain readable. No claim that RED demonstrated double activation, global fencing or process authenticity. Older binaries still need operational exclusion.
+

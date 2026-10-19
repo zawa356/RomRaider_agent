@@ -97,10 +97,20 @@ public final class Phase6TransitionTest {
             check(legacy.equals(DeploymentTransition.fileSha(f.legacy))&&output.equals(DeploymentTransition.fileSha(f.out))&&ledger.equals(DeploymentTransition.fileSha(f.ledger)),"halt leaves original/candidate DBs and ACK unchanged");
         }
     }
+    static void historicalPrepare()throws Exception {
+        Fixture f=new Fixture();f.next();f.interrupt();
+        Path prepare=DeploymentTransition.prepare(f.old,1);Map<String,String> fields=DeploymentBinding.readRecord(prepare);
+        for(String key:new String[]{"old_lane_lock","new_lane_lock","old_publication_lock","new_publication_lock"})fields.remove(key);
+        Files.write(prepare,DeploymentBinding.encodeRecord(fields)); // Fresh test-only model of a historical incomplete prepare.
+        Map<String,String> before=Phase6PreflightTest.hashes(f.home);boolean refused=false;
+        try{DeploymentTransition.abandonSynthetic(true,true,f.old,1,"historical prepare review");}catch(DeploymentTransition.Refusal expected){refused=expected.getMessage().equals("ABANDON_LOCK_SET_UNKNOWN");}
+        check(refused,"historical incomplete prepare without lock evidence stays blocked");
+        check(before.equals(Phase6PreflightTest.hashes(f.home)),"historical evidence is never auto-upgraded or cleaned");
+    }
     public static void main(String[] args)throws Exception {
         System.out.println("RUNTIME "+System.getProperty("java.version")+" model="+System.getProperty("sun.arch.data.model"));
         if(args.length>0&&args[0].equals("--reuse")){reusedSource();return;}
-        abandonContention();reusedSource();haltStages();System.out.println("Phase VI transition checks="+checks);
+        abandonContention();reusedSource();haltStages();historicalPrepare();System.out.println("Phase VI transition checks="+checks);
     }
     public static final class HaltChild {
         public static void main(String[] args)throws Exception {
