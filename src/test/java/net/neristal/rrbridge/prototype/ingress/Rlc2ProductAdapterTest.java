@@ -37,7 +37,10 @@ public final class Rlc2ProductAdapterTest {
         final WatermarkLedgerPrototype ledger;
         final String[] rows;
         Fixture(Env env,boolean sealSecond,String secondSession,int seq)throws Exception {
-            this.env=env;dir=Files.createTempDirectory("romlogger-adapter-");db=dir.resolve("ledger.db");
+            this(env,sealSecond,secondSession,seq,null);
+        }
+        Fixture(Env env,boolean sealSecond,String secondSession,int seq,Path parent)throws Exception {
+            this.env=env;dir=parent==null?Files.createTempDirectory("romlogger-adapter-"):Files.createTempDirectory(parent,"session-");db=dir.resolve("ledger.db");
             rows=new String[]{"M\t"+SESSION+"\t1\tTEST_RPM\tSynthetic RPM\trpm",
                 "S\t"+SESSION+"\t1\t0\t1791838800000\tTEST_RPM=700",
                 "S\t"+secondSession+"\t1\t"+seq+"\t1791838801000\tTEST_RPM=701",

@@ -398,3 +398,6 @@ Read-only manual hints/source-only RLC1/RLC2 inspection implemented. Final local
 
 ## 2026-10-19 — Phase II cooperative ownership candidate
 PR60–68: stable bootstrap, RLLO1 retained ownership/legacy gate, opt-in product scopes, synthetic publication/snapshot boundary, copied-v1 inventory migration, real JVM failures, cooperative10k load, read-only status/manual recovery and actual Worker/Engine competition. See [final report](handoff/codex_phase2_report.md) for exact local/CI/merge evidence. Production migration/ACK and Windows directory durability remain independent gates.
+
+## Phase III deployment candidate
+Reproduced UNBOUND_ROOT: existing RLLO1 can acquire the same session under two roots. Added paired deployment binding and bound RLI2 entry with rollback on precommit binding change. Actual Windows junction/ACL negative tests; platform evidence is recorded in Phase III handoff.

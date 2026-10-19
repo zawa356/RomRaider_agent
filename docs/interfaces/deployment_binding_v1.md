@@ -1,0 +1,23 @@
+# RLDB1 synthetic deployment binding v1
+
+RLDB1 is an Agent-local opt-in candidate layered over RLLO1/RLC2/RLI2; HTTP remains wire v1. It never enables a Worker, sender, formal ACK, production migration or live Writer.
+
+A fresh isolated enrollment creates matching forced files `<legacy>.deployment-binding` then `<root>/deployment.rldb1` with CREATE_NEW. They are separate durability events: interrupted enrollment requires manual review; do not delete/replace either file to retry. Stable exact keys, bounded base64 UTF-8 values, version/mode and deployment UUID are validated; duplicates/unknown fields/owners/versions refuse. Configuration explicitly supplies canonical root, exact v1 DB, existing dedicated RLI2 output, session directory, rotation manifest, ledger, device/vehicle, payload session and manifest session UUID. Canonical paths plus local fileKey/creation time detect ordinary moves/copies/replacements. Manifest content continues to be validated by the RLC2 reader and snapshot; its file identity is bound, so a replacement manifest requires a separately reviewed future rebinding procedure (none supplied).
+
+Every component must be existing, absolute, normalized and match real-path spelling; symlinks/junctions/reparse points and UNC paths refuse. Only tested local filesystem types are admitted. Filesystem-type strings are NOT proof against a mount namespace administrator or disguised remote storage. POSIX owner must be current user with no group/other write; Windows ACL permits writes only for current user, SYSTEM and built-in Administrators. Unknown ACL/owner refuses; localized principal-name ambiguity may safely refuse. Checks do not change permissions. Tests make only their own fresh directories private.
+
+Root, old DB, output and ledger are outside the session input tree. Root cannot contain DBs; DBs cannot alias each other or manifest. Legacy/ledger sidecars refuse. Output rollback handling remains RLI2's positively-owned target contract; it is not source recovery. Parent directories are checked for unsafe writes. Administrator-controlled ancestor replacement/hardlink/mount manipulation and race-free native handle identity are outside this cooperative contract.
+
+The legacy-side anchor prevents a second enrollment for the same exact DB with a different root. Copied root evidence at a new path or with different observed identity refuses. Copying both DB and root and editing/recreating all evidence, restoring identical paths/identities on another host, network filesystems and two restored machines cannot be globally fenced locally. **BLOCKED without an external single-active operational gate**. The explicit flag is an operator assertion covering all Workers/importers/Writers/clones, never a discovered guarantee. Old RLLO1 APIs remain lower-level synthetic experiments and can still accept arbitrary roots; use the revised bound entry for this contract.
+
+`Rlc2IntegrationStore.ingestBoundDeployment` verifies before opening output, matches explicit admission, retains old Worker/lane/publication locks and verifies binding after fault hooks at transaction stages including precommit. Existing snapshot/schema/admission/ACK guards remain. No old default changes. A successful result is synthetic-only.
+
+Read-only CLI (no file creation, lock deletion, generation advance or repair):
+
+```
+java -cp 'build/phase3:lib/*' net.neristal.rrbridge.product.v1.DeploymentBinding --inspect-synthetic --external-single-active ROOT LEGACY_DB OUTPUT_DB SESSION_DIR MANIFEST LEDGER DEVICE_UUID VEHICLE_UUID PAYLOAD_SESSION MANIFEST_SESSION_UUID
+```
+
+Windows classpath separator is `;`. Exit0 READY_FOR_SYNTHETIC_TEST; exit2 usage; exit5 REVIEW_REQUIRED. Fixed JSON contract_version/state/reason/synthetic_only/production_authorized=false/ack_eligible=false/global_fencing=false. Reasons include EXTERNAL_GATE_REQUIRED, PATH_NOT_ABSOLUTE_NORMAL, PATH_LINK_OR_REPARSE, PATH_ALIAS, NETWORK_PATH_UNSUPPORTED, FILESYSTEM_UNSUPPORTED, UNSAFE_ACCESS, UNKNOWN_OWNER, ACCESS_UNKNOWN, IDENTITY_INVALID, PATH_TYPE, MANIFEST_LOCATION, INPUT_OUTPUT_OVERLAP, ROOT_DATA_OVERLAP, DATABASE_ALIAS, DATABASE_NOT_CLOSED, BINDING_EXISTS, BINDING_FORMAT, BINDING_DUPLICATE, BINDING_VERSION, BINDING_MODE, BINDING_OWNER, ROOT_DB_BINDING_MISMATCH, BINDING_LAYOUT_CHANGED; unexpected I/O reports INSPECTION_UNAVAILABLE without paths/details. CLI success never grants production cutover.
+
+Acceptance: scripts/test-phase3-deployment.sh (JDK17 compile --release8, actual Java8 --run-only). Windows junction and POSIX symlink fixtures, unsafe ACL/mode, move/copy/alias/missing/unknown/overlap cases and actual bound RLI2 rollback/retry. Windows directory durability UNKNOWN; no physical power-loss or real ENOSPC claim.

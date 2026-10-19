@@ -532,3 +532,6 @@ IngressDiagnostics JSON schema1 additively includes automatic_repair_allowed=fal
 [RLLO1 contract](interfaces/lane_ownership_v1.md): cooperative local ownership only; old Worker compatibility is limited to its exact retained .worker.lock. No wire/ACK change.
 
 Phase II: ROMLOGGER_SYNTHETIC_LANE_ROOT opts in isolated product scopes; LaneOwnershipStatus --status emits advisory state/exits without recovery. RMI1 .lane-migration.db plus ownership sidecar is separate copied inventory; v1 tables/HTTP wire unchanged. [Full API/order/schema guards/exits](interfaces/lane_ownership_v1.md).
+
+## Phase III RLDB1 deployment preflight
+[Deployment binding v1](interfaces/deployment_binding_v1.md): opt-in paired root/legacy anchor, bound synthetic entry, read-only CLI JSON/exits0/2/5. No wire/schema/ACK/default Worker change.
