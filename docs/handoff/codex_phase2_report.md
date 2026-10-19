@@ -157,3 +157,5 @@ src/test/java/net/neristal/rrbridge/prototype/ingress/Rlc2PublicationTest.java
 ## 終了checkpoint
 
 実装・検証とServer同期の終了: 2026-10-19T10:06:26+09:00。Agent最終実装main `ca9cfe06d774261be05dd5253b8c90f6cf994f3d`、Server終了main `3091d6196d3ebb69c568de09b8b4941fe35cad5e`（[Server PR59](https://github.com/zawa356/RomRaiderServer/pull/59)、2026-10-19 10:05:39 JSTに通常merge、文書のみ）。両main fetch済み、実装PR残存0。本文書のpublicationは後続の文書PRであり、上記は実装・検証対象のSHA。実行時間枠の残量は推測していない。
+
+文書publication: [Agent PR69](https://github.com/zawa356/RomRaider_agent/pull/69)。初回報告commit `9f2d465e70f8f6be115b765f2e2c76a4e2b4cb83`。publication自身の最終merge SHA/時刻は同PRのGitHub記録を参照する（自己参照するSHAを本文へ予測記載しない）。
