@@ -23,3 +23,10 @@
 - Development failures retained: shared diagnostic probe raced nonblocking Worker startup; test now waits for owned Worker startup. IDLE next_attempt_ms was incorrectly considered fault; narrowed fault to retry_count/needs_review and ingress latch. Initial artifact fixture required an unused class; corrected tested dependency set. No claim that artifact matches an actual running process.
 - Initial full regression reached phase3 after existing x64 suites passed, then failed the evolving readiness fixture (bad review reason). This run is NOT full PASS; final stable-source rerun required. CI PR70 job117870597132 steps=[]; CI NOT RUN.
 - Cleanup RED: three preflights plus repeated migration created10 new schema-reference directories, build/phase3-cleanup-red.log, AssertionError REFERENCE_LEAK. Pre-existing reference directories are retained; fix follows in III-3.
+
+## 2026-10-19T12:19:48.0138866+09:00 — III-3/4 isolated backup and rehearsal candidate
+
+- Cleanup RED log phase3-cleanup-red.log: REFERENCE_LEAK new schema dirs10. GREEN phase3-cleanup-green.log: zero new references, all pre-existing references preserved. Added exact finally cleanup only for invocation-owned paths.
+- Added read-only RMI1 verifyIsolatedCopy, existing-only RLI2 schema verification (no auto-create), RLBA1 bounded role/hash capture + copied-target inspection CLI, and test-only preflight/owned-copy/inventory/candidate/backup rehearsal.
+- Windows x64 backup/rehearsal20 checks PASS in phase3-backup-focused-x64.log: prepared-commit interruption/retry, row/ACK/cursor/receipt fingerprints, original unchanged, complete copied evidence/CLI, missing owner/tampered record/ACK/metadata/WAL/active guard/second importer/manifest-ledger refusal. First fixture used wrong payload_json SQL column; corrected to body_json, failure retained in phase3-backup-x64.log (not PASS).
+- No RMI1->RLI2 record conversion, restored deployment activation, cross-DB atomicity or global fence claim. New full after-owner/during-copy/after-commit fault matrix and actual operator cutover/rollback remain incomplete. Stable-source final matrix follows.

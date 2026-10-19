@@ -401,3 +401,5 @@ PR60–68: stable bootstrap, RLLO1 retained ownership/legacy gate, opt-in produc
 
 ## Phase III deployment candidate
 Reproduced UNBOUND_ROOT: existing RLLO1 can acquire the same session under two roots. Added paired deployment binding and bound RLI2 entry with rollback on precommit binding change. Actual Windows junction/ACL negative tests; platform evidence is recorded in Phase III handoff.
+
+Phase III adds RMI1 reference cleanup (RED10 leaked references, GREEN0 newly retained), strict read-only copy verification, bounded RLBA1 role/hash acceptance and isolated rehearsal. Partial/tampered copied evidence refuses; original v1 and ACK stay unchanged. Full new-harness copy/crash matrix remains an explicit next gate.
