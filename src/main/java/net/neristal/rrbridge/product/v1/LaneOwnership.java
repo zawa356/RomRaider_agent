@@ -68,6 +68,33 @@ public final class LaneOwnership implements AutoCloseable {
  private static void safe(Path path)throws IOException {
   for(Path p=path;p!=null;p=p.getParent())if(Files.isSymbolicLink(p))throw new IOException("LANE_UNSAFE_PATH");
  }
+ /** Read-only advisory observation; never permission to take over an owner. */
+ public static String diagnose(File root,String device,String vehicle,String session) {
+  try {
+   String key=UUID.fromString(device).toString()+"|"+UUID.fromString(vehicle).toString()+"|"+session;
+   Path directory=root.toPath().toAbsolutePath().normalize();safe(directory);directory=root.getCanonicalFile().toPath();
+   if(!Files.isDirectory(directory,LinkOption.NOFOLLOW_LINKS))return "UNKNOWN";
+   Path path=directory.resolve(UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString()+".lane.lock");safe(path);
+   synchronized(OPEN) {
+    if(OPEN.contains(path.toString()))return "BUSY";
+    if(!Files.exists(path,LinkOption.NOFOLLOW_LINKS))return "MISSING";
+    if(!Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS))return "INVALID";
+    try(java.nio.channels.FileChannel channel=java.nio.channels.FileChannel.open(path,java.nio.file.StandardOpenOption.READ)) {
+     FileLock observation;
+     try{observation=channel.tryLock(0,Long.MAX_VALUE,true);}catch(OverlappingFileLockException busy){return "BUSY";}
+     if(observation==null)return "BUSY";
+     try {
+      long size=channel.size();if(size==0)return "UNINITIALIZED";if(size>4096)return "INVALID";
+      java.nio.ByteBuffer bytes=java.nio.ByteBuffer.allocate((int)size);while(bytes.hasRemaining())if(channel.read(bytes)<0)return "INVALID";
+      String[] fields=new String(bytes.array(),StandardCharsets.UTF_8).split("\n",-1);
+      if(fields.length!=5||!fields[0].equals("RLLO1")||!fields[1].equals(java.util.Base64.getEncoder().encodeToString(key.getBytes(StandardCharsets.UTF_8)))||!fields[4].isEmpty())return "INVALID";
+      UUID.fromString(fields[2]);long generation=Long.parseLong(fields[3]);if(generation<1||generation==Long.MAX_VALUE)return "INVALID";
+      return "IDLE";
+     }finally{observation.release();}
+    }
+   }
+  }catch(Exception e){return "UNKNOWN";}
+ }
  public boolean matches(String device,String vehicle,String session) {
   String key=UUID.fromString(device).toString()+"|"+UUID.fromString(vehicle).toString()+"|"+session;
   return new String(evidence,StandardCharsets.UTF_8).split("\n",-1)[1].equals(java.util.Base64.getEncoder().encodeToString(key.getBytes(StandardCharsets.UTF_8)));
