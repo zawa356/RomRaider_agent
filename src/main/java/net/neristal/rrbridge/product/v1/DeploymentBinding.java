@@ -122,11 +122,29 @@ public final class DeploymentBinding {
   StringBuilder b=new StringBuilder();for(Map.Entry<String,String> e:m.entrySet())b.append(e.getKey()).append('=').append(Base64.getEncoder().encodeToString(e.getValue().getBytes(StandardCharsets.UTF_8))).append('\n');return b.toString().getBytes(StandardCharsets.US_ASCII);
  }
  private static Map<String,String> read(Path p)throws Exception {
+  Map<String,String> m=readRecord(p);
+  require("RLDB1".equals(m.get("version")),"BINDING_VERSION");require("SYNTHETIC_ONLY".equals(m.get("mode")),"BINDING_MODE");return m;
+ }
+ /** Shared bounded key=base64 record parser; version checks belong to the caller's contract. */
+ public static Map<String,String> readRecord(Path p)throws Exception {
   safe(p.toFile());privateAccess(p);require(Files.size(p)<=32768,"BINDING_FORMAT");
   Map<String,String> m=new TreeMap<String,String>();String text=new String(Files.readAllBytes(p),StandardCharsets.US_ASCII);
   require(text.endsWith("\n"),"BINDING_FORMAT");
   try {for(String line:text.split("\n")){int at=line.indexOf('=');require(at>0,"BINDING_FORMAT");String key=line.substring(0,at);require(m.put(key,new String(Base64.getDecoder().decode(line.substring(at+1)),StandardCharsets.UTF_8))==null,"BINDING_DUPLICATE");}}catch(IllegalArgumentException bad){throw new Refusal("BINDING_FORMAT");}
-  require("RLDB1".equals(m.get("version")),"BINDING_VERSION");require("SYNTHETIC_ONLY".equals(m.get("mode")),"BINDING_MODE");return m;
+  return m;
+ }
+ /** Current observed layout (paths, identities, overlap rules) for versioned successors such as RLDT1/RLDB2. */
+ public static Map<String,String> describeLayout(Layout l)throws Exception {return describe(l);}
+ public static byte[] encodeRecord(Map<String,String> m){return encode(m);}
+ public static void createRecord(Path p,byte[] bytes)throws IOException {create(p,bytes);}
+ public static Path anchorPath(Layout l){return anchor(l);}
+ public static Path rootRecordPath(Layout l){return l.root.toPath().resolve(NAME);}
+ /** Any RLDT1 transition evidence means this fixed RLDB1 record is no longer the active authority. */
+ public static boolean superseded(Layout l)throws IOException {
+  try(DirectoryStream<Path> entries=Files.newDirectoryStream(l.root.toPath())){for(Path p:entries){String n=p.getFileName().toString();if(n.startsWith("deployment.rldt1.")||n.startsWith("deployment.rldb2."))return true;}}
+  String prefix=l.legacy.getName()+".deployment-binding.";
+  try(DirectoryStream<Path> entries=Files.newDirectoryStream(l.legacy.toPath().getParent())){for(Path p:entries)if(p.getFileName().toString().startsWith(prefix))return true;}
+  return false;
  }
  private static Path anchor(Layout l){return Paths.get(l.legacy.getPath()+".deployment-binding");}
  private static void create(Path p,byte[] bytes)throws IOException {
@@ -136,7 +154,7 @@ public final class DeploymentBinding {
  }
  /** Only fresh isolated fixtures. Partial two-file enrollment remains evidence for manual review. */
  public static void bindSynthetic(boolean enable,boolean externallySingleActive,Layout l)throws Exception {
-  require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");Map<String,String> m=describe(l);
+  require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");Map<String,String> m=describe(l);require(!superseded(l),"BINDING_EXISTS");
   require(!Files.exists(l.root.toPath().resolve(NAME),NOFOLLOW)&&!Files.exists(anchor(l),NOFOLLOW),"BINDING_EXISTS");
   m.put("deployment_uuid",UUID.randomUUID().toString());byte[] bytes=encode(m);
   create(anchor(l),bytes);create(l.root.toPath().resolve(NAME),bytes);verify(true,true,l);
@@ -144,6 +162,7 @@ public final class DeploymentBinding {
  /** Read-only and advisory. External gate is a caller assertion, never inferred from absent locks. */
  public static void verify(boolean enable,boolean externallySingleActive,Layout l)throws Exception {
   require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");Map<String,String> expected=describe(l);
+  require(!superseded(l),"BINDING_SUPERSEDED");
   Map<String,String> actual=read(l.root.toPath().resolve(NAME));Map<String,String> peer=read(anchor(l));
   require(actual.equals(peer),"ROOT_DB_BINDING_MISMATCH");String uuid=actual.remove("deployment_uuid");
   // Phase IV: Windows RLDB1 records enrolled with the old creation-time-only identity cannot prove the same file.

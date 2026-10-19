@@ -507,3 +507,12 @@ Clean only exact schema-reference files created in a fresh own directory. Verify
 
 ## D-065 - Preserve partial copy evidence and distinguish SQL commit from closed-file verification
 Expose synthetic copy/owner/commit fault stages with CREATE_NEW bounded forced copying. A partial plain copy must not be reopened writable or overwritten; read-only diagnostics retain owner/journals and never infer commit by ignoring WAL. Explicit owned recovery plus full inventory establishes RMI1 verification, never activation. Unknown/noncooperative writers remain externally gated; SQLite busy is refusal, not takeover.
+
+## D-066 - Phase IV: Windows file identity uses the NTFS file ID, not creation time
+Java on Windows returns `fileKey()==null`, so RLDB1's Windows identity was creation time only, and creation time is settable and tunneled on delete/recreate. The independent review reproduced replaced/restored legacy DB and ledger acceptance (RED). Windows identity is now volume serial + NTFS file ID from a bounded read-only `fsutil file queryfileid`. Old Windows records require re-enrollment (`BINDING_IDENTITY_REENROLL_REQUIRED`), never automatic rewriting. POSIX keeps (dev,ino)+birth time. [Review](handoff/phase4_independent_review.md).
+
+## D-067 - Phase IV: known artifact checks the manifest and resources
+`knownArtifact` allowlists manifest main attributes and refuses Class-Path, launcher/boot agents, per-entry sections, non-class resources and duplicate entries, because those can load code outside the compared bytes. This still does not prove which artifact a running process uses.
+
+## D-068 - Phase IV: versioned deployment transition instead of editing RLDB1
+RLDB1 stays an immutable generation 0. RLDT1 records operator-approved generations as CREATE_NEW evidence (prepare → anchor → root → committed), never claimed as one atomic commit. Any interruption stops every caller until an operator records an abandon marker, and nothing is deleted. RLDB2 binds a manifest content floor rather than the manifest file identity, so legitimate seals need no rebind, while new sources, next Sessions and rollbacks go through an explicit plan digest. The old layout loses authority after a committed transition. Global fencing, post-commit rollback and old-binary exclusion remain outside the mechanism. [Contract](interfaces/deployment_transition_v1.md).

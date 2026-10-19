@@ -47,6 +47,22 @@ public final class Rlc2IntegrationStore {
             final File legacy,final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader)throws Exception {
         return ingest(externallyQuiescent,admission,directory,ledger,legacy,device,vehicle,reader,Rlc2PreviewStore.NO_FAULT);
     }
+    /**
+     * Phase IV synthetic entry for an RLDT1-managed deployment: the layout must be the ACTIVE generation
+     * (RLDB1 generation 0 or the latest committed RLDB2), checked before output open and at every stage.
+     */
+    public static Rlc2PreviewStore.Result ingestBoundActive(boolean enable,boolean externallySingleActive,
+            final net.neristal.rrbridge.product.v1.DeploymentBinding.Layout layout,final Admission admission,
+            WatermarkV2Prototype.ReadOpener reader,final Rlc2PreviewStore.Hook hook)throws Exception {
+        final int generation=DeploymentTransition.verifyActive(enable,externallySingleActive,layout);
+        if(!admission.directory.equals(layout.session.getPath())||!admission.manifestSession.equals(layout.manifestSession))throw new IOException("BOUND_ADMISSION_MISMATCH");
+        Rlc2IntegrationStore store=new Rlc2IntegrationStore(true,layout.output);
+        return store.ingestPublished(true,layout.root,layout.payloadSession,admission,layout.session.toPath(),layout.ledger,layout.legacy,
+            layout.device,layout.vehicle,reader,new Rlc2PreviewStore.Hook(){public void at(Rlc2PreviewStore.Stage point)throws Exception {
+                hook.at(point);
+                if(DeploymentTransition.verifyActive(true,true,layout)!=generation)throw new IOException("DEPLOYMENT_GENERATION_CHANGED");
+            }});
+    }
     public Rlc2PreviewStore.Result ingest(boolean externallyQuiescent,final Admission admission,final Path directory,final File ledger,
             final File legacy,final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader,Rlc2PreviewStore.Hook hook)throws Exception {
         try(net.neristal.rrbridge.product.v1.LegacyWorkerGuard legacyGuard=net.neristal.rrbridge.product.v1.LegacyWorkerGuard.acquire(legacy)) {
