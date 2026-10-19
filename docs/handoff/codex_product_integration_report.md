@@ -133,3 +133,5 @@ gh pr list --state open
 ```
 
 quota復旧時はAgentの `ingress-journal-prototype-ci.yml` / `product-v1-spool-ci.yml` を実mainで再実行し、job成功だけでなく対象stepsの実行を確認する。実HTTP CIはprivate checkout credentialが別途必要。次branchは最新mainと本worklogの基準SHAをcheckpointしてから着手する。
+
+Next fresh chat: [development bootstrap](../ops/development_environment_bootstrap.md) and [Phase II worklog](codex_phase2_worklog.md).
