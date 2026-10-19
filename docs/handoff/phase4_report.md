@@ -17,8 +17,8 @@
 | IV-1 RLDT1/RLDB2 | [#76](https://github.com/zawa356/RomRaider_agent/pull/76) → main | `ea9256f` | **MERGED** `d95950c819629a2ebc64199e6cd465d984e505ea` |
 | IV-2 RLAP1 provenance | [#77](https://github.com/zawa356/RomRaider_agent/pull/77) → main | `315041e` | **MERGED** `a76b35c4cd51f174248e9adf9b435c8d8ffc8a4e` |
 | IV-3/4 RLPC1・batch組込み | [#78](https://github.com/zawa356/RomRaider_agent/pull/78) → main | `04564c5` | **MERGED** `dca2f4da28f8690f59860bb980439c79332bb73a` |
-| IV-5 引継ぎ文書 | [#79](https://github.com/zawa356/RomRaider_agent/pull/79) → main | — | 本文書を含むPR。merge SHAは自己参照になるため記載しない（GitHubのPRとmainで確認する） |
-| Server進捗の同期 | [RomRaiderServer#61](https://github.com/zawa356/RomRaiderServer/pull/61)（文書のみ） | — | ユーザーの承認後にmerge（SHAはPRで確認） |
+| IV-5 引継ぎ文書 | [#79](https://github.com/zawa356/RomRaider_agent/pull/79) → main | — | **MERGED** `4f80c5e9831ec39368f4e771d829337598eeaa76`（Phase V開始時に再取得） |
+| Server進捗の同期 | [RomRaiderServer#61](https://github.com/zawa356/RomRaiderServer/pull/61)（文書のみ） | — | **MERGED** `d8c7a2f3b96ba278d269074dc40cca7741b4155b`（Phase V開始時に再取得） |
 
 2026-10-19、ユーザーの明示的な承認を受けて #75→#76→#77→#78 の順に通常mergeした。stackedのbaseは、それぞれ直前のmerge後にmainへ付け替えている。各PRには、merge前の確認記録コメントを残した。どのPRも、本番切替・本番DB migration・Workerの停止や置換・正式ACKを含まない。合成でopt-inした候補コードと文書だけで構成している。
 
@@ -72,7 +72,7 @@ X270、OpenPort、ECU、実車、実Loggerには一切アクセスしていな�
 Set-Location C:\Dev\RomLogger\RomRaider_agent
 git status --short
 git fetch origin
-gh pr list --state open        # #75〜#78 と IV-5 がstackedでopen
+gh pr list --state open        # Phase IV #75〜#79 は既にMERGED。現在のPRを再取得
 git log --oneline -8 origin/phase4/iv5-handoff
 pwsh -NoProfile -File scripts/run-acceleration-tests.ps1   # Phase IVの試験を含む
 bash scripts/test-phase4.sh                                 # Phase IVだけを実行する場合
@@ -85,3 +85,5 @@ bash scripts/test-phase4.sh                                 # Phase IVだけを�
 3. F3対策として、drive typeの照会を読み取り専用で追加する。
 4. RLPC1 stagingの子JVM halt試験と、同一Session内の `SOURCE_UUID_REUSED` 専用fixtureを追加する。
 5. 原本のない旧v1 recordを、どの別storageの扱いとするか（RLLV1 vaultを正式なversionとして採用するか）をユーザーと決める。
+
+Phase V追記: #79とServer #61は上記のとおり開始前にマージ済み。Windows/HTTPの上表はPhase IVの過去headの結果であり、Phase Vの検証ではない。最新の再開点は [Phase V報告](phase5_report.md) / [証跡](phase5_validation_evidence.md)。

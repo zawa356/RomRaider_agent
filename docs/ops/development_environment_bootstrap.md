@@ -1,14 +1,14 @@
 # Development environment bootstrap — start here
 
-Verified 2026-10-19 JST (Phase IV update 2026-10-19 evening). This document contains paths and non-secret operating rules only.
+Verified 2026-10-19 JST (Phase V provenance hardening). This document contains paths and non-secret operating rules only.
 
 ## First three sources
 
 1. [This bootstrap](https://github.com/zawa356/RomRaider_agent/blob/main/docs/ops/development_environment_bootstrap.md)
-2. [Phase IV final report](../handoff/phase4_report.md) / [append-only worklog](../handoff/phase4_worklog.md) / [validation evidence](../handoff/phase4_validation_evidence.md) / [independent review](../handoff/phase4_independent_review.md)
+2. [Phase V report](../handoff/phase5_report.md) / [append-only worklog](../handoff/phase5_worklog.md) / [exact-head validation evidence](../handoff/phase5_validation_evidence.md) / [deferred P2 designs](../handoff/phase5_followups.md). Phase IV report/review are historical context, not proof of Phase V validation.
 3. [Agent progress](../product_v1_implementation_progress.md) and [Server progress](https://github.com/zawa356/RomRaiderServer/blob/main/docs/implementation_progress.md)
 
-Phase IV PRs #75–#78 were merged to main on 2026-10-19 with the user's approval (#79 carries these handoff documents). Each PR has a pre-merge review comment. Phase III documents ([report](../handoff/codex_phase3_report.md)) are history.
+Phase IV PRs #75–#79 and Server #61 were already merged before Phase V. Agent main at Phase V start was4f80c5e, Serverd8c7a2f. Phase V is saved in PR80/branch phase5/provenance-hardening; check its current state instead of remerging old PRs. Each PR has a pre-merge review comment. Phase III documents ([report](../handoff/codex_phase3_report.md)) are history.
 
 Read AGENTS.md, latest fetched main/PRs, current contracts and the latest report before edits. Older dated instructions describe history.
 
@@ -31,11 +31,17 @@ Proxmox Web URL, VM ID and RDP destination: **unconfirmed / administrator inform
 
 ## Test entrypoints and independent gates
 
-Agent: `pwsh -NoProfile -File scripts/run-acceleration-tests.ps1` (includes `scripts/test-phase4.sh` on JDK17 x64 and Zulu8 x86 from Phase IV). Phase IV alone: `bash scripts/test-phase4.sh`.
+Agent: `pwsh -NoProfile -File scripts/run-acceleration-tests.ps1` (includes `scripts/test-phase4.sh` on JDK17 x64 and Zulu8 x86 from Phase IV). Phase IV alone: `bash scripts/test-phase4.sh`; Phase V: `bash scripts/test-phase5.sh` (56 cursor/Vault/RLI2/fault checks + physical replacement +4 retained-body checks).
 Optional guarded PG/HTTP and owned-cluster stop/restart: [automation](../acceleration_test_automation.md).
 Linux: same Bash scripts in a new dedicated directory with synthetic sources and hash-verified dependencies only.
 Root test.sh requires RomRaider.jar; absence means NOT RUN, not success.
 
-GitHub Actions latest observed jobs have empty steps and account-limit/payment annotations; record **CI NOT RUN (runner not started)** and inspect fresh status each session. Local verification can support normal merges of authorized non-production changes; do not change billing or repeatedly dispatch blocked workflows.
+GitHub Actions latest observed jobs have empty steps and account-limit/payment annotations; record **CI NOT RUN (runner not started)** and inspect fresh status each session. The supplied Phase V instructions prohibit merging a PR while CI has not run, despite historical local-only merge policy; leave Phase V PRs unmerged unless the user explicitly changes this instruction. Local verification remains distinct; do not change billing or repeatedly dispatch blocked workflows.
 
 Synthetic lock/HTTP tests never enable live ECU ingestion, production migration, formal ACK or original deletion. Windows directory durability UNKNOWN; Runtime.halt is not physical power loss. Keep per-phase commands, failures and resume pointers in the append-only worklog. Never commit secrets, generated data or test credentials.
+
+## Phase V exact restart locations
+
+Implementation/editing branch: `phase5/provenance-hardening`, checkout `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-3\RomRaider_agent`.
+Frozen implementation head `b4b909cc3111c11e58f35b7600e47bea1d6aadfa`, Windows acceptance checkout `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-3\phase5-acceptance-final`. Run tests only on a frozen tree; do not edit a Bash script while it is executing.
+Read Phase V evidence for exact logs/heads/results and the status of PR80 before resuming. Staging success is `STAGED_LOCAL_HASHES_MATCH_INACTIVE`, a local checksum result only. Existing/partial staging targets are retained and must not be adopted/overwritten. Formal ACK/product migration remain off. F3/old-binary exclusion and the remaining P1/P2 fixtures are explicitly incomplete.

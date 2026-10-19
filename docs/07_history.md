@@ -412,3 +412,7 @@ PR70–73: RLDB1固定配置、read-only readiness、RLBA1 backup/RMI1 rehearsal
 ## 2026-10-19 — Phase V initial hardening
 
 Reproduced 32 accepted cursor/output mutations against Phase IV main (9 controls/checks passed). Added whole-cursor RLC1 payload evidence, symmetric cross-run UUID collision rejection, frozen original projections, exact typed Vault/all-eight-table RLI2 verification and private no-overwrite staging publication. Initial expanded Windows x64 acceptance: 56/0 including four child-JVM halt boundaries. Final exact-head matrix and limitations are recorded in Phase V worklog/evidence. Historical Phase IV #79/Server #61 were already merged before this session. Production migration/ACK/real-car access remain disabled.
+
+## 2026-10-19 — Phase V additional RED/GREEN and final validation baseline
+
+Windows accepted a byte-identical physical source replacement between classification and staging; native RLC2 reader/marker revalidation now refuses it. Four stored-v1 mutations retaining the old hash were also accepted: body replacement, missing unACKed body, changed ACKed timestamp and changed sequence. Compare actual retained JSON/canonical fields; keep ACKed NULL bodies legitimate, missing unACKed bodies UNKNOWN. Final implementation b4b909c,61 focused cases pass on JDK17x64/actual Zulu8x86/Linux17; Linux Phase III/IV/large multi-session and actual owned HTTP35/Server57 verification are in the Phase V evidence. Windows full batch is recorded separately at its exact frozen head. Phase V PRs stay unmerged with CI NOT RUN.

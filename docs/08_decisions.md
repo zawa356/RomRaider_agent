@@ -535,3 +535,7 @@ One classification freezes original projections and bounded input snapshots. Exa
 ## D-073 — Publish completed isolated files without opening final targets writable
 
 Claim a fresh private work directory atomically, CREATE_NEW internal DB files and retain the directory after success/failure. Force completed files and publish with atomic no-replace hardlink insertion; remove only the owned internal name. Existing targets, partial attempts, unknown aliases/ACLs and unavailable publication primitives fail closed. No automatic recovery or deletion. This is local file publication, not a two-DB transaction or global fencing; Windows directory durability remains UNKNOWN.
+
+## D-074 — Phase V stored hashes and equal bytes do not establish full original correspondence
+
+Compare retained v1 JSON and canonical metadata fields with actual original projection, not only the stored hash. Reject missing unACKed bodies as UNKNOWN while retaining legitimate ACKed NULL historical bodies. Re-open every physical RLC2 source through the actual reader/captured marker at snapshot verification: Windows fileKey=null cannot detect byte-identical replacement by hashing alone. Dedicated RED/GREEN fixtures reproduced both classes of false verification. IDs, hash algorithm, old ACK state and source bytes are not rewritten.
