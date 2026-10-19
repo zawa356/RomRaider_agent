@@ -133,3 +133,5 @@ RR_TEST_PG_URL=postgresql://user@host:port/db python -m pytest -q tests   # Post
 - **接続口（コマンド、status のキー、転送形式、受信API、MCPツール、DBスキーマ、設定キー）を追加・変更したら、`docs/10_interfaces.md` を同じコミットで更新する。** 互換性の規則は同文書 §15。
 - コミットメッセージは日本語可。変更理由を書く。
 
+> **2026-10-20 Phase VI current entry (unmerged):** [Bootstrap on Phase VI branch](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/ops/development_environment_bootstrap.md) → [Phase VI report](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/handoff/phase6_overnight_report.md) → [exact-head evidence](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/handoff/phase6_overnight_evidence.md). PR80→81→82→83→84→85 are stacked and unmerged. Runtime/tests frozen d394103; read the latest evidence before resuming. Do not start from main alone or merge while CI has not executed. Production/ACK/launch remain disabled; older merge permissions below are historical.
+

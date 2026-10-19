@@ -1,5 +1,15 @@
 # Development environment bootstrap — start here
 
+## Phase VI current entry — 2026-10-20 (not merged)
+
+Use [this bootstrap on the Phase VI branch](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/ops/development_environment_bootstrap.md) → [Phase VI report](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/handoff/phase6_overnight_report.md) → [exact-head evidence](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/handoff/phase6_overnight_evidence.md) / [append-only worklog](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/handoff/phase6_overnight_worklog.md). These are explicit branch URLs because main does not contain Phase V/VI. Older Phase IV/Phase V entries below are history.
+
+Implementation worktree: `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-4\RomRaider_agent`, branch `phase6/staging-parent-identity`, stacked PR80→81→82→83→84→85. Final runtime/tests d394103; detached final verification checkout is sibling `phase6-final-acceptance`. Never edit it while tests run. Preserve existing main/Phase V and ignored logs/partial fixtures. `bash` is not on the initial PATH; use `C:\Program Files\Git\bin\bash.exe` and explicit JDK bin PATH. Actual Zulu8x86 data model must be asserted.
+
+New Phase VI tests: `bash scripts/test-phase6.sh` (aggregates writer/drive/preflight/transition/staging-parent); `--run-only` under actual Java8 after JDK17 compilation. Existing acceleration wrapper now includes them on x64 and real x86. Read evidence for completed/failed exact heads before choosing a new verification scope.
+
+No merge while CI has not run. Writer absence remains WRITER_UNPROVEN; preflight always blocks launch. Windows process provenance/directory durability UNKNOWN. No production DB/Worker/Sender/ACK/ECU action. Server runtime unchanged; progress docs must stack on existing PR62, not duplicate it.
+
 Verified 2026-10-19 JST (Phase V provenance hardening). This document contains paths and non-secret operating rules only.
 
 ## First three sources
