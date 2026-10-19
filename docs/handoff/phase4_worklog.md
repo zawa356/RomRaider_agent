@@ -19,3 +19,11 @@ Times are JST (+09:00). Append only; do not rewrite earlier entries.
 - Fix: Windows identity = volume serial + NTFS file ID via bounded read-only `fsutil file queryfileid`; old `null|` records → BINDING_IDENTITY_REENROLL_REQUIRED; manifest attribute allowlist, non-class resources and duplicate entries refused; RMI1 sidecar check NOFOLLOW; fsutil output drained while waiting.
 - GREEN: review test 9/0 on JDK17 x64 and Zulu8 x86; Phase III deployment regression exit0 on both (counts unchanged). Full matrix still pending (acceleration batch, Linux, HTTP).
 - Findings recorded in docs/handoff/phase4_independent_review.md; evidence in phase4_validation_evidence.md.
+
+## 2026-10-19T17:50+09:00 — IV-1 RLDT1/RLDB2 versioned transition
+
+- PR #75 (IV-0) opened; acceleration batch on fixed worktree `418c23b` exit0 (2157 PASS lines; log SHA256 3cc16e98…). Merge attempt was refused by this session's permission policy (merge without review) → PR left open for the user.
+- New `prototype/ingress/DeploymentTransition` (RLDT1 evidence prepare→anchor→root→committed, abandon marker, RLDB2 manifest content floor, deterministic plan digest, held-lock commit, read-only inspect/plan CLI) and `Rlc2IntegrationStore.ingestBoundActive`. RLDB1 verify refuses `BINDING_SUPERSEDED` once RLDT1 evidence exists.
+- DeploymentTransitionTest on real RLC2 sessions/ledger/RLI2 output: 63 checks PASS on JDK17 x64 (same-session update + source admission, interrupt/abandon/retry, held lane/legacy locks, ledger receipt tamper, ledger rollback, manifest rollback, restore clone root, copied session dir, next session, child JVM halt at ROOT_WRITTEN, old session no longer active, CLI read-only).
+- Test fixes during development (test expectations, not product weakening): record count 1 not 2; copied session dir refuses earlier (`NEW_MANIFEST_INVALID`); ledger tamper target made deterministic. One product fix: a fresh Session's sources legitimately appear in the shared ledger first; only a ledger path different from the new segment is `SOURCE_UUID_REUSED`.
+- Phase III deployment regression with IV-1 code: exit0 (JDK17 x64). x86/Linux pending in the IV-4 matrix.
