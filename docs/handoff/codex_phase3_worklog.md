@@ -78,3 +78,8 @@
 - Final local health at2026-10-19T14:58:27+09:00: java/javaw0, existing PG55432 ready, existing postgres parent1360 only. Owned HTTP cluster stopped by finally. Test logs/failed fixtures/frozen worktrees preserved.
 - Created Phase III report and evidence26 actual-file SHA256 rows; bootstrap first three links, AGENTS current entry, index/history and both product progress records updated. Documentation claims fixed single-Session acceptance only, leaving rebind/provenance/RMI1-to-RLI2/global-fence/production gates explicit.
 - A bulk documentation-update shell command was rejected by automatic approval review (only reason: blocked by policy). It made no changes. Used purpose-built file editing for individual reviewed changes. No attempt to relax execution policy. Earlier exact-owned build deletion denial also remains recorded; no evidence removed.
+
+## 2026-10-19T15:02:09+09:00 — final docs PR ready for normal merge
+
+- Agent docs commit1f255e550c2831a713c8a89aa0f4a6ed59219c0c pushed and PR74 https://github.com/zawa356/RomRaider_agent/pull/74 created/attached, mergeable. Eight Markdown-only files; local links resolve,26 actual hashes match, previous append-only prefix intact, known credential values absent, diff check PASS. Added PR74 pointer in this final publication update; no runtime or test script changes. Final publication merge SHA is obtained from GitHub PR74 after merge (cannot be recorded inside its own immutable content).
+- Server main bb27cd10ad60cda1a7f4434c3f803df6c4db2a39 checked out via fast-forward, clean, open PR0. Preserved transient PR body outside the repo in local logs; no ignored fixture or existing service removed. Next agent starts Bootstrap→Phase III report→current progress and checks latest main/PR/CI before new work.

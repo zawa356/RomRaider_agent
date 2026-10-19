@@ -4,6 +4,8 @@
 
 ## 結果と検証対象
 
+最終引継ぎ文書は [Agent PR74](https://github.com/zawa356/RomRaider_agent/pull/74)。この文書自身を取り込む最終merge SHAはPRのmerge記録と最新mainで確認する（文書内へ自己参照SHAを推測して埋めない）。
+
 最終コード検証head `ed8efd6e6195418feffe77224ef61f2116a6db7b`。前段の独立full matrixは `2bef02e102664a44908a3662c388f1c959beda49`。開始main Agent `1dfdcd8f564e2c46cb2651ab76aa4e1705701b83` / Server `3091d6196d3ebb69c568de09b8b4941fe35cad5e`。コード編集前checkpoint `6206d5e` をpushし、指示書・GitHub最新main・PR・CI・実環境を独立確認した。開始時両repo clean/open PR0。
 
 Agent PR [70](https://github.com/zawa356/RomRaider_agent/pull/70)、[71](https://github.com/zawa356/RomRaider_agent/pull/71)、[72](https://github.com/zawa356/RomRaider_agent/pull/72)、[73](https://github.com/zawa356/RomRaider_agent/pull/73) 取込済み。最終実装main `c206282119c424c3dd15c66b5cddfb5713d69fac`（PR73通常merge、2026-10-19T14:56:03+09:00）。PR70 merge `6e0c779501a4a892e61874b93516a48dd416b1cc`、PR72 merge `f8b428e2333e0d88ac554ace5df7599a35b965d0`。PR71はPR72がその全commitを取り込んだためGitHubがMERGEDへ更新し、独立merge commitは作成されていない。mainと検証headのsrc/scripts/.github差分0。引継ぎの最終文書PRは別のdocs-only commitとする。
