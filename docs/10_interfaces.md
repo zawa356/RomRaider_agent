@@ -527,3 +527,6 @@ IngressDiagnostics JSON schema1 additively includes automatic_repair_allowed=fal
 ## C24 — Owned PostgreSQL process-stop test contract
 - scripts/test-rlc2-owned-postgres-http.py requires ROMLOGGER_OWNED_PG_HTTP_ENABLE=1, verified ROMLOGGER_OWNED_PG_BIN and actual ROMLOGGER_SERVER_PATH. Only a newly created build/romlogger-http-pg-* data directory is initialized/stopped/restarted; synthetic credentials stay internal, initialization password file removed. No shared or production PostgreSQL process is stopped.
 - Real HTTP test uses an invocation-owned schema and connect_timeout=2 only in its constructed test DSN. Actual daemon-stop503, restart/persisted-record verification and unchanged Agent ACK bytes remain test-only. This is process crash recovery, not physical power loss.
+
+## Phase II local lane ownership candidate v1
+[RLLO1 contract](interfaces/lane_ownership_v1.md): cooperative local ownership only; old Worker compatibility is limited to its exact retained .worker.lock. No wire/ACK change.
