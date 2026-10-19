@@ -504,3 +504,6 @@ Inspect exact existing locks without creation, compare bounded current-build cla
 
 ## D-064 - Preserve immutable migration evidence and keep restores inactive
 Clean only exact schema-reference files created in a fresh own directory. Verify RMI1 without opening writable, capture bounded versioned backup roles/hashes and copy only to new isolated target. Keep original/ACK intact and restored binding inactive. RMI1 is not RLI2 conversion; global fencing and full new-harness copy fault matrix remain separate. [Contract](interfaces/isolated_backup_acceptance_v1.md).
+
+## D-065 - Preserve partial copy evidence and distinguish SQL commit from closed-file verification
+Expose synthetic copy/owner/commit fault stages with CREATE_NEW bounded forced copying. A partial plain copy must not be reopened writable or overwritten; read-only diagnostics retain owner/journals and never infer commit by ignoring WAL. Explicit owned recovery plus full inventory establishes RMI1 verification, never activation. Unknown/noncooperative writers remain externally gated; SQLite busy is refusal, not takeover.

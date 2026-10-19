@@ -26,6 +26,8 @@ public final class IsolatedBackupAcceptance {
   }return result;
  }
  private static String encode(Map<String,String> hashes) {StringBuilder b=new StringBuilder("RLBA1\n");for(Map.Entry<String,String> e:hashes.entrySet())b.append(e.getKey()).append(' ').append(e.getValue()).append('\n');return b.toString();}
+ public interface CopyHook {void afterArtifact(String role,int copied)throws Exception;}
+ public static final CopyHook NO_COPY_FAULT=new CopyHook(){public void afterArtifact(String role,int copied){}};
  public static final class Evidence {
   public final Map<String,File> sourceFiles;private final Map<String,String> hashes;
   Evidence(Map<String,File> files,Map<String,String> hashes){sourceFiles=Collections.unmodifiableMap(new TreeMap<String,File>(files));this.hashes=Collections.unmodifiableMap(new TreeMap<String,String>(hashes));}
@@ -33,12 +35,13 @@ public final class IsolatedBackupAcceptance {
    try(FileChannel channel=FileChannel.open(file.toPath(),StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE)){java.nio.ByteBuffer b=java.nio.ByteBuffer.wrap(encode(hashes).getBytes(StandardCharsets.US_ASCII));while(b.hasRemaining())channel.write(b);channel.force(true);}
   }
   /** New isolated directory only. Copies remain inactive, their original bindings deliberately do not rebind. */
-  public void copyToNewDirectory(boolean enable,File target)throws Exception {
+  public void copyToNewDirectory(boolean enable,File target)throws Exception {copyToNewDirectory(enable,target,NO_COPY_FAULT);}
+  public void copyToNewDirectory(boolean enable,File target,CopyHook hook)throws Exception {
    if(!enable)throw new IOException("BACKUP_DISABLED");if(!hashes.equals(IsolatedBackupAcceptance.hashes(sourceFiles)))throw new IOException("BACKUP_SOURCE_CHANGED");
    Path p=target.toPath();if(!p.isAbsolute()||!p.equals(p.normalize()))throw new IOException("BACKUP_TARGET_PATH");DeploymentBinding.safe(p.getParent().toFile());
    if(Files.getFileAttributeView(p.getParent(),java.nio.file.attribute.PosixFileAttributeView.class)!=null)Files.createDirectory(p,java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
    else Files.createDirectory(p);
-   for(Map.Entry<String,File> e:sourceFiles.entrySet())Files.copy(e.getValue().toPath(),p.resolve(e.getKey()));
+   int copied=0;for(Map.Entry<String,File> e:sourceFiles.entrySet()){Files.copy(e.getValue().toPath(),p.resolve(e.getKey()));hook.afterArtifact(e.getKey(),++copied);}
    verifyDirectory(target);
    if(!hashes.equals(IsolatedBackupAcceptance.hashes(sourceFiles)))throw new IOException("BACKUP_SOURCE_CHANGED");
   }
