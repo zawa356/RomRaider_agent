@@ -90,7 +90,7 @@ public final class LegacyProvenanceClassifier {
         if(!enable||!quiescent)throw new IOException("CLASSIFICATION_REQUIRES_EXPLICIT_QUIESCENCE");
         String before=DeploymentTransition.fileSha(v1);
         // Project every original first; refusal of an original is an INCOMPLETE reason for its records, never a pass.
-        Map<String,Map<String,String>> projectedByRun=new HashMap<String,Map<String,String>>();
+        Map<String,Map<String,Rlc2ProductAdapter.Record>> projectedByRun=new HashMap<String,Map<String,Rlc2ProductAdapter.Record>>();
         Map<String,Set<String>> sourcesByRun=new HashMap<String,Set<String>>();Map<String,String> sessionOfRun=new HashMap<String,String>();
         Map<String,String> brokenRun=new HashMap<String,String>();Map<String,String> sourceOwner=new HashMap<String,String>();
         Map<String,Rlc2ProductAdapter.Projection> projections=new TreeMap<String,Rlc2ProductAdapter.Projection>();
@@ -108,7 +108,7 @@ public final class LegacyProvenanceClassifier {
                 conflicts.add("ORIGINAL_UNVERIFIABLE");continue;
             }
             String run=IncrementalTsvBridge.runId(p.device,p.payloadSession);
-            Map<String,String> recs=new HashMap<String,String>();for(Rlc2ProductAdapter.Record r:p.records){if(!r.run.equals(run))throw new IOException("ORIGINAL_RUN_MIXED");recs.put(r.id,v1Canonical(r));}
+            Map<String,Rlc2ProductAdapter.Record> recs=new HashMap<String,Rlc2ProductAdapter.Record>();for(Rlc2ProductAdapter.Record r:p.records){if(!r.run.equals(run))throw new IOException("ORIGINAL_RUN_MIXED");recs.put(r.id,r);}
             Set<String> ids=new HashSet<String>();for(Rlc2ProductAdapter.Source s:p.sources){ids.add(s.uuid);String prior=sourceOwner.put(s.uuid,run);if(prior!=null&&!prior.equals(run)){brokenRun.put(run,"SOURCE_UUID_DUPLICATED");brokenRun.put(prior,"SOURCE_UUID_DUPLICATED");}}
             if(projectedByRun.containsKey(run))brokenRun.put(run,"ORIGINAL_DUPLICATED_FOR_RUN");
             projectedByRun.put(run,recs);sourcesByRun.put(run,ids);sessionOfRun.put(run,p.device+"|"+p.vehicle+"|"+p.payloadSession);
@@ -143,9 +143,9 @@ public final class LegacyProvenanceClassifier {
             Set<String> profiles=new HashSet<String>();
             try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT profile_id FROM v1_profiles")){while(r.next())profiles.add(r.getString(1));}
             List<Object[]> raw=new ArrayList<Object[]>();
-            try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT local_id,record_id,run_id,body_sha256,acked,acked_batch_id,acked_at,body_json,profile_id FROM v1_records ORDER BY local_id")) {
+            try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT local_id,record_id,run_id,body_sha256,acked,acked_batch_id,acked_at,body_json,profile_id,segment_id,sequence,kind,captured_at,source_kind FROM v1_records ORDER BY local_id")) {
                 while(r.next()){
-                    raw.add(new Object[]{r.getLong(1),r.getString(2),r.getString(3),r.getString(4),r.getInt(5)==1,r.getString(6),r.getString(7),r.getString(8),r.getString(9)});
+                    raw.add(new Object[]{r.getLong(1),r.getString(2),r.getString(3),r.getString(4),r.getInt(5)==1,r.getString(6),r.getString(7),r.getString(8),r.getString(9),r.getString(10),r.getString(11),r.getString(12),r.getString(13),r.getString(14)});
                     if(r.getInt(5)==1&&receipts.containsKey(r.getString(6)))receipts.get(r.getString(6))[1]++;
                 }
             }
@@ -164,9 +164,10 @@ public final class LegacyProvenanceClassifier {
                 else if("legacy".equals(claimKind.get(run))){cat=Category.CONFLICT;reason="TSV_CLAIM_WITH_RLC2_ORIGINAL";}
                 else if(!"journal".equals(claimKind.get(run))||!sourcesByRun.get(run).contains(claimKey.get(run))){cat=Category.CONFLICT;reason="JOURNAL_CLAIM_NOT_AN_ORIGINAL_SOURCE";}
                 else {
-                    String original=projectedByRun.get(run).get(rid);
+                    Rlc2ProductAdapter.Record original=projectedByRun.get(run).get(rid);
                     if(original==null){cat=Category.UNKNOWN_OR_INCOMPLETE;reason="NOT_IN_COMMITTED_ORIGINAL";}
-                    else if(!original.equals(hash)){cat=Category.CONFLICT;reason="SAME_RECORD_ID_DIFFERENT_BODY";}
+                    else if(!v1Canonical(original).equals(hash)||!Objects.equals(original.profile,profile)||!Objects.equals(original.segment,x[9])||!Objects.equals(original.sequence==null?null:original.sequence.toString(),x[10])||!Objects.equals(original.kind,x[11])||!Objects.equals(original.capturedAt,x[12])||!Objects.equals(original.source,x[13])||(json!=null&&!original.json.equals(json))){cat=Category.CONFLICT;reason="SAME_RECORD_ID_DIFFERENT_BODY";}
+                    else if(json==null&&!acked){cat=Category.UNKNOWN_OR_INCOMPLETE;reason="UNACKED_BODY_MISSING";}
                     else{cat=Category.VERIFIED_ORIGINAL;reason="ORIGINAL_REPROJECTED_EXACTLY";}
                 }
                 if(cat==Category.CONFLICT)conflicts.add(reason);
