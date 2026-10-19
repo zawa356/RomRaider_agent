@@ -415,3 +415,15 @@ Agent PR60–68: RLLO1 retained common logical Lane, exact legacy Worker compati
 Windows x64/actual Zulu8x86/Linux focused26ownership/19migration/6publication/21fault/7Enginecompetition PASS; product and real Worker conflicts/retry PASS. Full Windows batch acceleration-20261019-095142 exit0, Linux broad suite and cooperative10k load59/actualx8660 PASS. Owned actual FastAPI/PG HTTP35 and Server pytest57 PASS. [Evidence/log digests](handoff/phase2_validation_evidence.md). Actions runner blocked by account payment/spending annotation, steps=[]: CI NOT RUN.
 
 No automatic installation/replacement, production schema migration, live Logger/ECU wiring or new formal ACK. Common-root/cooperating-process guarantee only; old unknown importers/noncooperative Writers/duplicate restored roots remain outside it. Windows directory durability UNKNOWN; physical power loss/real ENOSPC/X270 NOT RUN. Migration is isolated inventory/preservation candidate, not RLI2 production record conversion.
+
+## 2026-10-19 Phase III — 固定配置・切替前診断・隔離copy受入
+
+Agent PR [70](https://github.com/zawa356/RomRaider_agent/pull/70)/[71](https://github.com/zawa356/RomRaider_agent/pull/71)/[72](https://github.com/zawa356/RomRaider_agent/pull/72)/[73](https://github.com/zawa356/RomRaider_agent/pull/73) merged。実装main `c206282119c424c3dd15c66b5cddfb5713d69fac`、独立最終検証head `ed8efd6e6195418feffe77224ef61f2116a6db7b` とsrc/scripts/.github差分0。最終文書は別PR。
+
+- **受入済み:** RLDB1 paired root/旧DB anchor、canonical identity/ACL/owner/hardlink/alias検証とread-only JSON CLI、bound RLI2 explicit synthetic entry。readinessの旧Worker実lock保持拒否と所有子process終了後明示retry。RLBA1役割/hashによるinactive copied-target検査、RMI1全表/rowid/ACK/claim/cursor/receipt/retry/review状態保全、schema-reference自己所有一時fileのみcleanup。
+- **故障境界:** output前/owner作成後/実copy途中/copy後/commit前/commit後の6子JVM halt、partial/owner-only保持、SQLite BUSY/source変更、full rehearsal/first-artifact backup割込み。ownerと全recovery sidecarのalias検査をwritable recovery前へ追加し、別合成DBが変更されたREDを修正。診断はsource/target/owner/lock作成・repairをしない。
+- **実検証:** Windows full batch exit0、JDK17 x64と実Zulu8 x86でbinding18/readiness11/backup32/stages52、migration21/CLI2・負試験PASS。Linux17同等（binding17）PASS。bound10,003recordsを3runtime、Linux旧候補10,000observations＋10小Session load59、実HTTP/owned PG35、Server PG pytest57/1warning PASS。詳細は [Phase III報告](handoff/codex_phase3_report.md) と [ログhash/コマンド](handoff/phase3_validation_evidence.md)。CIはsteps0/account limitでNOT RUN。
+- **部分完了/未成立:** 固定logical Session/manifestの配置だけを受入。manifest置換/次Session/rebind authorityと本番restore/cutover、実process/配布物完全provenance、別host/clone/networkFS global fence、RMI1→RLI2 record/physical receipt変換は未成立。旧wire JSON/claim/cursorだけからoriginal UUID/manifest/frame bytesを捏造しない。
+- **NOT RUN/無効:** 正式ACK/新Sender常駐/既存Worker自動停止・切替/本番migration/公開deploy/実車・ECU。Windows directory durability UNKNOWN、物理電源断/実ENOSPC未試験。旧RLC1full56とroot test.sh/privileged symlink gateも継続。Docker14/既存PG稼働、owned試験終了、失敗fixture保全。
+
+次回最優先は、停止・外部単一稼働が成立した環境の再binding権限契約と、元RLC2原本provenanceに基づくRMI1/RLI2対応契約。Bootstrap→Phase III報告→本台帳から再開する。

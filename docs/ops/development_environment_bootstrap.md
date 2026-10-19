@@ -5,7 +5,7 @@ Verified 2026-10-19 JST. This document contains paths and non-secret operating r
 ## First three sources
 
 1. [This bootstrap](https://github.com/zawa356/RomRaider_agent/blob/main/docs/ops/development_environment_bootstrap.md)
-2. [Phase II final report](../handoff/codex_phase2_report.md) / [append-only worklog](../handoff/codex_phase2_worklog.md)
+2. [Phase III final report](../handoff/codex_phase3_report.md) / [append-only worklog](../handoff/codex_phase3_worklog.md) / [validation evidence](../handoff/phase3_validation_evidence.md)
 3. [Agent progress](../product_v1_implementation_progress.md) and [Server progress](https://github.com/zawa356/RomRaiderServer/blob/main/docs/implementation_progress.md)
 
 Read AGENTS.md, latest fetched main/PRs, current contracts and the latest report before edits. Older dated instructions describe history.
