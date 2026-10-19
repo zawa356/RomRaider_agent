@@ -27,7 +27,7 @@ public final class CutoverReadinessTest {
   String exe=new File(new File(System.getProperty("java.home"),"bin"),System.getProperty("os.name").startsWith("Windows")?"java.exe":"java").toString();
   Path empty=Files.createDirectory(l.root.toPath().getParent().resolve("empty-worker-input")),log=l.root.toPath().getParent().resolve("worker.log");
   ProcessBuilder pb=new ProcessBuilder(exe,"-cp",System.getProperty("java.class.path"),ProductBridgeWorker.class.getName(),"--foreground",empty.toString(),l.legacy.toString(),"http://127.0.0.1:1").redirectErrorStream(true).redirectOutput(log.toFile());
-  pb.environment().put("ROMLOGGER_DEVICE_ID",l.device);pb.environment().put("ROMLOGGER_VEHICLE_ID",l.vehicle);pb.environment().put("ROMLOGGER_DEVICE_TOKEN","synthetic-test-only");pb.environment().remove("ROMLOGGER_SYNTHETIC_LANE_ROOT");
+  pb.environment().put("ROMLOGGER_DEVICE_ID",l.device);pb.environment().put("ROMLOGGER_VEHICLE_ID",l.vehicle);pb.environment().put("ROMLOGGER_DEVICE_TOKEN",java.util.UUID.randomUUID().toString());pb.environment().remove("ROMLOGGER_SYNTHETIC_LANE_ROOT");
   Process worker=pb.start();try {
    Thread.sleep(1500); // Let the nonblocking old Worker acquire before advisory shared probes.
    long end=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(15);String state="";

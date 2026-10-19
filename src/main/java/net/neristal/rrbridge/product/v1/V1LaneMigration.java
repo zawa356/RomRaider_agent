@@ -12,6 +12,9 @@ public final class V1LaneMigration {
  public static final int APPLICATION_ID=0x524d4931;
  private static final String[] TABLES={"v1_source_claims","v1_journal_import_cursors","v1_import_cursors","v1_records","v1_profiles","v1_ack_receipts","v1_delivery_state","v1_ingress_review_state","sqlite_sequence"};
  public interface Hook{void beforeCommit()throws Exception;}
+ public enum Stage { BEFORE_OUTPUT, OWNER_CREATED, COPY_PROGRESS, COPY_COMPLETED, BEFORE_COMMIT, AFTER_COMMIT }
+ public interface StageHook {void at(Stage stage)throws Exception;}
+ public static final StageHook NO_STAGE_FAULT=new StageHook(){public void at(Stage stage){}};
  public static final Hook NO_FAULT=new Hook(){public void beforeCommit(){}};
  public static final class Report {
   public final Map<String,Long> rows;public final long acked,pending;public final String sourceSha,dataSha;
@@ -101,7 +104,20 @@ public final class V1LaneMigration {
   s.execute("INSERT INTO lane_migration_sources_v1 SELECT device_id,vehicle_id,session_id,source_kind,source_key FROM v1_source_claims");
   for(String table:TABLES)if(!table.equals("sqlite_sequence"))for(String action:new String[]{"INSERT","UPDATE","DELETE"})s.execute("CREATE TRIGGER lane_guard_"+table+"_"+action+" BEFORE "+action+" ON "+table+" BEGIN SELECT RAISE(ABORT,'ISOLATED_MIGRATION_READ_ONLY'); END");
  }
- public static Report migrateCopy(boolean enable,boolean quiescent,File source,File target,Hook hook)throws Exception {
+ private static void copyOwned(File source,File target,StageHook hook)throws Exception {
+  java.util.Set<java.nio.file.OpenOption> options=new java.util.HashSet<java.nio.file.OpenOption>(java.util.Arrays.<java.nio.file.OpenOption>asList(java.nio.file.StandardOpenOption.CREATE_NEW,java.nio.file.StandardOpenOption.WRITE));
+  java.nio.file.attribute.FileAttribute<?>[] attrs=Files.getFileAttributeView(target.toPath().getParent(),java.nio.file.attribute.PosixFileAttributeView.class)!=null?new java.nio.file.attribute.FileAttribute<?>[]{java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))}:new java.nio.file.attribute.FileAttribute<?>[0];
+  try(java.nio.channels.FileChannel input=java.nio.channels.FileChannel.open(source.toPath(),java.nio.file.StandardOpenOption.READ);java.nio.channels.FileChannel output=java.nio.channels.FileChannel.open(target.toPath(),options,attrs)) {
+   java.nio.ByteBuffer buffer=java.nio.ByteBuffer.allocate(32768);long total=0;boolean first=true;
+   while(input.read(buffer)!=-1){buffer.flip();total+=buffer.remaining();if(total>128L*1024*1024)throw new IOException("copy grew past capacity");while(buffer.hasRemaining())output.write(buffer);buffer.clear();if(first){output.force(true);hook.at(Stage.COPY_PROGRESS);first=false;}}
+   output.force(true);
+  }
+ }
+ public static Report migrateCopy(boolean enable,boolean quiescent,File source,File target,final Hook hook)throws Exception {
+  return migrateCopyWithStages(enable,quiescent,source,target,new StageHook(){public void at(Stage stage)throws Exception{if(stage==Stage.BEFORE_COMMIT)hook.beforeCommit();}});
+ }
+ /** Explicit synthetic fault boundary API; never a production switch or automatic repair. */
+ public static Report migrateCopyWithStages(boolean enable,boolean quiescent,File source,File target,StageHook hook)throws Exception {
   if(!enable||!quiescent)throw new IOException("isolated migration and quiescence required");
   // Reject alias/junction targets before guard creation or any SQLite writable open.
   DeploymentBinding.safe(source);
@@ -114,7 +130,7 @@ public final class V1LaneMigration {
   }
   if(!target.getName().endsWith(".lane-migration.db")||source.getCanonicalFile().equals(target.getCanonicalFile())||Files.isSymbolicLink(target.toPath()))throw new IOException("dedicated isolated target required");
   try(LegacyWorkerGuard old=LegacyWorkerGuard.acquire(source);LegacyWorkerGuard output=LegacyWorkerGuard.acquire(target)) {
-   Report report=inspect(source);
+   Report report=inspect(source);hook.at(Stage.BEFORE_OUTPUT);
    File owner=new File(target.getPath()+".migration-owner");
    byte[] ownerBytes=("RMI1\n"+report.sourceSha+"\n").getBytes(StandardCharsets.US_ASCII);
    if(!target.exists()) {
@@ -124,14 +140,23 @@ public final class V1LaneMigration {
     try(java.nio.channels.FileChannel marker=java.nio.channels.FileChannel.open(owner.toPath(),markerOptions,markerAttrs)) {
      java.nio.ByteBuffer b=java.nio.ByteBuffer.wrap(ownerBytes);while(b.hasRemaining())marker.write(b);marker.force(true);
     }
-    Files.copy(source.toPath(),target.toPath());
+    hook.at(Stage.OWNER_CREATED);copyOwned(source,target,hook);hook.at(Stage.COPY_COMPLETED);
    }
+   DeploymentBinding.safe(owner);
    if(!owner.isFile()||Files.size(owner.toPath())>128||Files.isSymbolicLink(owner.toPath())||!Arrays.equals(Files.readAllBytes(owner.toPath()),ownerBytes))throw new IOException("migration copy owner mismatch");
-   for(String suffix:new String[]{"-wal","-shm","-journal"})if(Files.isSymbolicLink(new File(target.getPath()+suffix).toPath()))throw new IOException("unsafe target recovery file");
+   for(String suffix:new String[]{"-wal","-shm","-journal"}) {
+    java.nio.file.Path recovery=java.nio.file.Paths.get(target+suffix);
+    if(Files.exists(recovery,java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+     DeploymentBinding.safe(recovery.toFile());
+     if(!Files.isRegularFile(recovery,java.nio.file.LinkOption.NOFOLLOW_LINKS))throw new IOException("unsafe target recovery file");
+    }
+   }
    // Only this positively owned copied target may undergo SQLite rollback recovery.
    byte[] header=new byte[100];try(java.io.RandomAccessFile h=new java.io.RandomAccessFile(target,"r")){h.readFully(header);}
    if(!Arrays.equals(Arrays.copyOf(header,16),"SQLite format 3\u0000".getBytes(StandardCharsets.US_ASCII)))throw new IOException("foreign target header");
    int headerApp=java.nio.ByteBuffer.wrap(header).getInt(68);if(headerApp!=0&&headerApp!=APPLICATION_ID)throw new IOException("foreign target application");
+   boolean interrupted=false;for(String suffix:new String[]{"-wal","-shm","-journal"})if(Files.exists(java.nio.file.Paths.get(target+suffix)))interrupted=true;
+   if(headerApp==0&&!interrupted&&!hash(target).equals(report.sourceSha))throw new IOException("partial or modified plain copy; manual review required");
    try(Connection db=open(target,false);Statement s=db.createStatement()) {
     s.execute("PRAGMA synchronous=FULL");s.execute("BEGIN IMMEDIATE");
     try {
@@ -149,13 +174,69 @@ public final class V1LaneMigration {
      if(scalar(db,"SELECT count(*) FROM ("+originals+" EXCEPT "+inventory+")")!=0||scalar(db,"SELECT count(*) FROM ("+inventory+" EXCEPT "+originals+")")!=0)throw new IOException("migration inventory changed");
      if(!schema(db).equals(candidateSchema()))throw new IOException("migration schema/guard mismatch");
      if(!data(db).equals(report.dataSha))throw new IOException("preserved record/ACK/cursor data changed");
-     hook.beforeCommit();old.verify();output.verify();if(!report.sourceSha.equals(hash(source)))throw new IOException("source changed before commit");s.execute("COMMIT");
+     hook.at(Stage.BEFORE_COMMIT);old.verify();output.verify();if(!report.sourceSha.equals(hash(source)))throw new IOException("source changed before commit");s.execute("COMMIT");hook.at(Stage.AFTER_COMMIT);
     }catch(Exception e){try{s.execute("ROLLBACK");}catch(SQLException ignored){}throw e;}
    }
    if(!report.sourceSha.equals(hash(source)))throw new IOException("source changed after isolated migration");return report;
   }
  }
+ public static final class CopyState {
+  public final String state,action;public final Report inventory;
+  CopyState(String state,String action,Report inventory){this.state=state;this.action=action;this.inventory=inventory;}
+  public int exit(){return state.equals("COMMITTED_INVENTORY_VERIFIED")?0:state.equals("BLOCKED_OWNER_BUSY")?3:5;}
+  public String json(){return "{\"contract_version\":1,\"copy_state\":\""+state+"\",\"operator_action\":\""+action+"\",\"automatic_repair\":false,\"production_authorized\":false,\"ack_eligible\":false,\"acked_records\":"+(inventory==null?-1:inventory.acked)+",\"pending_records\":"+(inventory==null?-1:inventory.pending)+"}";}
+ }
+ private static final class Observation implements AutoCloseable {
+  final java.nio.channels.FileChannel channel;
+  Observation(java.nio.channels.FileChannel channel){this.channel=channel;}
+  public void close()throws IOException{channel.close();}
+ }
+ private static Observation observe(File db,boolean required)throws Exception {
+  java.nio.file.Path path=java.nio.file.Paths.get(db.getPath()+".worker.lock");
+  if(!Files.exists(path,java.nio.file.LinkOption.NOFOLLOW_LINKS)){if(required)throw new IOException("COPY_OWNER_UNKNOWN");return null;}
+  DeploymentBinding.safe(path.toFile());java.nio.channels.FileChannel channel=java.nio.channels.FileChannel.open(path,java.nio.file.StandardOpenOption.READ);
+  try {java.nio.channels.FileLock lock;try{lock=channel.tryLock(0,Long.MAX_VALUE,true);}catch(java.nio.channels.OverlappingFileLockException busy){throw new IOException("COPY_OWNER_BUSY");}if(lock==null)throw new IOException("COPY_OWNER_BUSY");return new Observation(channel);}
+  catch(Exception e){channel.close();throw e;}
+ }
+ /** Observes existing locks only. No source/target/owner/sidecar creation or recovery. */
+ public static CopyState inspectCopyState(boolean enable,boolean quiescent,File source,File target) {
+  Report report=null;
+  try {
+   if(!enable||!quiescent)throw new IOException("COPY_GATE_REQUIRED");
+   DeploymentBinding.safe(source);java.nio.file.Path path=target.toPath();
+   if(!path.isAbsolute()||!path.equals(path.normalize())||!target.getName().endsWith(".lane-migration.db"))throw new IOException("COPY_TARGET_INVALID");
+   DeploymentBinding.safe(path.getParent().toFile());
+   try(Observation old=observe(source,true);Observation output=observe(target,false)) {
+    report=inspect(source);File owner=new File(target+".migration-owner");
+    boolean exists=Files.exists(path,java.nio.file.LinkOption.NOFOLLOW_LINKS),marked=Files.exists(owner.toPath(),java.nio.file.LinkOption.NOFOLLOW_LINKS);
+    if(!exists&&!marked)return new CopyState("NO_CANDIDATE","EXPLICIT_SYNTHETIC_RETRY",report);
+    if(!marked)return new CopyState("UNOWNED_TARGET_REVIEW_REQUIRED","RETAIN_EVIDENCE_MANUAL_REVIEW",report);
+    DeploymentBinding.safe(owner);if(owner.length()>128||!Arrays.equals(Files.readAllBytes(owner.toPath()),("RMI1\n"+report.sourceSha+"\n").getBytes(StandardCharsets.US_ASCII)))return new CopyState("OWNER_MISMATCH_REVIEW_REQUIRED","RETAIN_EVIDENCE_MANUAL_REVIEW",report);
+    if(!exists)return new CopyState("OWNER_ONLY_REVIEW_REQUIRED","RETAIN_EVIDENCE_MANUAL_REVIEW",report);
+    DeploymentBinding.safe(target);if(Files.isSameFile(source.toPath(),path))throw new IOException("COPY_TARGET_INVALID");
+    byte[] header=new byte[100];try(java.io.RandomAccessFile file=new java.io.RandomAccessFile(target,"r")){if(file.length()<100)return new CopyState("PARTIAL_OR_FOREIGN_TARGET_REVIEW_REQUIRED","RETAIN_EVIDENCE_MANUAL_REVIEW",report);file.readFully(header);}
+    if(!Arrays.equals(Arrays.copyOf(header,16),"SQLite format 3\u0000".getBytes(StandardCharsets.US_ASCII)))return new CopyState("PARTIAL_OR_FOREIGN_TARGET_REVIEW_REQUIRED","RETAIN_EVIDENCE_MANUAL_REVIEW",report);
+    int app=java.nio.ByteBuffer.wrap(header).getInt(68);if(app!=0&&app!=APPLICATION_ID)return new CopyState("PARTIAL_OR_FOREIGN_TARGET_REVIEW_REQUIRED","RETAIN_EVIDENCE_MANUAL_REVIEW",report);
+    boolean needsRecovery=false;
+    for(String suffix:new String[]{"-wal","-shm","-journal"}) {
+     java.nio.file.Path recovery=java.nio.file.Paths.get(target+suffix);
+     if(Files.exists(recovery,java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+      DeploymentBinding.safe(recovery.toFile());if(!Files.isRegularFile(recovery,java.nio.file.LinkOption.NOFOLLOW_LINKS))throw new IOException("unsafe target recovery file");
+      needsRecovery=true;
+     }
+    }
+    if(needsRecovery)return new CopyState("OWNED_INTERRUPTED_TARGET_REVIEW_REQUIRED","EXPLICIT_OWNED_RECOVERY_RETRY",report);
+    if(app==0&&hash(target).equals(report.sourceSha))return new CopyState("COPIED_V1_READY_FOR_EXPLICIT_RETRY","EXPLICIT_SYNTHETIC_RETRY",report);
+    if(app==APPLICATION_ID){verifyIsolatedCopy(true,true,source,target);return new CopyState("COMMITTED_INVENTORY_VERIFIED","CANDIDATE_VERIFIED_NO_ACTIVATION",report);}
+    return new CopyState("PARTIAL_OR_FOREIGN_TARGET_REVIEW_REQUIRED","RETAIN_EVIDENCE_MANUAL_REVIEW",report);
+   }
+  }catch(Exception e){return new CopyState("COPY_OWNER_BUSY".equals(e.getMessage())?"BLOCKED_OWNER_BUSY":"INSPECTION_REVIEW_REQUIRED","RETAIN_EVIDENCE_MANUAL_REVIEW",report);}
+ }
  public static void main(String[] args)throws Exception {
+  if(args.length>0&&"--inspect-isolated-copy-state".equals(args[0])) {
+   if(args.length!=5||!"--external-quiescent".equals(args[1])||!"--no-apply".equals(args[4])){System.out.println(new CopyState("USAGE","RETAIN_EVIDENCE_MANUAL_REVIEW",null).json());System.exit(2);return;}
+   CopyState state=inspectCopyState(true,true,new File(args[2]),new File(args[3]));System.out.println(state.json());System.exit(state.exit());return;
+  }
   if(args.length!=3||!"--dry-run-isolated-quiescent".equals(args[0])||!"--no-apply".equals(args[2]))throw new IllegalArgumentException("explicit dry-run mode required");
   System.out.println(preflight(true,true,new File(args[1])).json());
  }
