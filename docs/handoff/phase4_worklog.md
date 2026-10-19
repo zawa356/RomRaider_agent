@@ -33,3 +33,11 @@ Times are JST (+09:00). Append only; do not rewrite earlier entries.
 - IV-2 `ArtifactProvenance` (RLAP1): ArtifactProvenanceTest 21 PASS on Windows JDK17 (Windows process provenance UNKNOWN by design). Commit 315041e, PR #77 stacked on #76.
 - IV-3 `LegacyProvenanceClassifier` (RLPC1) + RLLV1 vault staging; `IncrementalTsvBridge.runId` exposes the existing deterministic run ID. LegacyProvenanceClassifierTest 33 PASS on JDK17 x64.
 - Product bug found by the test during development: a row-level VERIFIED record in a session with a CONFLICT was required in RLI2 although the session is (correctly) not migrated. Fixed by a single `migratable` rule (row VERIFIED and session VERIFIED) used for vault flags and verification.
+
+## 2026-10-19T19:10+09:00 — IV-4 matrix / IV-5 handoff
+
+- Batch script now runs `test-phase4.sh` on JDK17 x64 and Zulu8 x86 (commit 0e61251). Full Windows batch started on fixed worktree `C:\Dev\RomLogger\phase4-final-0e61251` (results appended when finished).
+- Linux VPS `/tmp/romlogger-phase4-0e61251` (archive SHA256 bfda3dc0…, deps hash-verified): phase4 exit0 (review 9/0, transition 64, provenance 22 incl. `/proc` match and replaced-after-start, legacy 34), phase3 exit0, bound 10,003 records exit0.
+- Linux pre-fix RED (`/tmp/romlogger-phase4-red-2b620c7`): F2/F2b RED; F1 not RED on Linux. Original F6 assertion did not discriminate (schema refusal hid the defect) → tightened in 04564c5; pre-fix RED / fixed GREEN confirmed.
+- Server main bb27cd1: migrate upgrade×2/check exit0, pytest 57 passed 1 warning. Server docs PR #61 opened (no runtime change).
+- PR #78 opened (IV-3/4). IV-5 docs: phase4_report, evidence, review update, bootstrap first-three links, AGENTS entry (Phase III line kept as history), Agent progress entry.

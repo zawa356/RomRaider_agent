@@ -1,4 +1,6 @@
-> **2026-10-19 Phase III current entry:** Read [bootstrap](docs/ops/development_environment_bootstrap.md) → [Phase III report](docs/handoff/codex_phase3_report.md) → [product progress](docs/product_v1_implementation_progress.md). [Evidence](docs/handoff/phase3_validation_evidence.md) / [append-only worklog](docs/handoff/codex_phase3_worklog.md) record tested heads and limits. Fixed-Session synthetic acceptance does not authorize production cutover. Earlier dated handoffs below are historical.
+> **2026-10-19 Phase IV current entry:** Read [bootstrap](docs/ops/development_environment_bootstrap.md) → [Phase IV report](docs/handoff/phase4_report.md) → [product progress](docs/product_v1_implementation_progress.md). Phase IV (independent review fixes, RLDT1/RLDB2 transition, RLAP1 provenance, RLPC1 legacy classification) is in stacked PRs #75–#78 plus IV-5. All of it is synthetic-only and authorizes no production cutover. Phase III and earlier dated handoffs below are historical.
+
+> (History) 2026-10-19 Phase III entry: **2026-10-19 Phase III current entry:** Read [bootstrap](docs/ops/development_environment_bootstrap.md) → [Phase III report](docs/handoff/codex_phase3_report.md) → [product progress](docs/product_v1_implementation_progress.md). [Evidence](docs/handoff/phase3_validation_evidence.md) / [append-only worklog](docs/handoff/codex_phase3_worklog.md) record tested heads and limits. Fixed-Session synthetic acceptance does not authorize production cutover. Earlier dated handoffs below are historical.
 
 # AGENTS.md — AIエージェント向け作業ガイド
 

@@ -427,3 +427,16 @@ Agent PR [70](https://github.com/zawa356/RomRaider_agent/pull/70)/[71](https://g
 - **NOT RUN/無効:** 正式ACK/新Sender常駐/既存Worker自動停止・切替/本番migration/公開deploy/実車・ECU。Windows directory durability UNKNOWN、物理電源断/実ENOSPC未試験。旧RLC1full56とroot test.sh/privileged symlink gateも継続。Docker14/既存PG稼働、owned試験終了、失敗fixture保全。
 
 次回最優先は、停止・外部単一稼働が成立した環境の再binding権限契約と、元RLC2原本provenanceに基づくRMI1/RLI2対応契約。Bootstrap→Phase III報告→本台帳から再開する。
+
+## 2026-10-19 Phase IV — 独立レビュー・versioned rebind・provenance・旧v1分類
+
+- **実行者:** Claude Code（Claude Opus 5.5）。前任（Codex）とは別のエージェントとして独立レビューを行った。開始時のmainは Agent `2b620c7`、Server `bb27cd1`。
+- **PR（stacked、すべてOPEN、merge待ち）:** [#75](https://github.com/zawa356/RomRaider_agent/pull/75) IV-0 → [#76](https://github.com/zawa356/RomRaider_agent/pull/76) IV-1 → [#77](https://github.com/zawa356/RomRaider_agent/pull/77) IV-2 → [#78](https://github.com/zawa356/RomRaider_agent/pull/78) IV-3/4 → IV-5（文書）。
+- **IV-0:** Windows版Javaでは `fileKey()` が `null` を返すため、RLDB1の識別子が作成日時だけだった。そのため旧DBやledgerを差し替え・復元・作り直しても通過していた（High）。volume serialとNTFS file IDで束縛するよう修正した。`knownArtifact` がManifestの`Class-Path`やagent属性を無視していた問題（Medium）も修正した。どちらもRED→GREEN（WindowsとLinux）。
+- **IV-1:** RLDT1（prepare→anchor→root→committedのCREATE_NEW証跡、中断時はfail closed、abandon marker、決定的なplan digest）と、RLDB2（manifestの内容floor）。同一Session内の更新、次Sessionへの移行、不正な巻戻りを区別する。旧Sessionと新Sessionの同時アクティブ化を拒否する。合成のみ。
+- **IV-2:** RLAP1による、順序付きJARのhashとruntimeの照合。processの証拠は段階分けで扱う（self reportは主張、検証側が起動した子JVM、Linux同一ユーザーの`/proc`。Windowsは常にUNKNOWN）。
+- **IV-3:** RLPC1でVERIFIED_ORIGINAL／LEGACY_WITHOUT_RLC2_PROVENANCE／CONFLICT／UNKNOWN_OR_INCOMPLETEに分類し、RLLV1 vaultとVERIFIED原本だけのRLI2候補を隔離stagingで作る。原本のない旧v1 recordはRLI2へ移さない（BLOCKED）。
+- **実検証:** WindowsではJDK17 x64と実Zulu8 x86でreview 9/0、Phase III回帰exit0、IV-0のbatchはexit0。Linux（`0e61251`）ではtransition 64・provenance 22・legacy 34、Phase III回帰exit0、bound 1万レコードPASS。Server main `bb27cd1` はmigrationとcheckがexit0、pytest 57 passed。Windows全体batch（`0e61251`）と実HTTP＋PGの結果は[証跡](handoff/phase4_validation_evidence.md)にある。CI NOT RUN（runner未起動）。
+- **未成立:** global fencing、commit後のrollback、旧binaryの機械的な排除、Windowsのprocess provenance、署名・配布の真正性、原本のない旧v1 recordの移行、Windows directory durability（UNKNOWN）、物理電源断・実ENOSPC・実車。
+
+次回は Bootstrap → [Phase IV報告](handoff/phase4_report.md) → 本台帳 の順に読み、PR #75〜#78とIV-5の状態を確認してから再開する。

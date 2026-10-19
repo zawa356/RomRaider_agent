@@ -14,7 +14,7 @@
 | F3 | Medium（既知の制約） | 未修正・文書化済み | ドライブ文字に割り当てたネットワークドライブは、UNC判定もFS種別判定もすり抜ける可能性がある（静的な指摘。再現はNOT RUN） |
 | F4 | Low | 確認済み・変更なし | Linuxのidentityは、JDKが作成日時（birth time）を返すことが前提になっている |
 | F5 | Low | 変更なし | lane・旧Workerのlock pathの安全確認はsymlinkだけを拒否し、junctionは拒否しない。ただし相互排他は保たれる |
-| F6 | Low | 修正（Linuxで要確認） | RMI1のpreflightで、壊れたsymlinkのsidecarを「閉じたDB」と誤って判定する |
+| F6 | Low | RED→修正→GREEN（Linux） | RMI1のpreflightで、壊れたsymlinkのsidecarを「閉じたDB」と誤って判定する |
 | F7 | Low | 修正 | fsutilの出力を待機後に読み、UTF-8でdecodeしていた（pipeが詰まるとtimeoutで拒否になり、localeに依存する） |
 
 ## F1 — High: WindowsのRLDB1 identityが作成日時だけ
@@ -29,6 +29,8 @@
 **影響:** 運用者が古い旧v1 DBのバックアップを同じパスへ復元すると、binding検査と`ingestBoundDeployment`のprecommit再検査がどちらも通過する。新しいDBにしかないsource claimを、`requireUnclaimed`が古いDBを見て「未所有」と判定し得る。つまり二重所有の入口になる。Linux（JDK17・ext4）では、作り直しでinode番号が再利用されても作成日時が変わるため検出できた（VPSで実測。`dev=801,ino=19122` が再利用され、ctimeが変化した）。
 
 **修正:** POSIXではこれまでどおり `fileKey|birth time` を使う。Windowsでは `ntfs:<volume:vsn>:<NTFS file ID>|<作成日時>` に変更した。file IDは `SystemRoot\System32\fsutil.exe file queryfileid` で取得する。この呼び出しは読み取り専用で、timeoutは5秒、出力は32KiB以内とし、待機中もpipeを読み続ける。日本語などlocaleに依存する文言は無視し、16桁または32桁の16進IDがちょうど1つ含まれることを要求する。旧形式（`null|`）で登録されたWindowsのbindingは `BINDING_IDENTITY_REENROLL_REQUIRED` で拒否する（記録を自動で書き換えることはしない）。
+
+**Linuxでの修正前確認:** 修正前のmain `2b620c7` をLinuxで実行すると、F1系はinodeとbirth timeによって検出されるため、REDにならない（Windows固有の欠陥であることの裏付け）。F2/F2bはLinuxでもREDになった。
 
 **GREEN:** F1/F1b/F1cはすべて `BINDING_LAYOUT_CHANGED` で拒否された。対照として、in-placeの書込みでは同じfile IDのまま検証を通る。F1d（旧形式のidentity）は再登録を要求する。Phase IIIの回帰（binding18/engine6/readiness11/backup32/stages52）はJDK17 x64でexit0。x86の結果は検証証跡を参照。
 
@@ -58,7 +60,7 @@ VPS（Linux 6.8・ext4・JDK17.0.20.1）では `creationTime()` が実際の作�
 
 ## F6 — Low: RMI1 preflightのsidecar判定がlinkをたどる
 
-`V1LaneMigration.closed()` は `Files.exists(path)` をlinkをたどる形で呼んでいたため、リンク先の存在しない `-wal` symlinkを「存在しない」と判定していた。`NOFOLLOW_LINKS` に修正した。Windowsにはsymlinkを作成する権限がないため、このテストは **SKIP / NOT RUN**。Linuxでの実行結果は検証証跡に記録する。
+`V1LaneMigration.closed()` は `Files.exists(path)` をlinkをたどる形で呼んでいたため、リンク先の存在しない `-wal` symlinkを「存在しない」と判定していた。`NOFOLLOW_LINKS` に修正した。Windowsにはsymlinkを作成する権限がないため **SKIP / NOT RUN**。最初のテストは、修正前のコードでも後段のschema検査で拒否されてPASS扱いになっていた（つまり修正の有無を区別できていなかった）。拒否理由まで一致を要求するよう改めたうえで、Linuxで修正前（`2b620c7`）がRED（`unknown v1 schema`）、修正後がGREEN（`closed checkpointed DB required`）になることを確認した。
 
 ## F7 — Low: fsutilの出力処理
 
