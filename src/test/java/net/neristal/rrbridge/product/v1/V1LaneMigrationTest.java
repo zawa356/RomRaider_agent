@@ -9,6 +9,7 @@ public final class V1LaneMigrationTest {
  static void reject(Action a,String s)throws Exception {try{a.run();}catch(Exception e){check(true,s);return;}throw new AssertionError(s);}
  static void execute(File db,String text)throws Exception {try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+db);Statement s=c.createStatement()){s.execute(text);}}
  public static void main(String[] args)throws Exception {
+  if(args.length>0){V1LaneMigration.migrateCopy(true,true,new File(args[0]),new File(args[1]),new V1LaneMigration.Hook(){public void beforeCommit(){Runtime.getRuntime().halt(84);}});throw new AssertionError("migration halt not reached");}
   final File dir=Files.createTempDirectory("romlogger-migration-").toFile(),source=new File(dir,"v1.db"),target=new File(dir,"copy.lane-migration.db");
   DurableSpool spool=new DurableSpool(source);File tsv=new File(dir,"rr_synthetic.tsv");
   Files.write(tsv.toPath(),("M\tsynthetic\t1\tRPM\tRPM\trpm\nS\tsynthetic\t1\t0\t1791838800000\tRPM=700\nS\tsynthetic\t1\t1\t1791838801000\tRPM=701\n").getBytes(StandardCharsets.UTF_8));
@@ -29,6 +30,14 @@ public final class V1LaneMigrationTest {
   check(java.util.Arrays.equals(original,Files.readAllBytes(source.toPath())),"original byte-for-byte unchanged after migration/retry");
   reject(new Action(){public void run()throws Exception{execute(target,"UPDATE v1_records SET acked=0");}},"old SQL writers blocked by candidate guard");
   reject(new Action(){public void run()throws Exception{new DurableSpool(target);}},"new Worker refuses versioned candidate as v1 DB");
+  final File crashTarget=new File(dir,"crash.lane-migration.db");
+  String executable=new File(new File(System.getProperty("java.home"),"bin"),System.getProperty("os.name").startsWith("Windows")?"java.exe":"java").toString();
+  Process child=new ProcessBuilder(executable,"-cp",System.getProperty("java.class.path"),V1LaneMigrationTest.class.getName(),source.toString(),crashTarget.toString()).redirectErrorStream(true).redirectOutput(new File(dir,"migration-halt.log")).start();
+  check(child.waitFor(30,java.util.concurrent.TimeUnit.SECONDS)&&child.exitValue()==84,"child halts at prepared migration commit");
+  check(V1LaneMigration.migrateCopy(true,true,source,crashTarget,V1LaneMigration.NO_FAULT).dataSha.equals(report.dataSha),"owned target recovers SQLite rollback after real JVM halt");
+  check(java.util.Arrays.equals(original,Files.readAllBytes(source.toPath())),"real migration halt leaves original bytes unchanged");
+  execute(crashTarget,"UPDATE lane_migration_sources_v1 SET source_key='tampered'");
+  reject(new Action(){public void run()throws Exception{V1LaneMigration.migrateCopy(true,true,source,crashTarget,V1LaneMigration.NO_FAULT);}},"rerun rejects modified migrated source inventory");
   execute(target,"DROP TRIGGER lane_guard_v1_records_UPDATE");
   reject(new Action(){public void run()throws Exception{V1LaneMigration.migrateCopy(true,true,source,target,V1LaneMigration.NO_FAULT);}},"rerun rejects missing preservation trigger");
   final File unknown=new File(dir,"unknown.db");Files.copy(source.toPath(),unknown.toPath());execute(unknown,"CREATE TABLE future_schema(value TEXT)");
