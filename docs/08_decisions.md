@@ -486,3 +486,6 @@
 ## D-061 — Preserve SQL token boundaries; test candidate recovery in actual child JVMs
 - Schema whitespace canonicalization must not merge TEXT NOT NULL with TEXTNOTNULL. RED15f04f3 is retained; collapse whitespace while preserving boundaries/literals. Negative schema matrix35 and original v0 compatibility PASS locally.
 - Child JVMs use the parent's actual runtime for candidate transaction halts and two-worker convergence. Recovery preserves all eight-table atomicity and no ACK. Runtime.halt remains distinct from physical power loss.
+
+## D-058 — Phase II cooperative lane ownership v1
+Use retained OS FileLock with owner UUID/generation and strict evidence validation; no expiring lease or PID takeover. Hold legacy .worker.lock for configured old DB while RLC2 snapshots/commits. Separate DB commits are not atomic. See [versioned contract](interfaces/lane_ownership_v1.md). Isolated opt-in only; no live/ACK/migration gate change.
