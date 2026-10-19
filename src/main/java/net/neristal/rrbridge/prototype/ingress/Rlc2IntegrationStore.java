@@ -40,6 +40,16 @@ public final class Rlc2IntegrationStore {
         return ingestOwned(externallyQuiescent,admission,directory,ledger,legacy,device,vehicle,reader,hook,legacyGuard,null);
         }
     }
+    /** Isolated opt-in; payload session must match projection before any output writes. */
+    public Rlc2PreviewStore.Result ingestCooperative(boolean enable,boolean externallyQuiescent,File root,String payloadSession,
+            final Admission admission,final Path directory,final File ledger,final File legacy,
+            final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader,Rlc2PreviewStore.Hook hook)throws Exception {
+        if(!enable)throw new IOException("LANE_DISABLED");
+        try(net.neristal.rrbridge.product.v1.LegacyWorkerGuard old=net.neristal.rrbridge.product.v1.LegacyWorkerGuard.acquire(legacy);
+            net.neristal.rrbridge.product.v1.LaneOwnership lane=net.neristal.rrbridge.product.v1.LaneOwnership.acquire(true,root,device,vehicle,payloadSession)) {
+            return ingestOwned(externallyQuiescent,admission,directory,ledger,legacy,device,vehicle,reader,hook,old,lane);
+        }
+    }
     private Rlc2PreviewStore.Result ingestOwned(boolean externallyQuiescent,final Admission admission,final Path directory,final File ledger,
             final File legacy,final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader,Rlc2PreviewStore.Hook hook,
             final net.neristal.rrbridge.product.v1.LegacyWorkerGuard legacyGuard,final net.neristal.rrbridge.product.v1.LaneOwnership lane)throws Exception {
@@ -49,6 +59,7 @@ public final class Rlc2IntegrationStore {
         final Rlc2InputSnapshot snapshot=Rlc2InputSnapshot.capture(directory,ledger,legacy);
         final Rlc2ProductAdapter.Projection p=Rlc2ProductAdapter.project(true,directory,ledger,device,vehicle,reader);
         snapshot.verify();
+        if(lane!=null&&!lane.matches(p.device,p.vehicle,p.payloadSession))throw new IOException("LANE_KEY_MISMATCH");
         if(!p.manifestSession.equals(admission.manifestSession))throw new IOException("manifest session not admitted");
         final Set<String> actual=new HashSet<String>();for(Rlc2ProductAdapter.Source s:p.sources)actual.add(s.uuid);
         if(!actual.equals(admission.sourceUuids))throw new IOException("every physical source requires explicit admission");

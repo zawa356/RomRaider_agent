@@ -51,7 +51,8 @@ public final class ProductBridgeWorker {
             catch(OverlappingFileLockException alreadyRunning){}
             if(lock==null)throw new IllegalStateException("Another product worker owns this spool");
             try {
-                DurableSpool spool=new DurableSpool(dbFile);
+                String lanePath=System.getenv("ROMLOGGER_SYNTHETIC_LANE_ROOT");
+                DurableSpool spool=lanePath==null?new DurableSpool(dbFile):new DurableSpool(dbFile,new File(lanePath));
                 // A previously recorded ingress integrity fault blocks ALL
                 // future imports and network delivery from the same outbox.
                 if(spool.ingressReviewReason()!=null) {

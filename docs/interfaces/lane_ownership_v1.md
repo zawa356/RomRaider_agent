@@ -11,3 +11,8 @@ Opt-in common ownership is for synthetic isolated tests. Old offline API remains
 A historical old Worker cannot recognize a new mode: unknown command flags already fail closed, and RLI2 output cannot be a v1 spool. Do not claim that a new environment flag makes unmodified old binaries cooperative. Existing claim/cursor/record IDs and ACK state stay unchanged.
 
 Java Windows fileKey can be unavailable: retain OS lock and validate sampled creation time plus exact handle-bound owner evidence; POSIX additionally compares fileKey. This is cooperative path integrity, not a native identity/administrator-attack guarantee. Windows process termination can precede kernel lock release; BUSY remains refusal until an explicit retry actually acquires it. No elapsed-time takeover.
+
+## Product opt-in integration
+`DurableSpool(file, laneRoot)` and `ProductBridgeWorker` environment `ROMLOGGER_SYNTHETIC_LANE_ROOT` explicitly enable isolated ownership. Default constructor/environment absence keep it disabled. Incremental TSV/Journal importers acquire a scope per payload session; scanners use these importers. Spool requires that scope at claim, profile/record append and cursor writes, and verifies immediately before ingestion commits. Transport and ACK commits are independent. A scope closes on its acquiring thread only.
+
+`Rlc2IntegrationStore.ingestCooperative(enable, externallyQuiescent, root, payloadSession, ...)` holds compatibility guard then common lane before snapshot; projected payload must match the lane. It still explicitly requires external quiescence. Separate-session locking alone does not prevent a noncooperative Writer update.
