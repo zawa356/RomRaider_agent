@@ -519,3 +519,6 @@ RLDB1 stays an immutable generation 0. RLDT1 records operator-approved generatio
 
 ## D-069 - Phase IV: process provenance is evidence-graded and fails to UNKNOWN
 RLAP1 describes exact ordered JAR hashes and runtime, and refuses wildcard, directory, shadowed, Class-Path and missing entries. A self report is a claim. Only a verifier-launched child or Linux same-user `/proc` evidence (command line plus bytes of the JARs the process actually has open) counts, and Windows stays UNKNOWN_PROCESS_PROVENANCE. No signature or administrator proof is fabricated. [Contract](interfaces/artifact_provenance_v1.md).
+
+## D-070 - Phase IV: legacy v1 rows are matched against real originals, never converted
+v1 JSON, claims and cursors cannot produce RLC2 physical UUIDs, committed frames, manifests or receipts. RLPC1 marks a v1 row VERIFIED_ORIGINAL only when an operator-supplied RLC2 original re-projects to the same record ID and v1 canonical hash and the journal claim names one of its sources. Everything else is LEGACY_WITHOUT_RLC2_PROVENANCE, CONFLICT or UNKNOWN_OR_INCOMPLETE. Staging writes a new RLLV1 vault (all rows, preserved v1 ACK state, no formal ACK) and a new RLI2 candidate from verified originals only, and a completion marker distinguishes complete staging from incomplete. [Contract](interfaces/legacy_v1_rli2_provenance_v1.md).

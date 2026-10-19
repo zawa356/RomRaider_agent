@@ -65,7 +65,9 @@ public final class Phase4ReviewRedTest {
   Path f6=DeploymentBindingTest.privateDir(Files.createTempDirectory("romlogger-phase4-sidecar-"));
   final File v1=f6.resolve("v1.db").toFile();Files.write(v1.toPath(),new byte[]{1});
   boolean linked;try{Files.createSymbolicLink(Paths.get(v1+"-wal"),f6.resolve("missing-target"));linked=true;}catch(Exception unsupported){linked=false;}
-  if(linked)expectRefusal("F6 dangling symlink WAL sidecar refused",new Action(){public void run()throws Exception{V1LaneMigration.inspect(v1);}});
+  // The reason must be the sidecar check itself: a later refusal (e.g. schema) would hide the defect.
+  if(linked){String reason;try{V1LaneMigration.inspect(v1);reason="ACCEPTED";}catch(Exception e){reason=e.getMessage();}
+   expect("F6 dangling symlink WAL sidecar refused by the closed-DB check ["+reason+"]","closed checkpointed DB required".equals(reason));}
   else System.out.println("SKIP F6 symlink creation unavailable (no privilege); NOT RUN on this host");
   // F2: a JAR with identical class bytes but a manifest Class-Path can load missing classes from elsewhere.
   Path home=DeploymentBindingTest.privateDir(Files.createTempDirectory("romlogger-phase4-artifact-"));
