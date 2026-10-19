@@ -495,3 +495,6 @@ Retain a manifest-scoped boundary across synthetic publish/seal/rotation/Ledger 
 
 ## D-060 — Copy-only v1 inventory migration
 RMI1 preserves rows/rowids/ACK/cursors, source bytes and explicit claims. Strict known schema and owned copied-target recovery; unknown/partial evidence stays manual. No production in-place apply, automatic downgrade, RLI2 record conversion or sender activation.
+
+## D-062 — RLDB1 deployment binding and paired local anchor
+Use an explicit synthetic-only paired root/legacy anchor, strict canonical layout/identity/permissions and read-only inspection. Verify revised candidate before output open and at transaction boundaries. Same-DB second root refuses; coordinated clones/other hosts remain externally gated, never globally fenced. Existing default Worker and RLLO1 experiments unchanged. See [contract](interfaces/deployment_binding_v1.md).

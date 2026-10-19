@@ -30,6 +30,19 @@ public final class Rlc2IntegrationStore {
         this.output=output;
         backend=new Rlc2PreviewStore(true,output,true);
     }
+    /** Revised synthetic entry: bound layout is checked before opening output and at precommit. */
+    public static Rlc2PreviewStore.Result ingestBoundDeployment(boolean enable,boolean externallySingleActive,
+            final net.neristal.rrbridge.product.v1.DeploymentBinding.Layout layout,final Admission admission,
+            WatermarkV2Prototype.ReadOpener reader,final Rlc2PreviewStore.Hook hook)throws Exception {
+        net.neristal.rrbridge.product.v1.DeploymentBinding.verify(enable,externallySingleActive,layout);
+        if(!admission.directory.equals(layout.session.getPath())||!admission.manifestSession.equals(layout.manifestSession))throw new IOException("BOUND_ADMISSION_MISMATCH");
+        Rlc2IntegrationStore store=new Rlc2IntegrationStore(true,layout.output);
+        return store.ingestPublished(true,layout.root,layout.payloadSession,admission,layout.session.toPath(),layout.ledger,layout.legacy,
+            layout.device,layout.vehicle,reader,new Rlc2PreviewStore.Hook(){public void at(Rlc2PreviewStore.Stage point)throws Exception {
+                hook.at(point);
+                net.neristal.rrbridge.product.v1.DeploymentBinding.verify(true,true,layout);
+            }});
+    }
     public Rlc2PreviewStore.Result ingest(boolean externallyQuiescent,final Admission admission,final Path directory,final File ledger,
             final File legacy,final String device,final String vehicle,final WatermarkV2Prototype.ReadOpener reader)throws Exception {
         return ingest(externallyQuiescent,admission,directory,ledger,legacy,device,vehicle,reader,Rlc2PreviewStore.NO_FAULT);
