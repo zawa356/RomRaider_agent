@@ -1,6 +1,6 @@
 # docs/ 索引
 
-**2026-10-20 Phase VI (未マージ):** [branch Bootstrap](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/ops/development_environment_bootstrap.md) → [報告](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/handoff/phase6_overnight_report.md) → [証跡](https://github.com/zawa356/RomRaider_agent/blob/phase6/staging-parent-identity/docs/handoff/phase6_overnight_evidence.md)。mainではなく#80上のPR81–85にstack。実Writer・drive・preflight・transition・親差替え。Writer/process/durability未証明のため起動/本番/ACKは無効。
+**2026-10-20 Phase VI (未マージ):** [branch Bootstrap](https://github.com/zawa356/RomRaider_agent/blob/phase6/transition-drive-preflight/docs/ops/development_environment_bootstrap.md) → [報告](https://github.com/zawa356/RomRaider_agent/blob/phase6/transition-drive-preflight/docs/handoff/phase6_overnight_report.md) → [証跡](https://github.com/zawa356/RomRaider_agent/blob/phase6/transition-drive-preflight/docs/handoff/phase6_overnight_evidence.md)。mainではなく#80上のPR81–85にstack。実Writer・drive・preflight・transition・親差替え。Writer/process/durability未証明のため起動/本番/ACKは無効。
 
 **2026-10-19 Phase III current:** [Bootstrap](ops/development_environment_bootstrap.md) → [最終報告](handoff/codex_phase3_report.md) → [製品進捗](product_v1_implementation_progress.md)。[証跡](handoff/phase3_validation_evidence.md) / [追記worklog](handoff/codex_phase3_worklog.md)。固定配置・診断・隔離copyを受入。本番切替/次Session再binding/正式ACKは未成立。
 

@@ -9,7 +9,8 @@ Logs are ignored local artifacts; no raw payloads, credentials or test databases
 | c52d7ba0e46b466d602602cb4ca45d780d6154a9 | `../phase6-writer-acceptance`, writer/classification correction |
 | 105f66d4b564491ce9f690bcbdd97c9bf8f64070 | `../phase6-drive-acceptance`, drive gate + Phase III/IV regression |
 | 556f4ff249a699584ba7a8bf15290636057af001 | `../phase6-preflight-acceptance`, read-only preflight |
-| d3941031af4d22c7317055c6d9439cf10e75e364 | `../phase6-final-acceptance`, final runtime/tests/CI integration; full final matrix running |
+| d3941031af4d22c7317055c6d9439cf10e75e364 | `../phase6-final-acceptance`, broad baseline before final drive-entry ordering delta |
+| 53f18a27663c0f7f9c8f2398fd3390190f5f5749 | `../phase6-entry-acceptance`, final runtime/tests and separately scoped entry/drive/preflight/transition/Phase IV checks |
 
 All paths are relative to this session's implementation worktree `C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-4\RomRaider_agent`. No sources are edited inside these detached checkouts. Later handoff commits do not change runtime/tests.
 
@@ -48,6 +49,8 @@ PowerShell Parser and Bash `-n` for Phase VI scripts PASS. YAML safe_load PASS u
 - Transition exclusion RED: test-onlydd36511 against unchanged Phase V transition runtime; actual child PID8452 holds old Lane, abandon still creates its marker. `build/phase6-abandon-red.log` exit1, SHA256e7655a630a14aec22b187189b550f1ddcce54fca354480b2161cf5db006b0249. Final correction is separately frozen/tested; no double-activation claim.
 
 Windows directory durability / running-process provenance UNKNOWN. Noncooperative writer absence WRITER_UNPROVEN; readiness BLOCKED. Real SMB, privileged Windows links, physical power loss, real ENOSPC, ECU/OpenPort/X270, production DB/Worker, production migration and new formal ACK NOT RUN/disabled. Root test.sh requires absent RomRaider.jar and is NOT RUN.
+
+Actual Windows junction insertion was later executed successfully; the earlier privileged-link gap now refers to true Windows symbolic links, not these owned junction fixtures. Old Windows RLC1 full56 remains NOT RUN/BLOCKED as in the prior handoff; the synthetic acceleration batch is not root test.sh or that full legacy acceptance.
 ## Final broad baseline d394103 — Linux completed
 
 First Linux run retained as FAIL: `phase6.log`, SHA25660f08c44d2221570a65b1d2667a2e6335c9e2a77b814e03b15afcd4c144b29b2. The SSH invocation's umask was0002; fixture Worker/Lane files created after initial privatization were group-writable, correctly causing UNSAFE_ACCESS in read-only preflight. No safety assertion was relaxed and no existing file was chmodded. The same source was rerun with invocation-local `umask 077`, creating fresh private fixtures and retaining the failed artifacts.

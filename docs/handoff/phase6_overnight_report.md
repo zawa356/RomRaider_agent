@@ -5,7 +5,7 @@
 ## 開始点・コード固定・PR
 
 - Agent開始main `4f80c5e9831ec39368f4e771d829337598eeaa76`、開始#80 `7da38372044792cde5271932a6134b7c6f156ccb`。Server開始main `d8c7a2f3b96ba278d269074dc40cca7741b4155b`、開始#62 `056958dd1973106173e0e9b4c8664324c001ad8a`。既存mainとPhase V worktreeは保護した。
-- **最終runtime/test固定head `d3941031af4d22c7317055c6d9439cf10e75e364`**。以後は文書だけ。`../phase6-final-acceptance`のdetached checkoutでWindows全体batchと実Zulu8 x86、Linuxの新規専用領域で独立検証中。完了結果は証跡末尾へ追記する。過去headのPASSを最終headへ読み替えない。
+- **最終runtime/test固定head `53f18a27663c0f7f9c8f2398fd3390190f5f5749`**。追加レビューでtransition入口のdrive proof順序を補強した。`../phase6-entry-acceptance`でこの最終差分を重点検証する。**広域基準は別head `d3941031af4d22c7317055c6d9439cf10e75e364`**、`../phase6-final-acceptance`でWindows全体batch／実x86を実行し、Linux全体・負荷は完了した。広域基準と最終入口差分の結果を読み替えず、完了結果は証跡末尾へ追記する。53f18a2以後は文書だけ。
 - Server runtime/schema/wire/migrationは変更していない。Server文書同期は#62の上にstackする。
 
 | 順序 | PR / branch | base / code head | 状態 |
@@ -16,6 +16,7 @@
 | VI-3/5 | [#83](https://github.com/zawa356/RomRaider_agent/pull/83) `phase6/offline-preflight` | phase6/local-fixed-drive /556f4ff | draft・未マージ |
 | VI-4 | [#84](https://github.com/zawa356/RomRaider_agent/pull/84) `phase6/transition-abandon-locks` | phase6/offline-preflight /97e28b0 | draft・未マージ |
 | VI-1追加 | [#85](https://github.com/zawa356/RomRaider_agent/pull/85) `phase6/staging-parent-identity` | phase6/transition-abandon-locks /d394103 | draft・未マージ |
+| VI-2入口追加 | [#86](https://github.com/zawa356/RomRaider_agent/pull/86) `phase6/transition-drive-preflight` | phase6/staging-parent-identity /53f18a2 | draft・未マージ |
 
 ## 実装と判定
 
@@ -33,6 +34,7 @@
 1. **vault-onlyの後発journal**：原本候補0件では旧DBの継続snapshotがなく、未commit journal生成後も完了markerを作成できた。旧DBを常に独立監視して停止させる。
 2. **abandonのlock不足**：子JVMが旧Laneを保持していてもabandon markerを作れた。新旧Lane/Publicationを保持観測し、競合中はmarkerを作らない。REDが二重有効化そのものを示したとはしていない。
 3. **出力親の差替え**：同名の別private parent/workへ差し替えると、最終エラーの前に競合側の空RLI2を初期化・公開した。native親/work identityを保持して、その書込み前に拒否する。
+4. **transitionのdrive判定順序**：planはchainを先に読み、commitはlockファイルを先に作っていた。合成Remote＋欠落bindingのfixtureで順序漏れとlock作成をRED再現し、drive proofをI/O前へ移した。実SMBを再現／アクセスしたとはしていない。
 
 sidecarなしのSQLite lockとimmutable読取りの組合せは、内容一致とWriter不在が別であることを実測した限界。外部quiescence宣言で解除しない。Windows process provenance／directory durabilityはUNKNOWN。物理電源断・real ENOSPC・global fencing・悪意ある管理者のcheck-to-use raceは未証明。RLLV1はRecord証跡であり、全旧v1表の完全バックアップではない。
 
@@ -44,9 +46,9 @@ sidecarなしのSQLite lockとimmutable読取りの組合せは、内容一致�
 Set-Location C:\Users\zawa\Documents\Codex\2026-10-19\new-chat-4\RomRaider_agent
 git status --short --branch
 git fetch origin
-gh pr view 85 --json state,baseRefName,headRefOid
+gh pr view 86 --json state,baseRefName,headRefOid
 # 最初に本報告と証跡末尾の完了/失敗を読む。不要な既済試験の再実行はしない。
-# 新しい実装はphase6/staging-parent-identityを基準に別worktreeへ。mainから切り直さない。
+# 新しい実装はphase6/transition-drive-preflightを基準に別worktreeへ。mainから切り直さない。
 ```
 
 次は未成立のWriter/process proofの協調契約・運用上の旧binary排除を設計し、明示offのoffline launcherへ接続する。Vault/cursor/RLI2のreadiness集約、さらに細かいwriter進行時点・同時abandon/retry・別root/hostの実競合は未完了として引き継ぐ。自動修復、正式ACK、自動Sender、実運用切替を有効化しない。CIが未実行の間、今回の全PRと既存#80/#62をマージしない。
