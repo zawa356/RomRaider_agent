@@ -9,7 +9,7 @@ import java.util.*;
 
 /** Versioned synthetic-copy inventory migration. Never mutates the input DB. */
 public final class V1LaneMigration {
- public static final int APPLICATION_ID=0x524c4d31;
+ public static final int APPLICATION_ID=0x524d4931;
  private static final String[] TABLES={"v1_source_claims","v1_journal_import_cursors","v1_import_cursors","v1_records","v1_profiles","v1_ack_receipts","v1_delivery_state","v1_ingress_review_state","sqlite_sequence"};
  public interface Hook{void beforeCommit()throws Exception;}
  public static final Hook NO_FAULT=new Hook(){public void beforeCommit(){}};
@@ -25,7 +25,7 @@ public final class V1LaneMigration {
  private static String hex(byte[] b){StringBuilder s=new StringBuilder();for(byte x:b)s.append(String.format("%02x",x&255));return s.toString();}
  private static String hash(File f)throws Exception {
   if(!f.isFile()||Files.isSymbolicLink(f.toPath())||f.length()>128L*1024*1024)throw new IOException("bounded closed regular DB required");
-  MessageDigest sha=MessageDigest.getInstance("SHA-256");try(java.io.InputStream in=Files.newInputStream(f.toPath())){byte[] b=new byte[32768];int n;while((n=in.read(b))!=-1)sha.update(b,0,n);}return hex(sha.digest());
+  MessageDigest sha=MessageDigest.getInstance("SHA-256");try(java.io.InputStream in=Files.newInputStream(f.toPath())){byte[] b=new byte[32768];int n;long total=0;while((n=in.read(b))!=-1){total+=n;if(total>128L*1024*1024)throw new IOException("DB grew past migration capacity");sha.update(b,0,n);}}return hex(sha.digest());
  }
  private static void closed(File f)throws IOException {for(String suffix:new String[]{"-wal","-shm","-journal"})if(Files.exists(new File(f.getPath()+suffix).toPath()))throw new IOException("closed checkpointed DB required");}
  private static Map<String,String> schema(Connection db)throws SQLException {
@@ -41,7 +41,7 @@ public final class V1LaneMigration {
  }
  private static String data(Connection db)throws Exception {
   MessageDigest sha=MessageDigest.getInstance("SHA-256");
-  for(String table:TABLES){sha.update(table.getBytes(StandardCharsets.UTF_8));try(Statement s=db.createStatement();ResultSet r=s.executeQuery("SELECT rowid,* FROM "+table+" ORDER BY rowid")){
+  for(String table:TABLES){sha.update(("TABLE:"+table+":"+scalar(db,"SELECT count(*) FROM "+table)+":").getBytes(StandardCharsets.UTF_8));try(Statement s=db.createStatement();ResultSet r=s.executeQuery("SELECT rowid,* FROM "+table+" ORDER BY rowid")){
    int columns=r.getMetaData().getColumnCount();while(r.next())for(int c=1;c<=columns;c++){Object v=r.getObject(c);byte[] b=v==null?new byte[0]:v instanceof byte[]?(byte[])v:v.toString().getBytes(StandardCharsets.UTF_8);String type=v==null?"NULL":v.getClass().getName();sha.update((type+":"+b.length+":").getBytes(StandardCharsets.UTF_8));sha.update(b);}
   }}return hex(sha.digest());
  }
@@ -77,8 +77,21 @@ public final class V1LaneMigration {
   if(!target.getName().endsWith(".lane-migration.db")||source.getCanonicalFile().equals(target.getCanonicalFile())||Files.isSymbolicLink(target.toPath()))throw new IOException("dedicated isolated target required");
   try(LegacyWorkerGuard old=LegacyWorkerGuard.acquire(source);LegacyWorkerGuard output=LegacyWorkerGuard.acquire(target)) {
    Report report=inspect(source);
-   if(!target.exists())Files.copy(source.toPath(),target.toPath());
-   closed(target);
+   File owner=new File(target.getPath()+".migration-owner");
+   byte[] ownerBytes=("RMI1\n"+report.sourceSha+"\n").getBytes(StandardCharsets.US_ASCII);
+   if(!target.exists()) {
+    if(owner.exists())throw new IOException("incomplete copy ownership requires manual review");
+    try(java.nio.channels.FileChannel marker=java.nio.channels.FileChannel.open(owner.toPath(),java.nio.file.StandardOpenOption.CREATE_NEW,java.nio.file.StandardOpenOption.WRITE)) {
+     java.nio.ByteBuffer b=java.nio.ByteBuffer.wrap(ownerBytes);while(b.hasRemaining())marker.write(b);marker.force(true);
+    }
+    Files.copy(source.toPath(),target.toPath());
+   }
+   if(Files.isSymbolicLink(owner.toPath())||!Arrays.equals(Files.readAllBytes(owner.toPath()),ownerBytes))throw new IOException("migration copy owner mismatch");
+   for(String suffix:new String[]{"-wal","-shm","-journal"})if(Files.isSymbolicLink(new File(target.getPath()+suffix).toPath()))throw new IOException("unsafe target recovery file");
+   // Only this positively owned copied target may undergo SQLite rollback recovery.
+   byte[] header=new byte[100];try(java.io.RandomAccessFile h=new java.io.RandomAccessFile(target,"r")){h.readFully(header);}
+   if(!Arrays.equals(Arrays.copyOf(header,16),"SQLite format 3\u0000".getBytes(StandardCharsets.US_ASCII)))throw new IOException("foreign target header");
+   int headerApp=java.nio.ByteBuffer.wrap(header).getInt(68);if(headerApp!=0&&headerApp!=APPLICATION_ID)throw new IOException("foreign target application");
    try(Connection db=open(target,false);Statement s=db.createStatement()) {
     s.execute("PRAGMA synchronous=FULL");s.execute("BEGIN IMMEDIATE");
     try {
@@ -91,6 +104,9 @@ public final class V1LaneMigration {
       ddl(s);s.execute("PRAGMA application_id="+APPLICATION_ID);s.execute("PRAGMA user_version=1");
       try(PreparedStatement q=db.prepareStatement("INSERT INTO lane_migration_v1 VALUES(1,?,?)")){q.setString(1,report.sourceSha);q.setString(2,report.dataSha);q.executeUpdate();}
      }
+     String originals="SELECT device_id,vehicle_id,session_id,source_kind,source_key FROM v1_source_claims";
+     String inventory="SELECT device,vehicle,session,source_kind,source_key FROM lane_migration_sources_v1";
+     if(scalar(db,"SELECT count(*) FROM ("+originals+" EXCEPT "+inventory+")")!=0||scalar(db,"SELECT count(*) FROM ("+inventory+" EXCEPT "+originals+")")!=0)throw new IOException("migration inventory changed");
      if(!schema(db).equals(candidateSchema()))throw new IOException("migration schema/guard mismatch");
      if(!data(db).equals(report.dataSha))throw new IOException("preserved record/ACK/cursor data changed");
      hook.beforeCommit();old.verify();output.verify();if(!report.sourceSha.equals(hash(source)))throw new IOException("source changed before commit");s.execute("COMMIT");
