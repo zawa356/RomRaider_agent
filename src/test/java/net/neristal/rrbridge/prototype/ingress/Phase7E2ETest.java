@@ -108,7 +108,7 @@ public final class Phase7E2ETest {
         if(load>0){
             Phase7Fixture big=new Phase7Fixture("synthetic-phase7-load",true,load);Deployment db=new Deployment(big,packaged,true,0);
             long s=System.nanoTime();Result r=Phase7EntryTest.process(db,args(db,"--synthetic-owned"));loadMs=elapsed(s);
-            check(r.exit==0&&count(big.output,"SELECT COUNT(*) FROM preview_records")==load+3,"large session stores "+(load+3)+" records through the entry");
+            check(r.exit==0&&count(big.output,"SELECT COUNT(*) FROM preview_records")==load+3,"large session stores "+(load+3)+" records through the entry [exit="+r.exit+" "+r.json+"]");
             Result rr=Phase7EntryTest.process(db,args(db,"--synthetic-owned"));
             check(rr.exit==0&&rr.json.contains("\"records_added\":0")&&count(big.output,"SELECT COUNT(*) FROM preview_records")==load+3,"large session rerun adds zero duplicates");
         }

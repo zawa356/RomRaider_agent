@@ -13,7 +13,7 @@ import net.neristal.rrbridge.prototype.ingress.WatermarkV2Scenarios.Env;
  */
 final class Phase7Fixture {
     static final String D=DeploymentTransitionTest.D,V=DeploymentTransitionTest.V;
-    final Env env;final Path home,dir;final String payload;final File ledger,legacy,output,root;
+    final Env env;final Path home,dir;final String payload;private int nextSequence;final File ledger,legacy,output,root;
     final DeploymentBinding.Layout layout;final Rlc2IntegrationStore.Admission admission;
     Phase7Fixture(String payload)throws Exception {this(payload,false,0);}
     /**
@@ -31,12 +31,14 @@ final class Phase7Fixture {
             dir=DeploymentBindingTest.privateDir(Files.createDirectory(home.resolve("session")));
             RotationManifestPrototype.begin(dir,env.reader(),env.platform());
             List<String> first=new ArrayList<String>(Arrays.asList("M\t"+payload+"\t1\tTEST_RPM\tSynthetic RPM\trpm","S\t"+payload+"\t1\t0\t1791838800000\tTEST_RPM=700"));
-            for(int i=0;i<load;i++)first.add("S\t"+payload+"\t1\t"+(1000+i)+"\t"+(1791838900000L+i)+"\tTEST_RPM="+(800+i%5000));
+            // Sample sequences must continue across rotation: load rows take 1..load, segment 2 continues after them.
+            for(int i=1;i<=load;i++)first.add("S\t"+payload+"\t1\t"+i+"\t"+(1791838800000L+i)+"\tTEST_RPM="+(700+i%5000));
             DeploymentTransitionTest.append(env,dir,1,first.toArray(new String[0]));
             RotationManifestPrototype.seal(dir,env.reader(),env.platform(),RotationManifestPrototype.NO_FAULT);
             RotationManifestPrototype.startNext(dir,env.reader(),env.platform(),RotationManifestPrototype.NO_FAULT);
-            DeploymentTransitionTest.append(env,dir,2,"S\t"+payload+"\t1\t1\t1791838801000\tTEST_RPM=701","E\t"+payload+"\t1\t1791838801200\tsynthetic rotation");
+            DeploymentTransitionTest.append(env,dir,2,"S\t"+payload+"\t1\t"+(load+1)+"\t"+(1791838801000L+load)+"\tTEST_RPM=701","E\t"+payload+"\t1\t"+(1791838801200L+load)+"\tsynthetic rotation");
         }
+        nextSequence=load+2;
         ledger=home.resolve("ledger.db").toFile();
         RotationManifestPrototype.ingestSession(dir,new WatermarkLedgerPrototype(ledger),env.reader(),null);
         legacy=home.resolve("v1.db").toFile();output=home.resolve("out.rlc2-integration.db").toFile();
@@ -56,7 +58,7 @@ final class Phase7Fixture {
         RotationManifestPrototype.seal(dir,env.reader(),env.platform(),RotationManifestPrototype.NO_FAULT);
         RotationManifestPrototype.startNext(dir,env.reader(),env.platform(),RotationManifestPrototype.NO_FAULT);
         int next=RotationManifestPrototype.read(dir,null).sealed.size()+1;
-        DeploymentTransitionTest.append(env,dir,next,"S\t"+payload+"\t1\t2\t1791838802000\tTEST_RPM=702");
+        DeploymentTransitionTest.append(env,dir,next,"S\t"+payload+"\t1\t"+nextSequence+"\t"+(1791838802000L+nextSequence)+"\tTEST_RPM=702");nextSequence++;
         RotationManifestPrototype.ingestSession(dir,new WatermarkLedgerPrototype(ledger),env.reader(),null);
         DeploymentTransitionTest.privatize(home);
         return RotationManifestPrototype.read(dir,null).active.sourceUuid;
