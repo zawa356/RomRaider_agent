@@ -21,7 +21,9 @@ final class Phase7Fixture {
      *        four receipts, three records; after rotation three sources, five receipts, four records.
      * @param load extra observation rows appended to segment 1 (0 for none)
      */
-    Phase7Fixture(String payload,boolean httpShape,int load)throws Exception {
+    Phase7Fixture(String payload,boolean httpShape,int load)throws Exception {this(payload,httpShape,load,false);}
+    /** @param deleteJournalV1 switch the empty v1 from DurableSpool's WAL to DELETE journal (sidecar-free lock scenarios) */
+    Phase7Fixture(String payload,boolean httpShape,int load,boolean deleteJournalV1)throws Exception {
         env=Rlc2ProductAdapterTest.environment();this.payload=payload;
         home=DeploymentBindingTest.privateDir(Files.createTempDirectory("romlogger-phase7-"));
         if(!httpShape&&load==0)dir=DeploymentTransitionTest.session(env,home,"session",payload,1791838800000L);
@@ -39,6 +41,7 @@ final class Phase7Fixture {
         RotationManifestPrototype.ingestSession(dir,new WatermarkLedgerPrototype(ledger),env.reader(),null);
         legacy=home.resolve("v1.db").toFile();output=home.resolve("out.rlc2-integration.db").toFile();
         new DurableSpool(legacy);new Rlc2IntegrationStore(true,output);
+        if(deleteJournalV1)LegacyProvenanceClassifierTest.sql(legacy,"PRAGMA journal_mode=DELETE");
         root=DeploymentBindingTest.privateDir(Files.createDirectory(home.resolve("root"))).toFile();
         DeploymentTransitionTest.privatize(home);
         layout=DeploymentTransitionTest.layout(root,legacy,output,dir,ledger,payload);

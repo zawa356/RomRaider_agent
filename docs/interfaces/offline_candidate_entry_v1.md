@@ -18,6 +18,8 @@ There is no override flag and no environment-variable bypass. `SOURCES_CSV` is t
 
 A private `key=base64` record (DeploymentBinding record format), CREATE_NEW, never overwritten (`createProfile`). Fields: `version=RLOP1`, `mode=SYNTHETIC_OWNED_ONLY`, `main_class` (must be this class), `reader` (`POSIX` or `WINDOWS_NATIVE_TEST_ONLY`), `user`, canonical `working_directory`, `data_root`, `java_executable`, exact ordered absolute `classpath` string, `artifact.*` (RLAP1 description: per-JAR SHA-256/size/class-set hash, Java specification, data model), `layout.*` (RLDB layout fields), `owner_root` (must equal `layout.root`), `expected_generation`, `profile_uuid`.
 
+The field set is strict: any field outside the list above (except `artifact.*`, which must then match RLAP1 exactly) is refused with `PROFILE_UNKNOWN_FIELD`, so a smuggled flag such as `launch_authorized=true` can never be ignored into a run.
+
 Each run verifies, in this order, before touching deployment data: record format/version/mode/main class/reader; JVM main command equals this class; **no JVM input arguments** (agents/options refused); user; working directory; java executable; data model (x86/x64); Java specification; exact classpath string; RLAP1 JAR order/hash/class-set comparison; owner root; refusal of real-car deployment paths (`OpenPortWork`, `RRBridge\dist`, RomRaider install). Every mismatch is a stable code (`MAIN_COMMAND_MISMATCH`, `JVM_OPTIONS_REFUSED`, `EXECUTION_USER_MISMATCH`, `WORKING_DIRECTORY_MISMATCH`, `JAVA_EXECUTABLE_MISMATCH`, `DATA_MODEL_MISMATCH`, `JAVA_VERSION_MISMATCH`, `CLASSPATH_STRING_MISMATCH`, `CLASSPATH_ORDER_CHANGED`, `CLASSPATH_ENTRY_CHANGED`, `UNKNOWN_OR_LEGACY_ENTRY_MAIN_CLASS`, `OWNER_ROOT_MISMATCH`, `PRODUCTION_PATH_REFUSED`, `PROFILE_MODE_UNSUPPORTED`, …).
 
 These are a pinned *launch description* compared with what the JVM says about itself. They are not process authentication, signature or distribution authenticity.
@@ -35,6 +37,9 @@ The supervisor removes `JAVA_TOOL_OPTIONS`, `_JAVA_OPTIONS`, `JDK_JAVA_OPTIONS` 
 The child consumes a one-shot RLOR1 run record (`<data_root>/owned-runs/<nonce>.rlor1` + CREATE_NEW `.started`), re-verifies profile and ownership, re-runs the preflight (must be matched/WRITER_UNPROVEN), then writes **only** via `Rlc2IntegrationStore.ingestBoundActive`: Worker guard, Lane lock and Publication lock held exclusively; active generation re-checked at every store stage; explicit admission compared to the projection. After return the supervisor re-verifies ownership and generation.
 
 ## Output
+
+An uncoded failure is reported as `REVIEW_REQUIRED` plus `cause_class` (exception simple class name only; never a message, path or payload). Concurrent supervisors on one owned root may both create `owned-runs/`; the loser re-checks the existing directory, and its child then meets the winner's exclusive locks (`BLOCKED_COOPERATIVE_LOCK_HELD`, exit 3) or adds zero rows.
+
 
 Fixed codes, counts and hashes only; no paths, payload or session identifiers. Every result includes `synthetic_only=true`, `launch_authorized=false`, `production_authorized=false`, `ack_eligible=false`, `formal_ack=DISABLED`, `automatic_recovery=false`, `writer_quiescence=WRITER_UNPROVEN`. `STORED_SYNTHETIC_OWNED` means the candidate RLI2 file of this owned deployment was committed; it does not authorize launch, ACK or production use, and does not prove that no old or noncooperative writer exists. `directory_durability=UNKNOWN`.
 

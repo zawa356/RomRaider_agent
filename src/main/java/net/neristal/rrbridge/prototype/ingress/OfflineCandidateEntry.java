@@ -143,6 +143,11 @@ public final class OfflineCandidateEntry {
         require(MAIN.equals(record.get("main_class")),"UNKNOWN_OR_LEGACY_ENTRY_MAIN_CLASS");
         require(READER_POSIX.equals(record.get("reader"))||READER_WINDOWS_TEST.equals(record.get("reader")),"READER_UNSUPPORTED");
         for(String k:LAYOUT_KEYS)require(record.get("layout."+k)!=null,"PROFILE_FORMAT");
+        // Strict field set: an extra field (e.g. a smuggled authorization flag) is refused, never ignored.
+        Set<String> allowed=new HashSet<String>(Arrays.asList("version","mode","main_class","reader","profile_uuid","user","working_directory","data_root",
+            "java_executable","classpath","owner_root","expected_generation"));
+        for(String k:LAYOUT_KEYS)allowed.add("layout."+k);
+        for(String k:record.keySet())require(allowed.contains(k)||k.startsWith("artifact."),"PROFILE_UNKNOWN_FIELD");
         for(String k:new String[]{"user","working_directory","data_root","java_executable","classpath","owner_root","expected_generation","profile_uuid"})require(record.get(k)!=null,"PROFILE_FORMAT");
         Profile p=new Profile(record,DeploymentTransition.fileSha(file));
         require(p.expectedGeneration>=0,"PROFILE_FORMAT");
@@ -186,6 +191,8 @@ public final class OfflineCandidateEntry {
         return e instanceof Refusal||e instanceof DeploymentBinding.Refusal||e instanceof DeploymentTransition.Refusal||e instanceof ArtifactProvenance.Refusal||e instanceof OfflineCandidatePreflight.Refusal?e.getMessage():
             e.getMessage()!=null&&(e.getMessage().startsWith("LEGACY_WORKER_BUSY")||e.getMessage().startsWith("LANE_BUSY"))?"BLOCKED_COOPERATIVE_LOCK_HELD":"REVIEW_REQUIRED";
     }
+    /** Uncoded failures keep their exception class (never a message, path or payload) so evidence is not collapsed (review F2). */
+    static void cause(Map<String,String> f,String reason,Exception e){if("REVIEW_REQUIRED".equals(reason))f.put("cause_class",e.getClass().getSimpleName().replaceAll("[^A-Za-z0-9]",""));}
     static int exit(String reason){
         if(reason.startsWith("BLOCKED_COOPERATIVE")||reason.endsWith("_BUSY")||reason.endsWith("_NOT_OBSERVED_IDLE"))return 3;
         return 5;
@@ -204,7 +211,7 @@ public final class OfflineCandidateEntry {
             OfflineCandidatePreflight.Report report=preflight(p,a[2],admission(p,a[3]),facts,reader(p));
             f.put("preflight",report.json());f.put("prerequisites_matched",String.valueOf(report.prerequisitesMatched));
             return new Outcome(5,json("DIAGNOSE","BLOCKED",report.reason,f));
-        }catch(Exception e){String r=reason(e);return new Outcome(exit(r)==3?3:5,json("DIAGNOSE","BLOCKED",r,f));}
+        }catch(Exception e){String r=reason(e);cause(f,r,e);return new Outcome(exit(r)==3?3:5,json("DIAGNOSE","BLOCKED",r,f));}
     }
     /** Supervisor: owns exactly one child JVM it starts itself, with the profile's exact command line. */
     static Outcome syntheticOwned(String[] a,RuntimeFacts facts){
@@ -241,7 +248,7 @@ public final class OfflineCandidateEntry {
             if(code!=0){String r=field(line,"reason");return new Outcome(code==3?3:5,json("SYNTHETIC_OWNED","REFUSED",r==null?"CHILD_REFUSED":r,f));}
             require(DeploymentTransition.verifyActive(true,true,p.layout)==p.expectedGeneration,"DEPLOYMENT_GENERATION_CHANGED");
             return new Outcome(0,json("SYNTHETIC_OWNED","STORED_SYNTHETIC_OWNED","CHILD_STORED_THROUGH_BOUND_LOCKED_INGEST",f));
-        }catch(Exception e){String r=reason(e);return new Outcome(exit(r),json("SYNTHETIC_OWNED","REFUSED",r,f));}
+        }catch(Exception e){String r=reason(e);cause(f,r,e);return new Outcome(exit(r),json("SYNTHETIC_OWNED","REFUSED",r,f));}
     }
     /** Child: runs only for a supervisor-created one-shot run record; writes only through the bound, lock-holding ingest. */
     static Outcome child(String[] a,RuntimeFacts facts){
@@ -264,14 +271,17 @@ public final class OfflineCandidateEntry {
             requireOwned(p);
             f.put("records_added",String.valueOf(result.recordsAdded));f.put("receipts_added",String.valueOf(result.receiptsAdded));f.put("directory_durability","UNKNOWN");
             return new Outcome(0,json("SYNTHETIC_OWNED_CHILD","STORED_SYNTHETIC_OWNED","BOUND_LOCKED_INGEST_COMMITTED",f));
-        }catch(Exception e){String r=reason(e);return new Outcome(exit(r),json("SYNTHETIC_OWNED_CHILD","REFUSED",r,f));}
+        }catch(Exception e){String r=reason(e);cause(f,r,e);return new Outcome(exit(r),json("SYNTHETIC_OWNED_CHILD","REFUSED",r,f));}
     }
     static Path runs(Profile p)throws Exception {
         Path runs=p.dataRoot.toPath().resolve("owned-runs");
         if(!Files.exists(runs,LinkOption.NOFOLLOW_LINKS)){
-            if(Files.getFileAttributeView(p.dataRoot.toPath(),java.nio.file.attribute.PosixFileAttributeView.class)!=null)
-                Files.createDirectory(runs,java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
-            else Files.createDirectory(runs);
+            // Two supervisors may race here (Phase VII-4); the loser re-checks the winner's directory below instead of failing.
+            try{
+                if(Files.getFileAttributeView(p.dataRoot.toPath(),java.nio.file.attribute.PosixFileAttributeView.class)!=null)
+                    Files.createDirectory(runs,java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
+                else Files.createDirectory(runs);
+            }catch(FileAlreadyExistsException raced){require(Files.isDirectory(runs,LinkOption.NOFOLLOW_LINKS),"OWNED_RUNS_INVALID");}
         }
         DeploymentBinding.safe(runs.toFile());DeploymentBinding.privateAccess(runs);return runs;
     }
