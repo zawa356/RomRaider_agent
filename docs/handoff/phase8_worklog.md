@@ -98,7 +98,7 @@ historical F1 RED. CI at all Phase VIII branches: jobs `steps=0` → CI NOT RUN 
   `global_old_binary_exclusion=NOT_PROVEN`. Legacy-class checks kept. This is an inventory of one directory only:
   not launch, production, ACK or global old-binary exclusion.
 
-## 2026-10-20 21:20 – 2026-10-21 01:25 JST — frozen Phase VIII-1b results at `95a4a3054f6815adcbaca10e3d0c3e87ec5cad23`
+## 2026-10-20 (≈21:30, from summed durations) – 2026-10-21 01:25 JST — frozen Phase VIII-1b results at `95a4a3054f6815adcbaca10e3d0c3e87ec5cad23`
 
 Windows dev VM only (synthetic): detached `C:\Dev\RomLogger\phase8-accept-95a4a30`, `lib/test-dependencies.sha256`
 verified, JNA 5.14.0 SHA256 34ed1e1f…68c6, driver SHA256 b1a40003cf8b978b2fbe98402db01ab1599f2c5049e671a7755200d6e2899205,
