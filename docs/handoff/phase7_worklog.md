@@ -16,3 +16,9 @@ Implementation agent: Claude Code (Opus 5.5), fresh session without prior chat c
 - Read: Phase VI branch bootstrap, AGENTS.md/CLAUDE.md, Phase VI report/evidence/review/worklog. Next: direct code review of the classes listed in VII-0.
 
 Safety baseline carried forward: default-off, synthetic-only, production_authorized=false, ack_eligible=false, launch_authorized=false. WRITER_UNPROVEN, Windows process provenance / directory durability UNKNOWN.
+
+## 2026-10-20 JST — VII-0 reproduced defect F1 (test-only checkpoint)
+
+- Baseline: Phase VI preflight suite rerun unchanged at runtime 297126c (runtime/tests identical to 53f18a2), Windows JDK17.0.20.1 x64: 41 checks exit0 (`build/baseline-preflight-x64.log`). Test dependencies copied from the Codex worktree and verified against `lib/test-dependencies.sha256` and the pinned JNA SHA256 34ed1e1f….
+- F1 (Medium): `OfflineCandidatePreflight.MAIN` approves `Rlc2IntegrationCli`, whose only write path is unbound `Rlc2IntegrationStore.ingest` (Worker guard only; no RLDB/RLDT generation, no Lane/Publication lock, self-asserted `--quiescent`). Test-only `Phase7EntryBypassRedTest` on an invocation-owned fixture: control preflight WRITER_UNPROVEN/matched and CLI stores; with an actual child JVM holding the Lane (PID16828) or Publication (PID11848) lock, preflight refuses (LANE_NOT_OBSERVED_IDLE / PUBLICATION_NOT_OBSERVED_IDLE) but the approved entry exits 0 and changes the candidate output. `scripts/test-phase7-review-red.sh`, Windows17x64, exit1, 4 PASS / 4 RED, log `build/phase7-entry-bypass-red.log` SHA256 cad47faafca458d455cd3f9a971bfad318039c8e3ae962903d54a44cdd28db31.
+- Interpretation: cooperative-lock bypass by the entry the preflight names; not production authorization (launch_authorized stays false, no ACK/Sender). Fix belongs to VII-1: a single bound entry that runs only through lock-holding, generation-checked ingest; preflight must name that entry instead.
