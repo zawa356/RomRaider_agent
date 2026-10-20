@@ -12,7 +12,11 @@ import net.neristal.rrbridge.product.v1.*;
  * shared observations still cannot prove noncooperative writer absence: launch remains BLOCKED.
  */
 public final class OfflineCandidatePreflight {
-    public static final String MAIN=Rlc2IntegrationCli.class.getName();
+    /**
+     * Phase VII: the only approved offline entry. Rlc2IntegrationCli (Phase III/VI) wrote through the unbound ingest without
+     * Lane/Publication locks or generation checks, so a matched preflight did not bind what it then ran (review F1).
+     */
+    public static final String MAIN=OfflineCandidateEntry.MAIN;
     public static final class Refusal extends IOException {public Refusal(String code){super(code);}}
     public static final class Report {
         public final String reason;public final boolean prerequisitesMatched;
