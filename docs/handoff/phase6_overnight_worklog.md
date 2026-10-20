@@ -49,3 +49,9 @@ Safety remains default-off / synthetic-only / production_authorized=false / ack_
 - d394103 full Windows x64 section completed, x86 is in final Phase VI transition/halt checks; whole batch and explicit x86 staging10k still pending. Do not mark complete before driver exit0.
 - d394103 Linux multi-session load confirms11sessions (1large+10small),10100records/10111receipts/11bindings/22admissions,59 checks. Source archive and all dependency/log hashes retained. Timings are observational only.
 - Final fetch: Agent main4f80c5e, PR80head7da3837 and Server maind8c7a2f, PR62head056958d unchanged, both original main checkouts clean, both PRs OPEN. No merges or history rewrites.
+## 2026-10-20T09:13+09:00 — full Windows and actual x86 load complete
+
+- d394103 Windows full driver exit0;3181 PASS lines,196297bytes,60.371minutes, SHA256a52a1a9aa70be4b78d16e8ea0052d4a891bce05d9374d014ce69fdc92f16aa43. Actual x64/x86 new writer/drive/preflight/transition/parent suites and existing regressions completed. x86 staging10000records/10001receipts also exit0 (log5735df59f793962a2eb771bcbda63faffdfa39970022d928d8ff8583d23caaf9).
+- Windows25-generation publish progress remains BLOCKED (replacement refused; exact old/staged/original bytes preserved). True symlinks lacked privilege; POSIX-on-Windows/direct optional PG preview NOT RUN. These are retained limitations, not hidden successes. Owned junctions actually passed on both Windows architectures.
+- CI full Windows ceiling60→90 after the observed60.371minute baseline; single-OS ceiling60. YAML parsed. This changes only allowance, never billing or CI execution. Final runtime/tests remain53f18a2, with focused x64/actualx86/Linux checks complete and sources clean.
+- All owned HTTP/PG resources stopped normally; shared55432 ready on final check. No production/original/real Worker/ECU/container/service operation. Final Server docs PR63 synchronizes the same completed/Partial gates; runtime unchanged.

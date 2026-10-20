@@ -110,3 +110,21 @@ All names above are relative to `../phase6-entry-acceptance/build/`. Linux final
 Large d394103 Linux workload details confirmed from actual metrics: observations10000, sessions11 (one large+10small),59 checks. Tests assert10100records/10111receipts/11bindings/22explicit admissions, exact replay and ACK-ineligible rows. Snapshot/project/commit1812ms was one observation only, not a throughput or durability guarantee.
 
 Final Bash Phase VI, PowerShell wrapper and YAML parser log `build/phase6-final-syntax.log` SHA256fd2ed2b3c3cf2e8a1ac41084e50ec3ce396c2aa38c79511031f315cba80ed242. No runtime/test difference from53f18a2; later changes are handoff/CI maximum duration only.
+## Broad d394103 Windows full x64 / actual x86 + staging10k — complete
+
+Frozen detached `../phase6-final-acceptance` atd3941031af4d22c7317055c6d9439cf10e75e364. `pwsh -NoProfile -File scripts/run-acceleration-tests.ps1` completed **exit0**, both real architectures,3181 `PASS ` lines. Canonical log `build/acceleration-20261020-081038.log`,196297bytes,60.371minutes wall time (concurrent focused verification also ran on this VM), SHA256a52a1a9aa70be4b78d16e8ea0052d4a891bce05d9374d014ce69fdc92f16aa43. Driver log `build/final-windows-driver.log` SHA256c62076fd225422e724d11f4c9aff2d92ecad1b44cd58a6851f1cfdccf98e02ae. Every x64/x86 suite returned0 before the wrapper completed; no runtime/test sources changed during execution.
+
+Phase VI included writer154+late-journal7, drive36+binding1, preflight41, transition59 plus child-lock helpers, staging-parent10 on each architecture. Actual Windows junction fixtures succeeded on both; new sources were not substituted with synthetic reparse replies. Final early-drive6 is separately proven at53f18a2, not retroactively part of this d394103 batch.
+
+After the full batch, actual Zulu8x86 `java -cp build/phase5-classes;lib/sqlite-jdbc.jar;lib/slf4j-api.jar;lib/slf4j-nop.jar;build/identity-deps/jna-5.14.0.jar net.neristal.rrbridge.prototype.ingress.Phase5ProvenanceTest --load10000` returned0: v1 historical subset2, original/RLI2 10000records/10001receipts, independent verification/reverification, actual JVM32. Log `build/load10000-x86.log`, SHA2565735df59f793962a2eb771bcbda63faffdfa39970022d928d8ff8583d23caaf9.
+
+**Conditional/unexecuted cases remain explicit despite batch exit0:**
+
+- Full25-generation concurrent publish progress was BLOCKED because Windows refused replacement; exact old/staged/original bytes were preserved and no repair was attempted. This is not a successful progress/availability guarantee.
+- Old Windows RLC1 live read / default-provider fileKey watermark integration remains BLOCKED/unsupported. Expected fail-closed behavior is exercised; product live ingestion stays disabled.
+- True symbolic-link fixtures were SKIPPED/NOT RUN for missing OS privilege/provider support. Owned junctions are a distinct executed case, not proof of true-symlink coverage.
+- POSIX dev/ino suites are NOT RUN on Windows. Separate Linux native-fixture coverage is recorded above.
+- Optional direct PostgreSQL preview was NOT RUN (`-Postgres` not enabled). Actual owned HTTP/PostgreSQL35 and isolated Server57 ran separately and must not be conflated with that optional mirror check.
+- Root test.sh, physical power loss, real ENOSPC, ECU/X270/OpenPort, real SMB, production migration and new-path formal ACK remain NOT RUN/disabled. Windows directory durability/process provenance UNKNOWN.
+
+The observed full Windows workload exceeded the previous60minute job ceiling even before the final drive-entry delta. Final CI maxima are **single-OS60minutes / full Windows90minutes**, YAML syntax PASS. This supersedes the earlier interim note that full Windows remained60; no extra workload or runner dispatch was added and no CI PASS is claimed.
