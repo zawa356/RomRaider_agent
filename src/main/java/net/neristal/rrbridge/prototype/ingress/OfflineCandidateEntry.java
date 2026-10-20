@@ -305,12 +305,19 @@ public final class OfflineCandidateEntry {
     }
 
     /** Exit 0 stored (synthetic-owned only), 2 no explicit mode/usage, 3 cooperative lock held, 5 blocked/review, 6 production live refused. */
+    /** Phase VIII-1: read-only RLDI1 inventory of an install directory. 0 MATCHED (still BLOCKED, never authorization), 5 otherwise. */
+    static Outcome inventory(String[] a){
+        DistributionInventory.Report r=DistributionInventory.inspect(true,new File(a[1]),new File(a[2]));
+        Map<String,String> f=new LinkedHashMap<String,String>();f.put("inventory",r.json());
+        return new Outcome(r.matched()?0:5,json("INVENTORY","BLOCKED",r.reason,f));
+    }
     public static int run(String[] a,RuntimeFacts facts,PrintStream out){
         Outcome o;
         if(a.length==1&&"--production-live".equals(a[0]))o=new Outcome(6,json("PRODUCTION_LIVE","REFUSED","PRODUCTION_LIVE_NOT_IMPLEMENTED",null));
         else if(a.length==4&&"--diagnose".equals(a[0]))o=diagnose(a,facts);
         else if(a.length==4&&"--synthetic-owned".equals(a[0]))o=syntheticOwned(a,facts);
         else if(a.length==5&&"--synthetic-owned-child".equals(a[0]))o=child(a,facts);
+        else if(a.length==3&&"--inventory".equals(a[0]))o=inventory(a);
         else o=new Outcome(2,json("NONE","REFUSED","EXPLICIT_MODE_REQUIRED",null));
         out.println(o.json);out.flush();return o.exit;
     }
