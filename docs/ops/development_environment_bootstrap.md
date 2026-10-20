@@ -1,6 +1,16 @@
 # Development environment bootstrap — start here
 
-## Phase VI current entry — 2026-10-20 (not merged)
+## Phase VII current entry — 2026-10-20 (not merged)
+
+Use [this bootstrap on the Phase VII top branch](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/ops/development_environment_bootstrap.md) → [Phase VII report](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_report.md) → [exact-head evidence](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_validation_evidence.md) → [independent review](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_independent_review.md) / [append-only worklog](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_worklog.md). main contains neither Phase V/VI nor VII.
+
+Stack: PR86 → [#87](https://github.com/zawa356/RomRaider_agent/pull/87) `phase7/independent-review` → [#88](https://github.com/zawa356/RomRaider_agent/pull/88) `phase7/offline-entry` → [#89](https://github.com/zawa356/RomRaider_agent/pull/89) `phase7/integrated-readiness` → [#90](https://github.com/zawa356/RomRaider_agent/pull/90) `phase7/synthetic-e2e` → [#91](https://github.com/zawa356/RomRaider_agent/pull/91) `phase7/adversarial` (top). All draft/unmerged. Final runtime/tests `67657d98985dbe66f881fc4d683b0bce1a5a75b1`. Implementation worktree `C:\Dev\RomLogger\phase7-claude` (Claude Code); frozen acceptance checkouts `C:\Dev\RomLogger\phase7-accept-<sha7>`; detached Server test checkout `C:\Dev\RomLogger\phase7-server-d8c7a2f`. Codex Phase VI worktrees are reference only.
+
+New tests: `bash scripts/test-phase7.sh` (entry, readiness, E2E, adversarial; `--run-only` under actual Zulu8 x86 after a JDK17 compile). `scripts/test-phase7-review-red.sh` is the historical F1 reproduction (expected exit1). Owned HTTP step: see [runbook](phase7_synthetic_owned_runbook.md). Test JARs: copy `lib/*.jar` and `build/identity-deps/jna-5.14.0.jar` from an existing checkout and verify `lib/test-dependencies.sha256` and the pinned JNA hash before use.
+
+Single entry: `OfflineCandidateEntry` (`--diagnose`, `--synthetic-owned`, `--production-live` always refused). Diagnose/readiness always BLOCKED; synthetic STORED is never launch/production/ACK authorization. WRITER_UNPROVEN, Windows process provenance/directory durability UNKNOWN. Do not merge while CI has not executed.
+
+## Phase VI entry — 2026-10-20 (history)
 
 Use [this bootstrap on the Phase VI branch](https://github.com/zawa356/RomRaider_agent/blob/phase6/transition-drive-preflight/docs/ops/development_environment_bootstrap.md) → [Phase VI report](https://github.com/zawa356/RomRaider_agent/blob/phase6/transition-drive-preflight/docs/handoff/phase6_overnight_report.md) → [exact-head evidence](https://github.com/zawa356/RomRaider_agent/blob/phase6/transition-drive-preflight/docs/handoff/phase6_overnight_evidence.md) / [append-only worklog](https://github.com/zawa356/RomRaider_agent/blob/phase6/transition-drive-preflight/docs/handoff/phase6_overnight_worklog.md). These are explicit branch URLs because main does not contain Phase V/VI. Older Phase IV/Phase V entries below are history.
 
