@@ -34,3 +34,9 @@ Each axis is `{status, code, next}`; `status` ∈ `PASS`, `MISMATCH`, `UNKNOWN`,
 - JSON contains codes, statuses and counts only — no paths, IDs or payload.
 
 `LegacyProvenanceClassifier.expectedStagedRows(report)` is an additive package-private helper returning the same eight-table expectation `verifyStaged` uses. No storage, wire, ACK or Worker change.
+
+## Phase VIII-3: published contract and entry
+
+- Machine-readable shape: [integrated_readiness_v1.schema.json](integrated_readiness_v1.schema.json) (JSON Schema 2020-12). It fixes `state=BLOCKED`, the four authorization flags `false`, all 15 axes with status enum, `writer_quiescence`/`process_provenance`/`directory_durability` never `PASS`, `formal_ack`/`production_send` always `DISABLED`. `content_axes_complete` must equal "all ten content axes PASS"; the schema cannot express that, so consumers (and `Phase8ReadinessCliTest`) check it separately.
+- Entry: `OfflineCandidateEntry --readiness PROFILE MANIFEST_SHA256 SOURCES_CSV VAULT|- STAGED_RLI2|-` runs exactly this call read-only after the RLOP1 profile/runtime check, embeds the report as `readiness`, and exits 5 (3 when the cooperative-lock axis is BLOCKED). It never stages, repairs, converts ACKs or starts a Sender: Vault/ACK/RLI2 inconsistencies are **reported as refusals**, not fixed.
+- Review VII-C2 (Phase VII closure): a v1 with claims/cursors but zero records now reports `cursor_provenance` `UNKNOWN LEGACY_CLAIMS_WITHOUT_RECORDS` (or the cursor/orphan `MISMATCH`), never `PASS NO_LEGACY_V1_RECORDS`; that code is reserved for a v1 with no records, claims or cursors.

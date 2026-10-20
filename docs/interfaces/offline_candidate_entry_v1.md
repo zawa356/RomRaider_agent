@@ -12,6 +12,7 @@
 | `--synthetic-owned PROFILE MANIFEST_SHA256 SOURCES_CSV` | explicit synthetic run: supervisor checks profile, ownership, matched preflight, then starts **one** child JVM itself | 0 stored, 3 lock held, 5 refused |
 | `--synthetic-owned-child PROFILE MANIFEST_SHA256 SOURCES_CSV NONCE` | internal: only valid for a supervisor-created one-shot RLOR1 run record | 0/3/5 |
 | `--inventory INSTALL_DIR RLDI1_RECORD` (Phase VIII-1) | read-only [RLDI1 distribution inventory](distribution_inventory_v1.md) of one install directory; `state=BLOCKED` always, `inventory` object embedded | 0 MATCHED (not authorization), 5 otherwise |
+| `--readiness PROFILE MANIFEST_SHA256 SOURCES_CSV VAULT\|- STAGED_RLI2\|-` (Phase VIII-3) | read-only [RLIR1](integrated_readiness_v1.md) for the pinned profile (profile/runtime verified first; originals = the profile layout session); `readiness` object embedded, schema [integrated_readiness_v1.schema.json](integrated_readiness_v1.schema.json); `-` = not supplied → `STAGED_EVIDENCE_MISSING` | 5 always (3 when a cooperative lock is busy) |
 
 There is no override flag and no environment-variable bypass. `SOURCES_CSV` is the explicit physical Source admission (exact set).
 

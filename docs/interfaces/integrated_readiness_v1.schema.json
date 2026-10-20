@@ -1,0 +1,457 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/zawa356/RomRaider_agent/blob/phase8/readiness-cli/docs/interfaces/integrated_readiness_v1.schema.json",
+ "title": "RLIR1 integrated readiness report (read-only, never an authorization)",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "contract_version",
+  "readiness",
+  "state",
+  "reason",
+  "content_axes_complete",
+  "axes",
+  "counts",
+  "synthetic_only",
+  "launch_authorized",
+  "production_authorized",
+  "ack_eligible",
+  "automatic_recovery"
+ ],
+ "properties": {
+  "contract_version": {
+   "const": 1
+  },
+  "readiness": {
+   "const": "RLIR1"
+  },
+  "state": {
+   "const": "BLOCKED"
+  },
+  "reason": {
+   "type": "string",
+   "pattern": "^[A-Z0-9_]{2,80}$"
+  },
+  "content_axes_complete": {
+   "type": "boolean",
+   "description": "true only if the ten content axes are PASS in this call; consistency with axes is checked by the validator, not expressible here"
+  },
+  "axes": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "deployment_manifest",
+    "identity_admission",
+    "cooperative_locks",
+    "artifact_provenance",
+    "cursor_provenance",
+    "legacy_ack_set",
+    "vault_integrity",
+    "staged_rli2_integrity",
+    "record_receipt_admission",
+    "staging_generation",
+    "writer_quiescence",
+    "process_provenance",
+    "directory_durability",
+    "formal_ack",
+    "production_send"
+   ],
+   "properties": {
+    "deployment_manifest": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "identity_admission": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "cooperative_locks": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "artifact_provenance": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "cursor_provenance": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "legacy_ack_set": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "vault_integrity": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "staged_rli2_integrity": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "record_receipt_admission": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "staging_generation": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "$ref": "#/$defs/status"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "writer_quiescence": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "allOf": [
+        {
+         "$ref": "#/$defs/status"
+        },
+        {
+         "not": {
+          "const": "PASS"
+         }
+        }
+       ]
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "process_provenance": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "allOf": [
+        {
+         "$ref": "#/$defs/status"
+        },
+        {
+         "not": {
+          "const": "PASS"
+         }
+        }
+       ]
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "directory_durability": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "allOf": [
+        {
+         "$ref": "#/$defs/status"
+        },
+        {
+         "not": {
+          "const": "PASS"
+         }
+        }
+       ]
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "formal_ack": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "const": "DISABLED"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    },
+    "production_send": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "code",
+      "next"
+     ],
+     "properties": {
+      "status": {
+       "const": "DISABLED"
+      },
+      "code": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      },
+      "next": {
+       "type": "string",
+       "pattern": "^[A-Z0-9_]{2,80}$"
+      }
+     }
+    }
+   }
+  },
+  "counts": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "integer",
+    "minimum": 0
+   },
+   "propertyNames": {
+    "pattern": "^[a-z0-9_]{1,64}$"
+   }
+  },
+  "synthetic_only": {
+   "const": true
+  },
+  "launch_authorized": {
+   "const": false
+  },
+  "production_authorized": {
+   "const": false
+  },
+  "ack_eligible": {
+   "const": false
+  },
+  "automatic_recovery": {
+   "const": false
+  }
+ },
+ "$defs": {
+  "status": {
+   "enum": [
+    "PASS",
+    "MISMATCH",
+    "UNKNOWN",
+    "BLOCKED",
+    "NOT_RUN",
+    "DISABLED"
+   ]
+  }
+ }
+}

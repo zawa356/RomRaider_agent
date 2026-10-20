@@ -305,6 +305,21 @@ public final class OfflineCandidateEntry {
     }
 
     /** Exit 0 stored (synthetic-owned only), 2 no explicit mode/usage, 3 cooperative lock held, 5 blocked/review, 6 production live refused. */
+    /**
+     * Phase VIII-3: read-only RLIR1 integrated readiness for the pinned profile. VAULT / STAGED_RLI2 may be "-" (not supplied:
+     * the staged axes report STAGED_EVIDENCE_MISSING). Always state=BLOCKED and exit 5 (3 when a cooperative lock is busy).
+     */
+    static Outcome readiness(String[] a,RuntimeFacts facts){
+        Map<String,String> f=new TreeMap<String,String>();f.put("profile","UNKNOWN");
+        try{
+            Profile p=verifyProfile(new File(a[1]),facts);f.put("profile","MATCHED_PINNED_LAUNCH");
+            List<LegacyProvenanceClassifier.Original> originals=Collections.singletonList(new LegacyProvenanceClassifier.Original(p.layout.session.toPath(),p.layout.ledger,p.layout.device,p.layout.vehicle));
+            File vault="-".equals(a[4])?null:new File(a[4]),staged="-".equals(a[5])?null:new File(a[5]);
+            IntegratedReadiness.Report r=IntegratedReadiness.inspect(true,p.layout,p.expectedGeneration,a[2],admission(p,a[3]),ArtifactProvenance.parse(facts.classpath),p.artifacts,originals,vault,staged,reader(p),IntegratedReadiness.NO_HOOK);
+            f.put("readiness",r.json());
+            return new Outcome("BLOCKED".equals(r.axis("cooperative_locks").status.name())?3:5,json("READINESS","BLOCKED",r.reason,f));
+        }catch(Exception e){String r=reason(e);cause(f,r,e);return new Outcome(exit(r)==3?3:5,json("READINESS","BLOCKED",r,f));}
+    }
     /** Phase VIII-1: read-only RLDI1 inventory of an install directory. 0 MATCHED (still BLOCKED, never authorization), 5 otherwise. */
     static Outcome inventory(String[] a){
         DistributionInventory.Report r=DistributionInventory.inspect(true,new File(a[1]),new File(a[2]));
@@ -318,6 +333,7 @@ public final class OfflineCandidateEntry {
         else if(a.length==4&&"--synthetic-owned".equals(a[0]))o=syntheticOwned(a,facts);
         else if(a.length==5&&"--synthetic-owned-child".equals(a[0]))o=child(a,facts);
         else if(a.length==3&&"--inventory".equals(a[0]))o=inventory(a);
+        else if(a.length==6&&"--readiness".equals(a[0]))o=readiness(a,facts);
         else o=new Outcome(2,json("NONE","REFUSED","EXPLICIT_MODE_REQUIRED",null));
         out.println(o.json);out.flush();return o.exit;
     }
