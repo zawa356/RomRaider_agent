@@ -67,7 +67,11 @@ Detached `../phase7-accept-67657d9`, clean after execution. Server test checkout
 | x64 `test-phase4.sh` | 0 | focused regression | 7342589586a1a3fb552b89b7d1994a9e7644c1c7e850d73b19a71f19dceee4e3 |
 | actual Zulu 1.8.0_504 x86 `test-phase7.sh --run-only` (model 32) | 0 | entry/readiness/E2E/adversarial | 31b5e8a0a639c58aaff720e7ecb6299e7bc5554316b14603b08dd99f53468691 |
 
-Actual x86 Phase VI/V/IV rows at 67657d9 are appended below when that driver finishes.
+| actual x86 `test-phase6.sh --run-only` | 0 | same Phase VI suites incl. native drive and actual junction | 4df4cfa201168d0e65c2a6184e389b1323bd02e1362ff3e1c97d1416852c01da |
+| actual x86 `test-phase5.sh --run-only` | 0 | 62 | ad068d909379f50e2647b6af310c34688cfe8292cf92e7003eae83e2aa81a7e1 |
+| actual x86 `test-phase4.sh --run-only` | 0 | focused regression | 61bb95f948405acf25c31ab4ecc5c2b9ae3c9993e3439899045d95bf79200d2f |
+
+Driver 14:50–16:26 JST, clean after execution (concurrent with the d93a975 driver on the same VM, so durations are not performance data).
 
 ## Final test head d93a975 — Windows JDK17 x64 and actual Zulu8 x86 (complete)
 
@@ -96,7 +100,7 @@ Phase VI/V/IV Linux regression is the 67657d9 row set above (product code identi
 
 ## CI
 
-Latest runs at PR86 297126c (39347006053, 39347006139, 39347006154): every job `steps=0`. CI NOT RUN (runner not started). Phase VII branch runs are checked again at publication. No dispatch, billing change or merge.
+Latest runs at PR86 297126c (39347006053, 39347006139, 39347006154): every job `steps=0`. CI NOT RUN (runner not started). At publication, Phase VII heads d93a975 (39380478331/39380478411/39380478393) and e4dc146 (39384938945/39384939091/39384939225) also failed with jobs steps=0: CI NOT RUN. No dispatch, billing change or merge.
 
 ## Open finding after the final head
 
