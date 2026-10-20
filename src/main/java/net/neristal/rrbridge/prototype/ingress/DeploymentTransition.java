@@ -513,9 +513,16 @@ public final class DeploymentTransition {
 
     // ------------------------------------------------------------------ helpers
     static String sha(byte[] b)throws Exception {return hex(MessageDigest.getInstance("SHA-256").digest(b));}
+    static final long FILE_BOUND=128L*1024*1024;
     static String fileSha(File f)throws Exception {
-        require(f.length()<=128L*1024*1024,"FILE_BOUND");MessageDigest d=MessageDigest.getInstance("SHA-256");
-        try(java.io.InputStream in=Files.newInputStream(f.toPath())){byte[] b=new byte[32768];int n;while((n=in.read(b))!=-1)d.update(b,0,n);}return hex(d.digest());
+        require(f.length()<=FILE_BOUND,"FILE_BOUND");
+        try(java.io.InputStream in=Files.newInputStream(f.toPath())){return boundedSha(in,FILE_BOUND);}
+    }
+    /** The pre-read length check alone does not bound a file that grows while it is hashed: count what is actually read. */
+    static String boundedSha(java.io.InputStream in,long bound)throws Exception {
+        MessageDigest d=MessageDigest.getInstance("SHA-256");byte[] b=new byte[32768];int n;long total=0;
+        while((n=in.read(b))!=-1){total+=n;require(total<=bound,"FILE_BOUND");d.update(b,0,n);}
+        return hex(d.digest());
     }
     static String hex(byte[] b){StringBuilder s=new StringBuilder();for(byte x:b)s.append(String.format("%02x",x&255));return s.toString();}
     static byte[] hexBytes(String s)throws Refusal {

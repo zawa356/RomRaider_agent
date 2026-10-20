@@ -127,12 +127,12 @@ public final class LegacyProvenanceClassifier {
                     if(sessionOfRun.containsKey(run)&&!sessionOfRun.get(run).equals(r.getString(1)+"|"+r.getString(2)+"|"+r.getString(3)))brokenRun.put(run,"CLAIM_OWNER_MISMATCH");
                 }
             }
-            Map<String,List<Cursor>> cursors=new HashMap<String,List<Cursor>>();
+            Map<String,List<Cursor>> cursors=new HashMap<String,List<Cursor>>();Set<String> cursorRuns=new TreeSet<String>();
             try(Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT source_uuid,source_path,device_id,vehicle_id,session_id,sequence,first_sha256,chain_sha256,segment_snapshot,typeof(sequence) FROM v1_journal_import_cursors")){
                 while(r.next()){
                     Cursor cursor=new Cursor(r);List<Cursor> list=cursors.get(cursor.uuid);
                     if(list==null){list=new ArrayList<Cursor>();cursors.put(cursor.uuid,list);}list.add(cursor);
-                    String run=IncrementalTsvBridge.runId(cursor.device,cursor.session);
+                    String run=IncrementalTsvBridge.runId(cursor.device,cursor.session);cursorRuns.add(run);
                     if(claimKey.containsKey(run)&&sourcesByRun.containsKey(run)&&sourcesByRun.get(run).contains(claimKey.get(run))&&!Objects.equals(claimKey.get(run),cursor.uuid))brokenRun.put(run,"ORPHAN_CURSOR");
                 }
             }
@@ -174,6 +174,10 @@ public final class LegacyProvenanceClassifier {
                 if(cat==Category.CONFLICT)conflicts.add(reason);
                 rows.add(new Row(id,rid,run,hash,acked,batch,at,json,cat,reason));
             }
+            // VII-C2: the schema does not tie claims/cursors to records, so a run-level fault of a run with no v1 rows
+            // must be reported directly instead of vanishing with the (absent) rows. A cursor without any claim is orphaned.
+            for(Map.Entry<String,String> e:new TreeMap<String,String>(brokenRun).entrySet())if(!v1IdsByRun.containsKey(e.getKey()))conflicts.add(e.getValue());
+            for(String run:cursorRuns)if(!claimKind.containsKey(run))conflicts.add("ORPHAN_CURSOR");
             // Session verdict: every v1 record of the run verified AND the original has no record the v1 lane lacks is not required
             // (an original may have grown); but a run with any non-verified record is not migratable as a whole.
             for(String run:claimKind.keySet()) {

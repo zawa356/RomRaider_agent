@@ -29,6 +29,14 @@ public final class OfflineCandidatePreflight {
         }
     }
     private static void require(boolean ok,String code)throws Refusal {if(!ok)throw new Refusal(code);}
+    static String cause(Throwable failure){
+        // Wrappers rarely carry the code: take the first stable code along the cause chain, else the innermost class.
+        Throwable innermost=failure;
+        for(Throwable t=failure;t!=null;t=t.getCause()==t?null:t.getCause()){
+            String m=t.getMessage();if(m!=null&&m.matches("[A-Z][A-Z0-9_]{2,79}"))return m;innermost=t;
+        }
+        return innermost.getClass().getSimpleName();
+    }
     /** Shared read-only observation of an existing exact lock, retained through the whole preflight. */
     private static final class Observation implements AutoCloseable {
         final Path path;final FileChannel channel;final FileLock lock;final byte[] bytes;
@@ -88,6 +96,8 @@ public final class OfflineCandidatePreflight {
             }
         }catch(Exception failure){
             String reason=failure instanceof Refusal||failure instanceof DeploymentBinding.Refusal||failure instanceof DeploymentTransition.Refusal||failure instanceof ArtifactProvenance.Refusal?failure.getMessage():"INSPECTION_UNAVAILABLE";
+            // Review F2: keep the uncoded cause visible without exposing free text (paths, payload): a stable code or the class name.
+            if("INSPECTION_UNAVAILABLE".equals(reason))axes.put("inspection_cause",cause(failure));
             return new Report(reason,false,axes);
         }
     }

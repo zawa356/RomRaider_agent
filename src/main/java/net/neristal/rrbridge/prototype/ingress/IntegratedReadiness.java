@@ -122,8 +122,10 @@ public final class IntegratedReadiness {
             if(sourceReuse!=null)axes.put("identity_admission",new Axis(Status.MISMATCH,sourceReuse,"REVIEW_SESSION_AND_SOURCE_IDENTITY"));
             if(cursor!=null)axes.put("cursor_provenance",new Axis(Status.MISMATCH,cursor,"REVIEW_LEGACY_CURSOR_EVIDENCE"));
             else if(report.conflicts.contains("ORIGINAL_UNVERIFIABLE"))axes.put("cursor_provenance",new Axis(Status.UNKNOWN,"ORIGINAL_UNVERIFIABLE","SUPPLY_VERIFIABLE_ORIGINAL"));
-            else if(report.count(LegacyProvenanceClassifier.Category.CONFLICT)>0)axes.put("cursor_provenance",new Axis(Status.MISMATCH,report.conflicts.get(0),"REVIEW_CONFLICTING_RECORDS"));
+            else if(report.count(LegacyProvenanceClassifier.Category.CONFLICT)>0||!report.conflicts.isEmpty())axes.put("cursor_provenance",new Axis(Status.MISMATCH,report.conflicts.get(0),"REVIEW_CONFLICTING_RECORDS"));
             else if(report.count(LegacyProvenanceClassifier.Category.UNKNOWN_OR_INCOMPLETE)>0)axes.put("cursor_provenance",new Axis(Status.UNKNOWN,"LEGACY_RECORDS_INCOMPLETE","SUPPLY_MISSING_ORIGINALS_OR_BODIES"));
+            // VII-C2: claimed runs without any v1 record are not proof that nothing was imported.
+            else if(report.rows.isEmpty()&&!report.sessions.isEmpty())axes.put("cursor_provenance",new Axis(Status.UNKNOWN,"LEGACY_CLAIMS_WITHOUT_RECORDS","REVIEW_LEGACY_CLAIMS_AND_CURSORS"));
             else if(report.rows.isEmpty())axes.put("cursor_provenance",new Axis(Status.PASS,"NO_LEGACY_V1_RECORDS","NONE"));
             else axes.put("cursor_provenance",new Axis(Status.PASS,"CLAIMS_AND_CURSORS_MATCH_ORIGINALS","NONE"));
             inputs.verify();hook.at("CLASSIFIED");inputs.verify();
