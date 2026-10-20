@@ -304,6 +304,14 @@ public final class LegacyProvenanceClassifier {
         });
     }
 
+    /** Phase VII read-only readiness: the exact eight-table RLI2 row sets staging must have produced (VERIFIED runs only). */
+    static Map<String,List<Object[]>> expectedStagedRows(Report report){
+        Map<String,List<Object[]>> expected=LegacyStagedEvidence.expected();
+        for(Map.Entry<String,Rlc2ProductAdapter.Projection> e:report.projections.entrySet())
+            if(Category.VERIFIED_ORIGINAL.name().equals(report.sessions.get(e.getKey())))
+                LegacyStagedEvidence.add(expected,e.getValue(),report.directories.get(e.getKey()));
+        return expected;
+    }
     /** Read-only verification of staged outputs against the v1 source; v1 bytes must be unchanged. */
     public static void verifyStaged(File v1,Report report,File vault,File rli2)throws Exception {
         if(!report.v1Sha256.equals(DeploymentTransition.fileSha(v1)))throw new IOException("V1_CHANGED");
