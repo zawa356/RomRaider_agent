@@ -43,3 +43,9 @@ Safety remains default-off / synthetic-only / production_authorized=false / ack_
 - Final runtime/tests53f18a2: fresh Linux private invocation passed Phase VI/IV/III/V, model64 asserted, archive/dependency hashes verified. Exact hashes in evidence. The Windows native early-drive test is NOT RUN on Linux, while normal transition behavior is fully regressed there.
 - Broad d394103 actual Uvicorn/FastAPI plus invocation-owned PostgreSQL passed35 checks, own stop503/noACK/restart/final stop, unchanged Agent bytes/ACK. Existing55432 was never stopped. Windows full x64 section completed and entered actual Zulu8x86; final53f18a2 focused x64 transition59 passed and Phase IV is running. Do not mark whole Windows PASS until both jobs exit0.
 - Supplementary single-OS CI ceiling30→60 follows the observed approximately28minute x64 half before the final extra guards; full Windows ceiling remains60. Syntax parsed; CI NOT RUN. No runtime/test changes after53f18a2.
+## 2026-10-20T09:03+09:00 — final-head focused matrix complete
+
+- 53f18a2 Windows17x64 and actual Zulu8x86 drive37 / early entry6 / preflight41 / transition59+child helpers / Phase IV all exit0. Exact hashes recorded. Final Linux Phase VI/IV/III/V is also complete. No source changes after this runtime/test head.
+- d394103 full Windows x64 section completed, x86 is in final Phase VI transition/halt checks; whole batch and explicit x86 staging10k still pending. Do not mark complete before driver exit0.
+- d394103 Linux multi-session load confirms11sessions (1large+10small),10100records/10111receipts/11bindings/22admissions,59 checks. Source archive and all dependency/log hashes retained. Timings are observational only.
+- Final fetch: Agent main4f80c5e, PR80head7da3837 and Server maind8c7a2f, PR62head056958d unchanged, both original main checkouts clean, both PRs OPEN. No merges or history rewrites.

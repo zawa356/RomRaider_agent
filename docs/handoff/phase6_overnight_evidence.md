@@ -93,3 +93,20 @@ No runtime/test sources changed after53f18a2. Final Windows focused tests use th
 Latest inspected runs: Agent80=39238610241,81=39337678090,82=39338106529,83=39338630078,84=39339586070,85=39340656457; Server62=39238624521,63=39340974721. Every observed job has steps0. CI NOT RUN (runner not started), not a code-test failure or PASS. Final PR86/doc heads are checked again at publication; no billing changes, dispatches or merges.
 
 The d394103 Windows batch's x64 section alone reached approximately28minutes before starting actual x86. With the added Phase VI suites and final drive-entry guards, raise the supplementary single-OS matrix ceiling30→60minutes (full Windows x64/x86 ceiling stays60). This is a maximum allowance only; YAML safe_load PASS using existing Server venv. Runtime/test head stays53f18a2; CI has not executed.
+## Final53f18a2 Windows17x64 / actual Zulu8x86 focused acceptance — complete
+
+Detached `../phase6-entry-acceptance`, exact head53f18a27663c0f7f9c8f2398fd3390190f5f5749, clean after execution. Each x64 script compiled Java8 bytecode under JDK17; the x86 scripts used `--run-only` under actual Zulu1.8.0_504 with ROMLOGGER_EXPECT_DATA_MODEL=32 asserted. Driver completed exit0 after every command below returned0. Native Windows Fixed drive controls actually executed; no SMB mapping/access.
+
+| Script / cases | x64 log SHA256 | actual x86 log SHA256 |
+|---|---|---|
+| `test-phase6-drive.sh`,36+1 | drive-x64.log62d941c77dca2f1256844a22e1a153667ec73a21ceaaf09f233464cedfaa1e78 | drive-x86.logb78f56069e1861d99964fe63de6716cb1fbfe3cc47730d67c375f2333ee20729 |
+| `test-phase6-drive-entry.sh`,6/0 | drive-entry-x64.log81c1d0655f1a2184abb8e302ef08b45ebee4c589326b639d6a05971d8f66544c | drive-entry-x86.log2810d66fdd340bd8c20706a15dee98431abda8197689c789be773dba31c54c99 |
+| `test-phase6-preflight.sh`,41 | preflight-x64.log0fbfce6e70ce27d99cfb467ff739014cf8a89defe690a03fcb5f4b46446c4763 | preflight-x86.loga10541d57166e2c89eb32812ad0505cf14e4cb37daf9c68203ab6a35cd5440e9 |
+| `test-phase6-transition.sh`,59 + child-lock helpers | transition-x64.logaf49108c419280462626422fefda191606c98bdc93e9f73caaaf870c2da9924e | transition-x86.log28b79ee841897ec27473f5f7d4e5d7b6331df47ca9f3eb0893d4d62d5bb754fc |
+| `test-phase4.sh`, complete focused regression | phase4-x64.log6dafc3efcccd9cda585a8fcbbea60441dc8b7ff55e8933d766a8b8046862e64a | phase4-x86.log779e253fc58585b7d51b1d90a80964a539552e40d4fba7ce6197c788a55b2ad2 |
+
+All names above are relative to `../phase6-entry-acceptance/build/`. Linux final53f18a2 Phase VI/IV/III/V also completed as above. The d394103 full Windows batch is still separately awaited, never substituted with this final-head focused result.
+
+Large d394103 Linux workload details confirmed from actual metrics: observations10000, sessions11 (one large+10small),59 checks. Tests assert10100records/10111receipts/11bindings/22explicit admissions, exact replay and ACK-ineligible rows. Snapshot/project/commit1812ms was one observation only, not a throughput or durability guarantee.
+
+Final Bash Phase VI, PowerShell wrapper and YAML parser log `build/phase6-final-syntax.log` SHA256fd2ed2b3c3cf2e8a1ac41084e50ec3ce396c2aa38c79511031f315cba80ed242. No runtime/test difference from53f18a2; later changes are handoff/CI maximum duration only.
