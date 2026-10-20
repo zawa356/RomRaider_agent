@@ -124,6 +124,7 @@ public final class IntegratedReadiness {
             else if(report.conflicts.contains("ORIGINAL_UNVERIFIABLE"))axes.put("cursor_provenance",new Axis(Status.UNKNOWN,"ORIGINAL_UNVERIFIABLE","SUPPLY_VERIFIABLE_ORIGINAL"));
             else if(report.count(LegacyProvenanceClassifier.Category.CONFLICT)>0)axes.put("cursor_provenance",new Axis(Status.MISMATCH,report.conflicts.get(0),"REVIEW_CONFLICTING_RECORDS"));
             else if(report.count(LegacyProvenanceClassifier.Category.UNKNOWN_OR_INCOMPLETE)>0)axes.put("cursor_provenance",new Axis(Status.UNKNOWN,"LEGACY_RECORDS_INCOMPLETE","SUPPLY_MISSING_ORIGINALS_OR_BODIES"));
+            else if(report.rows.isEmpty())axes.put("cursor_provenance",new Axis(Status.PASS,"NO_LEGACY_V1_RECORDS","NONE"));
             else axes.put("cursor_provenance",new Axis(Status.PASS,"CLAIMS_AND_CURSORS_MATCH_ORIGINALS","NONE"));
             inputs.verify();hook.at("CLASSIFIED");inputs.verify();
 

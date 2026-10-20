@@ -21,8 +21,9 @@ public final class Phase7EntryTest {
 
     static final class Deployment {
         final Phase7Fixture f;final File profile,dist,work;final List<File> jars=new ArrayList<File>();
-        Deployment(String payload,List<File> packaged,boolean marker,int generation)throws Exception {
-            f=new Phase7Fixture(payload);
+        Deployment(String payload,List<File> packaged,boolean marker,int generation)throws Exception {this(new Phase7Fixture(payload),packaged,marker,generation);}
+        Deployment(Phase7Fixture fixture,List<File> packaged,boolean marker,int generation)throws Exception {
+            f=fixture;
             dist=DeploymentBindingTest.privateDir(Files.createDirectory(f.home.resolve("dist"))).toFile();
             work=DeploymentBindingTest.privateDir(Files.createDirectory(f.home.resolve("work"))).toFile();
             for(File jar:packaged){Path copy=dist.toPath().resolve(jar.getName());Files.copy(jar.toPath(),copy);DeploymentBindingTest.privateFile(copy);jars.add(copy.toFile().getCanonicalFile());}
@@ -30,6 +31,12 @@ public final class Phase7EntryTest {
             profile=f.home.resolve("offline-candidate.rlop1").toFile();
             OfflineCandidateEntry.createProfile(profile,f.layout,f.home.toFile(),work,jars,READER,generation);
             DeploymentTransitionTest.privatize(f.home);
+        }
+        /** Same deployment and JARs, newly pinned for another expected generation (operator re-pins after a transition). */
+        Deployment repin(int generation)throws Exception {
+            File p=f.home.resolve("offline-candidate-g"+generation+"-"+UUID.randomUUID()+".rlop1").toFile();
+            OfflineCandidateEntry.createProfile(p,f.layout,f.home.toFile(),work,jars,READER,generation);DeploymentBindingTest.privateFile(p.toPath());
+            return new Deployment(this,p);
         }
         Deployment(Deployment base,File profile){f=base.f;dist=base.dist;work=base.work;jars.addAll(base.jars);this.profile=profile;}
         Map<String,String> record()throws Exception {return DeploymentBinding.readRecord(profile.toPath());}

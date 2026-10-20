@@ -107,7 +107,9 @@ public final class OfflineCandidateEntry {
         for(int i=0;i<files.length;i++){
             Path p=files[i].toPath();require(p.isAbsolute()&&p.equals(p.normalize()),"PATH_NOT_ABSOLUTE_NORMAL");
             require(p.startsWith(root)&&!p.equals(root),"DATA_OUTSIDE_OWNED_ROOT");
-            m.put(OWNED_FILES[i],p.toString());m.put(OWNED_FILES[i]+"_identity",DeploymentBinding.fileIdentity(files[i]));
+            m.put(OWNED_FILES[i],p.toString());
+            // A legitimate rotation atomically replaces the manifest file; its content is bound by RLDB/RLDT instead.
+            if(!"manifest".equals(OWNED_FILES[i]))m.put(OWNED_FILES[i]+"_identity",DeploymentBinding.fileIdentity(files[i]));
         }
         return m;
     }
