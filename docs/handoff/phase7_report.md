@@ -15,7 +15,7 @@ Agent main `4f80c5e`, PR80 `7da3837`, PR86 `297126c` (runtime/tests = Phase VI f
 | VII-4..6 | [#91](https://github.com/zawa356/RomRaider_agent/pull/91) `phase7/adversarial` | #90 | adversarial suite + race fix, aggregate script, evidence/report/bootstrap/progress |
 | Server | Server PR (docs only) `phase7/agent-entry-progress` | #63 | implementation_progress.md only; Server runtime unchanged |
 
-**Final runtime/tests head: `67657d98985dbe66f881fc4d683b0bce1a5a75b1`.** Later commits are documentation only.
+**Final product runtime `67657d98985dbe66f881fc4d683b0bce1a5a75b1`; final tests `d93a97546aaf774bd821e3e44cf9c46c1e101cc7`** (test-only fixture fix after a recorded FAIL). Later commits are documentation only.
 
 ## What changed for the product
 
@@ -30,16 +30,16 @@ Agent main `4f80c5e`, PR80 `7da3837`, PR86 `297126c` (runtime/tests = Phase VI f
 | Item | Classification | Basis (exact head) |
 |---|---|---|
 | VII-0 independent review, F1 RED | IMPLEMENTED_AND_TESTED | RED exit1 at 297126c; persists against old CLI at 2be491d/67657d9 (Windows, Linux) |
-| VII-1 single entry, profile/ownership/supervisor | IMPLEMENTED_AND_TESTED | 67657d9: Windows x64, actual Zulu8 x86, Linux (see evidence) |
+| VII-1 single entry, profile/ownership/supervisor | IMPLEMENTED_AND_TESTED | d93a975 (and 67657d9): Windows x64, actual Zulu8 x86, Linux |
 | VII-1 "old Worker cannot be mis-started" | PARTIAL | entry refuses legacy main classes/JARs and waits on the Worker lock; ProductBridgeWorker/Once and other old binaries are not fenced and remain callable |
-| VII-2 integrated readiness | IMPLEMENTED_AND_TESTED | 67657d9 Windows x64/x86, Linux |
-| VII-3 synthetic-owned E2E incl. rotation/transition/kill/retry | IMPLEMENTED_AND_TESTED | 67657d9 Windows x64/x86, Linux |
-| VII-3 actual HTTP + owned PG16 on the E2E candidate | IMPLEMENTED_AND_TESTED (Windows x64 only) | 67657d9 x64 driver; Linux: NOT_RUN by design (no PG binaries step) |
-| VII-3 10,000-observation session through the entry | see evidence (Windows x64 only) | 67657d9 x64 driver |
+| VII-2 integrated readiness | IMPLEMENTED_NOT_FULLY_TESTED | suites pass at d93a975 on all platforms, but open defect **VII-C2** (claims/cursors with zero v1 records read as cursor PASS) was reproduced afterwards by a separate review session; fix pending on `phase7/review-closure` |
+| VII-3 synthetic-owned E2E incl. rotation/transition/kill/retry | IMPLEMENTED_AND_TESTED | d93a975 Windows x64/x86, Linux; the kill always landed pre-commit (post-commit window not claimed) |
+| VII-3 actual HTTP + owned PG16 on the E2E candidate | IMPLEMENTED_AND_TESTED (Windows x64) | d93a975: 35 checks, candidate bytes unchanged; the 67657d9 attempt was skipped after the load FAIL (recorded); Linux/x86 NOT_RUN by design |
+| VII-3 10,000-observation session through the entry | IMPLEMENTED_AND_TESTED (Windows x64) | d93a975: 10003 records, rerun 0; 67657d9 attempt FAIL (test fixture sequence bug), recorded |
 | VII-3 ten small sessions through the entry | NOT_RUN | one layout = one session; multi-session load stays the Phase VI store-level result (d394103), not an entry result |
 | VII-3 HTTP 409/422/503, lost response, retry | IMPLEMENTED_AND_TESTED (reused harness) | inside the 35-check HTTP run |
 | VII-4 sidecar-free noncooperative writer | BLOCKED | reproduced: entry cannot see IMMEDIATE/EXCLUSIVE without sidecars; result keeps WRITER_UNPROVEN |
-| VII-4 WAL sidecar / hot journal / race / junction-symlink / hardlink / directory swap / forged fields | IMPLEMENTED_AND_TESTED | 67657d9 |
+| VII-4 WAL sidecar / hot journal / race / junction-symlink / hardlink / directory swap / forged fields | IMPLEMENTED_AND_TESTED | d93a975 Windows x64/x86 (actual junction), Linux (symlink) |
 | subst/drive alias creation, real SMB, true symlinks | NOT_RUN | no system mapping changes; Phase VI injected probe only |
 | Windows process provenance, directory durability, physical power loss, real ENOSPC, global fencing | BLOCKED / NOT_RUN | UNKNOWN by design |
 | Product live, Sender, formal ACK, production migration, ECU/X270 | NOT_RUN (disabled) | out of scope and refused |
@@ -47,6 +47,8 @@ Agent main `4f80c5e`, PR80 `7da3837`, PR86 `297126c` (runtime/tests = Phase VI f
 | GitHub Actions | NOT_RUN | steps=0 at all inspected heads |
 
 ## Next work for D2 product acceptance
+
+0. Close **VII-C2** (the readiness cursor axis must examine claims/cursors even when v1 has zero records) — in progress on `phase7/review-closure` by a separate session; rerun readiness/E2E on its head.
 
 1. A contract for **operational exclusion of old binaries** (e.g. deployment layout where only the pinned entry has the data root; an installer-side removal/rename record), since cooperative locks cannot stop a noncooperative writer.
 2. A **production Windows RLC2 reader** (today the Windows reader is test-only JNA, loaded only from the pinned test JAR); without it the entry cannot run outside synthetic mode on Windows.
