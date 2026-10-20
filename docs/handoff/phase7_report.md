@@ -32,7 +32,7 @@ Agent main `4f80c5e`, PR80 `7da3837`, PR86 `297126c` (runtime/tests = Phase VI f
 | VII-0 independent review, F1 RED | IMPLEMENTED_AND_TESTED | RED exit1 at 297126c; persists against old CLI at 2be491d/67657d9 (Windows, Linux) |
 | VII-1 single entry, profile/ownership/supervisor | IMPLEMENTED_AND_TESTED | d93a975 (and 67657d9): Windows x64, actual Zulu8 x86, Linux |
 | VII-1 "old Worker cannot be mis-started" | PARTIAL | entry refuses legacy main classes/JARs and waits on the Worker lock; ProductBridgeWorker/Once and other old binaries are not fenced and remain callable |
-| VII-2 integrated readiness | IMPLEMENTED_NOT_FULLY_TESTED | suites pass at d93a975 on all platforms, but open defect **VII-C2** (claims/cursors with zero v1 records read as cursor PASS) was reproduced afterwards by a separate review session; fix pending on `phase7/review-closure` |
+| VII-2 integrated readiness | IMPLEMENTED_NOT_FULLY_TESTED | suites pass at d93a975 on all platforms, but open defect **VII-C2** (claims/cursors with zero v1 records read as cursor PASS) was reproduced afterwards by a separate review session; fix in draft [#92](https://github.com/zawa356/RomRaider_agent/pull/92) (`phase7/review-closure` head 2ccae84, separate session; results reported there, not verified here) |
 | VII-3 synthetic-owned E2E incl. rotation/transition/kill/retry | IMPLEMENTED_AND_TESTED | d93a975 Windows x64/x86, Linux; the kill always landed pre-commit (post-commit window not claimed) |
 | VII-3 actual HTTP + owned PG16 on the E2E candidate | IMPLEMENTED_AND_TESTED (Windows x64) | d93a975: 35 checks, candidate bytes unchanged; the 67657d9 attempt was skipped after the load FAIL (recorded); Linux/x86 NOT_RUN by design |
 | VII-3 10,000-observation session through the entry | IMPLEMENTED_AND_TESTED (Windows x64) | d93a975: 10003 records, rerun 0; 67657d9 attempt FAIL (test fixture sequence bug), recorded |
@@ -48,7 +48,7 @@ Agent main `4f80c5e`, PR80 `7da3837`, PR86 `297126c` (runtime/tests = Phase VI f
 
 ## Next work for D2 product acceptance
 
-0. Close **VII-C2** (the readiness cursor axis must examine claims/cursors even when v1 has zero records) — in progress on `phase7/review-closure` by a separate session; rerun readiness/E2E on its head.
+0. Close **VII-C2** (the readiness cursor axis must examine claims/cursors even when v1 has zero records) — fix proposed in draft [#92](https://github.com/zawa356/RomRaider_agent/pull/92) by a separate session (Phase VIII #93–#95 stack on it); rerun readiness/E2E on its head.
 
 1. A contract for **operational exclusion of old binaries** (e.g. deployment layout where only the pinned entry has the data root; an installer-side removal/rename record), since cooperative locks cannot stop a noncooperative writer.
 2. A **production Windows RLC2 reader** (today the Windows reader is test-only JNA, loaded only from the pinned test JAR); without it the entry cannot run outside synthetic mode on Windows.

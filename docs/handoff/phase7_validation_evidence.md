@@ -104,7 +104,7 @@ Latest runs at PR86 297126c (39347006053, 39347006139, 39347006154): every job `
 
 ## Open finding after the final head
 
-A separate Claude session ("review closure", branch `phase7/review-closure`, commit 36bb721 on this machine) reproduced **VII-C2** at d93a975: when the legacy v1 has claims/cursors but zero `v1_records`, RLIR1 reports `cursor_provenance PASS NO_LEGACY_V1_RECORDS`, and for tampered/orphan cursors even `content_axes_complete=true` (overall state stays BLOCKED; no launch/production/ACK). This is a real defect in the Phase VII readiness code. Its RED, fix and evidence belong to that branch and are not part of the results above.
+A separate Claude session ("review closure", branch `phase7/review-closure`, commit 36bb721 on this machine) reproduced **VII-C2** at d93a975: when the legacy v1 has claims/cursors but zero `v1_records`, RLIR1 reports `cursor_provenance PASS NO_LEGACY_V1_RECORDS`, and for tampered/orphan cursors even `content_axes_complete=true` (overall state stays BLOCKED; no launch/production/ACK). This is a real defect in the Phase VII readiness code. Its RED, fix and evidence belong to draft [#92](https://github.com/zawa356/RomRaider_agent/pull/92) (head 2ccae84) and are not part of the results above; this session has not re-verified them.
 
 ## Not run / blocked (explicit)
 
