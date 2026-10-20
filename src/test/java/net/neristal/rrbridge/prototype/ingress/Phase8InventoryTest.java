@@ -100,10 +100,10 @@ public final class Phase8InventoryTest {
         {Install t=new Install();jar(t.root.resolve("lib/rrbridge-legacy.jar"),null,classes(ProductBridgeWorker.class));t.roles.put("lib/rrbridge-legacy.jar","dependency_jar");t.pin();
          DistributionInventory.Report r=t.inspect();mismatch(r,"LEGACY_ENTRY_CLASS_PRESENT","pinned legacy Worker JAR");
          check(!r.findings.containsKey("UNLISTED_EXECUTABLE_OR_ARCHIVE")&&r.unapprovedMains.contains(ProductBridgeWorker.class.getName()),"pinning a legacy JAR still refuses it");}
-        // ---- secondary main inside the approved JAR (the shape of today's packaged closure).
-        {Install t=new Install(classes(OfflineCandidateEntry.class,DeploymentTransition.class));
+        // ---- secondary main inside the approved JAR (the shape of the packaged closure before the *Cli split).
+        {Install t=new Install(classes(OfflineCandidateEntry.class,DeploymentTransition.class,DeploymentTransitionCli.class));
          DistributionInventory.Report r=t.inspect();mismatch(r,"UNAPPROVED_MAIN_METHOD","secondary main in approved JAR");
-         check(r.unapprovedMains.equals(Collections.singletonList(DeploymentTransition.class.getName())),"secondary main named "+r.unapprovedMains);}
+         check(r.unapprovedMains.equals(Collections.singletonList(DeploymentTransitionCli.class.getName())),"secondary main named "+r.unapprovedMains);}
         // ---- approved main missing / two approved JARs.
         {Install t=new Install(classes(DistributionInventory.class));mismatch(t.inspect(),"APPROVED_MAIN_MISSING","approved JAR without the entry");}
         {Install t=new Install();jar(t.root.resolve("lib/second.jar"),null,classes(OfflineCandidateEntry.class));t.roles.put("lib/second.jar","approved_jar");t.pin();
@@ -159,7 +159,9 @@ public final class Phase8InventoryTest {
             DistributionInventory.Report r=t.inspect();
             System.out.println("PACKAGED_CLOSURE "+r.json());
             check(!r.findings.containsKey("LEGACY_ENTRY_CLASS_PRESENT")&&!r.unapprovedMains.contains(Rlc2IntegrationCli.class.getName())&&!r.unapprovedMains.contains(ProductBridgeWorker.class.getName()),"packaged closure carries no known legacy entry class");
-            check("MISMATCH".equals(r.inventory)&&r.findings.containsKey("UNAPPROVED_MAIN_METHOD")&&!r.unapprovedMains.isEmpty(),"packaged closure still carries secondary mains (D2 blocker, reported not hidden) "+r.unapprovedMains);
+            // Phase VIII-1b: the four secondary CLIs moved to *Cli classes outside the entry closure.
+            check(r.matched()&&!r.findings.containsKey("UNAPPROVED_MAIN_METHOD")&&r.unapprovedMains.isEmpty(),"packaged closure MATCHED with no unapproved mains "+r.unapprovedMains+" "+r.json());
+            safe(r);
         }else System.out.println("NOT_RUN packaged closure inspection (no JAR argument)");
         System.out.println("Phase VIII inventory checks="+checks);
     }

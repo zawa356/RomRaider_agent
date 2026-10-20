@@ -74,8 +74,8 @@ The plan record contains the old and new generation, kind, manifest session UUID
 ## Read-only CLI
 
 ```
-java -cp <classes>:lib/* net.neristal.rrbridge.prototype.ingress.DeploymentTransition --inspect-active-synthetic --external-single-active ROOT LEGACY OUTPUT SESSION MANIFEST LEDGER DEVICE VEHICLE PAYLOAD MANIFEST_SESSION
-java -cp <classes>:lib/* net.neristal.rrbridge.prototype.ingress.DeploymentTransition --plan-synthetic --external-single-active <old 10 fields> NEW_SESSION NEW_MANIFEST NEW_PAYLOAD NEW_MANIFEST_SESSION ADMITTED_CSV|- PURPOSE
+java -cp <classes>:lib/* net.neristal.rrbridge.prototype.ingress.DeploymentTransitionCli --inspect-active-synthetic --external-single-active ROOT LEGACY OUTPUT SESSION MANIFEST LEDGER DEVICE VEHICLE PAYLOAD MANIFEST_SESSION
+java -cp <classes>:lib/* net.neristal.rrbridge.prototype.ingress.DeploymentTransitionCli --plan-synthetic --external-single-active <old 10 fields> NEW_SESSION NEW_MANIFEST NEW_PAYLOAD NEW_MANIFEST_SESSION ADMITTED_CSV|- PURPOSE
 ```
 
 Exit codes: 0 verified/planned, 2 usage, 3 `BLOCKED_UNCOOPERATIVE_PROCESS`, 5 review required. The JSON contains no paths, purpose text or bodies, and always reports `production_authorized=false`, `ack_eligible=false`, `automatic_activation=false` and `global_fencing=false`. The plan CLI uses the POSIX reader; on Windows the physical identity reader stays test-only (the same as `Rlc2IntegrationCli`). The inspect CLI needs no reader.

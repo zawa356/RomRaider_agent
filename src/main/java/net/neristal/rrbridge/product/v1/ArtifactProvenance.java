@@ -176,21 +176,6 @@ public final class ArtifactProvenance {
  /** Record format shared with RLDB1 (key=base64). */
  public static byte[] encode(Map<String,String> m){return DeploymentBinding.encodeRecord(m);}
 
- /**
-  * Read-only CLI. {@code --describe MAIN_CLASS JAR...} prints the RLAP1 record (base64 lines; names, not paths).
-  * {@code --inspect-process PID RLAP1_FILE} prints inspection JSON. Exit 0 = inspected (see process_provenance), 2 usage, 5 refused.
-  */
- public static void main(String[] a) {
-  try {
-   if(a.length>=3&&"--describe".equals(a[0])) {
-    List<File> jars=new ArrayList<File>();for(int i=2;i<a.length;i++)jars.add(new File(a[i]));
-    System.out.write(encode(describe(jars,a[1])));System.out.flush();System.exit(0);return;
-   }
-   if(a.length==3&&"--inspect-process".equals(a[0])) {
-    Inspection r=inspectProcess(Long.parseLong(a[1]),DeploymentBinding.readRecord(Paths.get(a[2])));System.out.println(r.json());System.exit(r.inspectionSuccess?0:5);return;
-   }
-   System.out.println(unknown("USAGE").json());System.exit(2);
-  }catch(Exception e){System.out.println(new Inspection(false,"UNKNOWN_PROCESS_PROVENANCE",e instanceof Refusal||e instanceof DeploymentBinding.Refusal?e.getMessage():"INSPECTION_UNAVAILABLE").json());System.exit(5);}
- }
+ // Read-only CLI: ArtifactProvenanceCli (kept out of this class so the entry closure carries no secondary main).
  private ArtifactProvenance(){}
 }

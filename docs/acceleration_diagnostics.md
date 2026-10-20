@@ -39,7 +39,7 @@ Linux (after existing dependency setup):
 ```bash
 bash scripts/test-ingress-diagnostics.sh
 java -cp 'build/ingress-diagnostics:lib/*' \
-  net.neristal.rrbridge.prototype.ingress.IngressDiagnostics SESSION LEDGER --json
+  net.neristal.rrbridge.prototype.ingress.IngressDiagnosticsCli SESSION LEDGER --json
 ```
 
 Windows uses the isolated native reader already used by RLC2 tests (JNA remains test-only):

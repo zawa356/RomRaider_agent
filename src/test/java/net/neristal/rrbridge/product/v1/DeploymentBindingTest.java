@@ -66,7 +66,7 @@ public final class DeploymentBindingTest {
   check(DeploymentBinding.json("REVIEW_REQUIRED","EXTERNAL_GATE_REQUIRED").contains("\"global_fencing\":false"),"no clone/global fencing claim");
   String exe=new File(new File(System.getProperty("java.home"),"bin"),System.getProperty("os.name").startsWith("Windows")?"java.exe":"java").toString();
   Path cli=l.root.toPath().getParent().resolve("cli.json");
-  Process child=new ProcessBuilder(exe,"-cp",System.getProperty("java.class.path"),DeploymentBinding.class.getName(),"--inspect-synthetic","--external-single-active",l.root.toString(),l.legacy.toString(),l.output.toString(),l.session.toString(),l.manifest.toString(),l.ledger.toString(),l.device,l.vehicle,l.payloadSession,l.manifestSession).redirectErrorStream(true).redirectOutput(cli.toFile()).start();
+  Process child=new ProcessBuilder(exe,"-cp",System.getProperty("java.class.path"),DeploymentBindingCli.class.getName(),"--inspect-synthetic","--external-single-active",l.root.toString(),l.legacy.toString(),l.output.toString(),l.session.toString(),l.manifest.toString(),l.ledger.toString(),l.device,l.vehicle,l.payloadSession,l.manifestSession).redirectErrorStream(true).redirectOutput(cli.toFile()).start();
   check(child.waitFor()==0,"real read-only CLI exit0 for bound synthetic fixture");String json=new String(Files.readAllBytes(cli),java.nio.charset.StandardCharsets.UTF_8);
   check(json.contains("READY_FOR_SYNTHETIC_TEST")&&!json.contains(l.root.toString())&&json.contains("\"production_authorized\":false"),"machine JSON omits paths and production permission");
   if(Files.getFileAttributeView(l.root.toPath(),PosixFileAttributeView.class)!=null)Files.setPosixFilePermissions(l.root.toPath(),PosixFilePermissions.fromString("rwxrwxrwx"));

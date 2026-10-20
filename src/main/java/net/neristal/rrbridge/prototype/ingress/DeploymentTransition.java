@@ -508,8 +508,7 @@ public final class DeploymentTransition {
             System.out.println(json(blocked?"BLOCKED_UNCOOPERATIVE_PROCESS":"REVIEW_REQUIRED",reason,-1));return blocked?3:5;
         }
     }
-    /** POSIX reader only; Windows physical-identity reading stays in the test-only native wrapper (as for Rlc2IntegrationCli). */
-    public static void main(String[] a) {System.exit(run(a,WatermarkV2Prototype.POSIX_READER));}
+    // Process entry: DeploymentTransitionCli (kept out of this class so the entry closure carries no secondary main).
 
     // ------------------------------------------------------------------ helpers
     static String sha(byte[] b)throws Exception {return hex(MessageDigest.getInstance("SHA-256").digest(b));}

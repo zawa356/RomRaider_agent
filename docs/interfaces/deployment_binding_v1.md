@@ -15,7 +15,7 @@ The legacy-side anchor prevents a second enrollment for the same exact DB with a
 Read-only CLI (no file creation, lock deletion, generation advance or repair):
 
 ```
-java -cp 'build/phase3:lib/*' net.neristal.rrbridge.product.v1.DeploymentBinding --inspect-synthetic --external-single-active ROOT LEGACY_DB OUTPUT_DB SESSION_DIR MANIFEST LEDGER DEVICE_UUID VEHICLE_UUID PAYLOAD_SESSION MANIFEST_SESSION_UUID
+java -cp 'build/phase3:lib/*' net.neristal.rrbridge.product.v1.DeploymentBindingCli --inspect-synthetic --external-single-active ROOT LEGACY_DB OUTPUT_DB SESSION_DIR MANIFEST LEDGER DEVICE_UUID VEHICLE_UUID PAYLOAD_SESSION MANIFEST_SESSION_UUID
 ```
 
 Windows classpath separator is `;`. Exit0 READY_FOR_SYNTHETIC_TEST; exit2 usage; exit5 REVIEW_REQUIRED. Fixed JSON contract_version/state/reason/synthetic_only/production_authorized=false/ack_eligible=false/global_fencing=false. Reasons include EXTERNAL_GATE_REQUIRED, PATH_NOT_ABSOLUTE_NORMAL, PATH_LINK_OR_REPARSE, PATH_ALIAS, NETWORK_PATH_UNSUPPORTED, FILESYSTEM_UNSUPPORTED, UNSAFE_ACCESS, UNKNOWN_OWNER, ACCESS_UNKNOWN, IDENTITY_INVALID, PATH_TYPE, MANIFEST_LOCATION, INPUT_OUTPUT_OVERLAP, ROOT_DATA_OVERLAP, DATABASE_ALIAS, DATABASE_NOT_CLOSED, BINDING_EXISTS, BINDING_FORMAT, BINDING_DUPLICATE, BINDING_VERSION, BINDING_MODE, BINDING_OWNER, ROOT_DB_BINDING_MISMATCH, BINDING_LAYOUT_CHANGED, IDENTITY_UNAVAILABLE, BINDING_IDENTITY_REENROLL_REQUIRED; unexpected I/O reports INSPECTION_UNAVAILABLE without paths/details. CLI success never grants production cutover.

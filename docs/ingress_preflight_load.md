@@ -27,7 +27,7 @@ RLC2/ledger routes remain unchanged; unpublished active tails are still withheld
 
 ```bash
 java -cp 'build/ingress-diagnostics:lib/*' \
- net.neristal.rrbridge.prototype.ingress.IngressDiagnostics \
+ net.neristal.rrbridge.prototype.ingress.IngressDiagnosticsCli \
  --migration-preflight SOURCE.rlj --json
 ```
 

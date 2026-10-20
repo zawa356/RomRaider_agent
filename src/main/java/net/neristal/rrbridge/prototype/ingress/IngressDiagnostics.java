@@ -314,5 +314,5 @@ public final class IngressDiagnostics {
         Report report=inspect(new File(args[0]).toPath(),new File(args[1]),opener,null);
         stdout.println(args.length==3?report.json():report.human());return report.exitCode();
     }
-    public static void main(String[] args) { System.exit(run(args,System.out,System.err)); }
+    // Process entry: IngressDiagnosticsCli (kept out of this class so the entry closure carries no secondary main).
 }

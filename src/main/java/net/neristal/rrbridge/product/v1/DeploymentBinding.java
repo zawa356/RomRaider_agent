@@ -193,9 +193,5 @@ public final class DeploymentBinding {
   require(actual.equals(expected),"BINDING_LAYOUT_CHANGED");
  }
  public static String json(String state,String reason) {return "{\"contract_version\":1,\"state\":\""+state+"\",\"reason\":\""+reason+"\",\"synthetic_only\":true,\"production_authorized\":false,\"ack_eligible\":false,\"global_fencing\":false}";}
- public static void main(String[] args) {
-  if(args.length!=12||!"--inspect-synthetic".equals(args[0])||!"--external-single-active".equals(args[1])){System.out.println(json("REVIEW_REQUIRED","USAGE"));System.exit(2);return;}
-  try {verify(true,true,new Layout(new File(args[2]),new File(args[3]),new File(args[4]),new File(args[5]),new File(args[6]),new File(args[7]),args[8],args[9],args[10],args[11]));System.out.println(json("READY_FOR_SYNTHETIC_TEST","BOUND_LOCAL_DEPLOYMENT"));}
-  catch(Exception e){String reason=e instanceof Refusal?e.getMessage():"INSPECTION_UNAVAILABLE";System.out.println(json("REVIEW_REQUIRED",reason));System.exit(5);}
- }
+ // Read-only CLI: DeploymentBindingCli (kept out of this class so the entry closure carries no secondary main).
 }

@@ -78,3 +78,11 @@ The current `OfflineCandidateEntry` dependency closure contains **no known legac
 declare `main`: `ArtifactProvenance`, `DeploymentBinding`, `DeploymentTransition`, `IngressDiagnostics`. RLDI1 therefore
 reports `MISMATCH UNAPPROVED_MAIN_METHOD` for the real package. Removing those mains (moving their CLIs to separate
 tool JARs) is required before an install candidate can be `MATCHED`; until then this remains BLOCKED.
+
+## Update: secondary mains moved out (Phase VIII-1b, 2026-10-20)
+
+The four CLIs above moved to `ArtifactProvenanceCli`, `DeploymentBindingCli`, `DeploymentTransitionCli` and
+`IngressDiagnosticsCli`, which the entry does not reference. The real closure built by
+`javac -sourcepath src/main/java OfflineCandidateEntry.java` now has no unapproved main and RLDI1 reports it `MATCHED`
+(`scripts/test-phase8-inventory.sh` now requires this). `MATCHED` is still only an inventory of this directory: it is not
+launch permission, not production authorization and not proof that old binaries elsewhere are excluded.
