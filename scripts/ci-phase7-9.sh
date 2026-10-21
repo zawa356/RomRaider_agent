@@ -13,7 +13,8 @@ case "$group" in
  phase7) suites=("test-phase7.sh" "test-phase7-review-closure.sh");;
  phase8) suites=("test-phase8-inventory.sh" "test-phase8-readiness.sh" "test-phase8-multisession.sh");;
  phase9) suites=("test-phase9-cli.sh" "test-phase9-reader.sh" "test-phase9-inventory-race.sh"
-                 "phase7-packaged.sh Phase9WorkdirTest" "phase7-packaged.sh Phase9LauncherEnvTest" "phase7-packaged.sh Phase9ReaderEntryTest");;
+                 "phase7-packaged.sh Phase9WorkdirTest" "phase7-packaged.sh Phase9LauncherEnvTest" "phase7-packaged.sh Phase9ReaderEntryTest"
+                 "x64only:test-build-offline-tools-guard.sh");;
  *) echo "unknown group $group"; exit 2;;
 esac
 summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
@@ -25,13 +26,14 @@ echo "### $group on $(uname -s) (x86 rerun: $([[ -n $x86 ]] && echo yes || echo 
 echo "| suite | runtime | exit | PASS lines |" >> "$summary"; echo "|---|---|---|---|" >> "$summary"
 failed=0;mkdir -p build/ci-logs
 for s in "${suites[@]}"; do
+  x64only=0; if [[ $s == x64only:* ]]; then x64only=1; s=${s#x64only:}; fi  # build-only checks: no Java 8 rerun (javac 8 has no --release)
   name=$(echo "$s" | tr ' /' '__')
   echo "::group::$s (JDK17 x64, model $(model))"
   bash scripts/$s 2>&1 | tee "build/ci-logs/x64-$name.log"; rc=${PIPESTATUS[0]}
   echo "::endgroup::"
   echo "| \`$s\` | JDK17 model $(model) | $rc | $(grep -c '^PASS' "build/ci-logs/x64-$name.log") |" >> "$summary"
   [[ $rc == 0 ]] || { echo "::error::$s failed on JDK17 (exit $rc)"; failed=1; continue; }
-  if [[ -n $x86 ]]; then
+  if [[ -n $x86 && $x64only == 0 ]]; then
     m=$(PATH="$x86/bin:$PATH" model)
     if [[ "$m" != "32" ]]; then echo "::error::x86 runtime reports data model '$m' (need 32)"; failed=1; continue; fi
     echo "::group::$s --run-only (actual Java 8 x86, model $m)"

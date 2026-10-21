@@ -7,7 +7,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 sep=":"; case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) sep=";";; esac
 out="${1:-build/offline-tools}"
-case "$out" in build/*) ;; *) echo "OUT_DIR must be under build/ (it is wiped)"; exit 2;; esac
+# OUT_DIR is wiped, so it must resolve strictly inside <repo>/build: relative, no empty/./.. component, at least one
+# component below build, and no symlink/junction at any level (build itself included). A string prefix check is not enough.
+refuse(){ echo "OUT_DIR refused ($1): must be build/<dir>[/...] without links, '.', '..' or absolute form"; exit 2; }
+case "$out" in /*|*\\*|*:*) refuse absolute;; esac
+IFS=/ read -r -a parts <<< "$out"
+[[ ${#parts[@]} -ge 2 && "${parts[0]}" == build ]] || refuse not-below-build
+for part in "${parts[@]}"; do [[ -n "$part" && "$part" != . && "$part" != .. ]] || refuse component; done
+root=$(pwd -P); probe="$root"
+for part in "${parts[@]}"; do probe="$probe/$part"; [[ -L "$probe" ]] && refuse link; done
+if [[ -d "$root/build" ]]; then [[ "$(cd "$root/build" && pwd -P)" == "$root/build" ]] || refuse build-alias; fi
 cp="lib/sqlite-jdbc.jar${sep}lib/slf4j-api.jar${sep}lib/slf4j-nop.jar"
 clis=(net/neristal/rrbridge/product/v1/ArtifactProvenanceCli net/neristal/rrbridge/product/v1/DeploymentBindingCli
       net/neristal/rrbridge/prototype/ingress/DeploymentTransitionCli net/neristal/rrbridge/prototype/ingress/IngressDiagnosticsCli)
