@@ -1,5 +1,17 @@
 # Development environment bootstrap — start here
 
+## CI status — 2026-10-21 (both repositories PUBLIC)
+
+GitHub-hosted runners now execute (before 2026-10-21 every job had `steps=0` = CI NOT RUN; that history stays). Top of the
+Agent stack is Draft PR #103 `fix/rldi1-no-temp-write` (on #102 → #101 `ci/public-restart` → #100): ingress (incl. actual
+Zulu 8 x86), spool, **real Agent→FastAPI→PostgreSQL16 E2E against the public Server pinned at `d8c7a2f` (no secret)** and
+the new `phase7-9-synthetic-ci.yml` all pass. Windows jobs must use a long-name `TMP` (runner `%TEMP%` is 8.3 and is
+refused by product path guards). Read [recovery report](https://github.com/zawa356/RomRaider_agent/blob/fix/rldi1-no-temp-write/docs/handoff/public_ci_recovery_2026-10-21.md)
+and [validation table](https://github.com/zawa356/RomRaider_agent/blob/fix/rldi1-no-temp-write/docs/handoff/public_ci_validation_2026-10-21.md).
+Statements below that CI cannot run or that the E2E needs a private-repo token are history. Still: no merge without the
+owner; intermittent probe timeouts (C4) are open.
+
+
 ## Phase IX current entry — 2026-10-21 (not merged)
 
 Use [this bootstrap on the Phase IX top branch](https://github.com/zawa356/RomRaider_agent/blob/phase9/distribution-hardening/docs/ops/development_environment_bootstrap.md) → [Phase IX report](https://github.com/zawa356/RomRaider_agent/blob/phase9/distribution-hardening/docs/handoff/phase9_report.md) → [evidence](https://github.com/zawa356/RomRaider_agent/blob/phase9/distribution-hardening/docs/handoff/phase9_validation_evidence.md) → [append-only worklog](https://github.com/zawa356/RomRaider_agent/blob/phase9/distribution-hardening/docs/handoff/phase9_worklog.md).
