@@ -10,10 +10,11 @@ for arg in "$@"; do [[ $arg == --expect-red ]] && red=true; done
 runonly=false; for arg in "$@"; do [[ $arg == --run-only ]] && runonly=true; done
 if [[ $runonly == false ]]; then
  rm -rf "$out"; mkdir -p "$out"
- javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath "src/main/java${sep}src/test/java" -d "$out" src/test/java/net/neristal/rrbridge/prototype/ingress/Phase9InventoryRaceTest.java
+ javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath "src/main/java${sep}src/test/java" -d "$out" src/test/java/net/neristal/rrbridge/prototype/ingress/Phase9InventoryRaceTest.java src/test/java/net/neristal/rrbridge/prototype/ingress/Phase9InventoryNoWriteTest.java
 fi
 if [[ -n "${ROMLOGGER_EXPECT_DATA_MODEL:-}" ]]; then
  actual=$(java -XshowSettings:properties -version 2>&1 | sed -n 's/^ *sun.arch.data.model = //p')
  [[ "$actual" == "$ROMLOGGER_EXPECT_DATA_MODEL" ]] || { echo "data model $actual != $ROMLOGGER_EXPECT_DATA_MODEL"; exit 1; }
 fi
 java -Dphase9.expectRed=$red -cp "$out${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Phase9InventoryRaceTest
+java -Dphase9.expectRed=$red -cp "$out${sep}${cp}" net.neristal.rrbridge.prototype.ingress.Phase9InventoryNoWriteTest
