@@ -24,8 +24,8 @@ Heads: #97 `815dae7`, #98 `c42c4a6`, #99 `0612693`, #100 runtime/tests `987e504`
 | R9-02 stale report | FIXED (history kept) | phase8_report timeline |
 | R9-03 error=267 | CAUSE NARROWED, ROOT_CAUSE_NOT_PROVEN (actor) | empty `work` dirs under %TEMP% removed in two batches (22:43 inside the failing run, 04:53); Storage Sense temp cleanup enabled on low disk. Product: `WORKING_DIRECTORY_MISSING` RED→GREEN; fixture keep-marker; no retry |
 | R9-04 RLDI1 TOCTOU | DEFECT CONFIRMED (same-size/same-mtime byte change and byte-identical physical replacement → MATCHED before) → FIXED | identity pinned before hash, hash re-checked after JAR scan and at the end, identity re-read; RED/GREEN in evidence |
-| IX-2 RLWR1 reader | IMPLEMENTED_AND_TESTED (synthetic), **adoption BLOCKED** | fake 54 + native 43/44 + RLC2 scenarios both share modes, x64 and actual x86 |
-| IX-3 RLWR1 via entry | IMPLEMENTED_AND_TESTED (synthetic subset), BLOCKED | 3 sessions stored via real supervisor/child without test JAR, restart 0 dup, forged/tampered refusals |
+| IX-2 RLWR1 reader | IMPLEMENTED_AND_TESTED (synthetic), **adoption BLOCKED** | frozen 987e504 JDK17 x64 + actual Zulu8 x86 exit0 (fake, native, RLC2 scenarios in both share modes) |
+| IX-3 RLWR1 via entry | IMPLEMENTED_AND_TESTED (synthetic subset), BLOCKED | frozen 987e504 x64 + actual x86: 3 sessions stored via real supervisor/child without test JAR, restart 0 dup, forged/tampered refusals |
 | IX-3 real install RLDI1 | **BLOCKED — new finding F-IX-1** | approved JAR alone MATCHED; with the entry's required sqlite-jdbc/slf4j/JNA JARs → MISMATCH (`com.sun.jna.Native`, `org.sqlite.util.OSInfo` mains, sqlite manifest Main-Class, multi-release META-INF classes) |
 | IX-4 launcher env | IMPLEMENTED_AND_TESTED | JAVA_TOOL_OPTIONS/_JAVA_OPTIONS (+JDK_JAVA_OPTIONS on 17) → `JVM_OPTIONS_REFUSED`; Java 8 ignores JDK_JAVA_OPTIONS (reported, not PASS-inflated) |
 | Windows ACL inspection | UNKNOWN | not implemented (no non-operator principal fixture) |
