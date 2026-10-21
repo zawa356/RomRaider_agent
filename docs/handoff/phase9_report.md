@@ -10,11 +10,11 @@ Reading order for a fresh session: [Bootstrap](../ops/development_environment_bo
 | PR | Branch | Base | Content |
 |---|---|---|---|
 | [#97](https://github.com/zawa356/RomRaider_agent/pull/97) | `phase9/cli-review-closure` | `phase8/entry-closure-cli-split` (#96) | IX-1: R9-01 tool build + CLI process tests, R9-02 report timeline, R9-03 `WORKING_DIRECTORY_MISSING` |
-| #98 (see evidence) | `phase9/windows-reader-synthetic` | #97 | IX-2: RLWR1 `WindowsProductReader` candidate + fake/native tests |
-| #99 | `phase9/windows-reader-entry-gated` | #98 | IX-3: `WINDOWS_NATIVE_V1_SYNTHETIC` behind the single entry (gated) |
-| #100 | `phase9/distribution-hardening` | #99 | IX-4: RLDI1 TOCTOU (R9-04) + launcher env tests; Phase IX report/evidence |
+| [#98](https://github.com/zawa356/RomRaider_agent/pull/98) | `phase9/windows-reader-synthetic` | #97 | IX-2: RLWR1 `WindowsProductReader` candidate + fake/native tests |
+| [#99](https://github.com/zawa356/RomRaider_agent/pull/99) | `phase9/windows-reader-entry-gated` | #98 | IX-3: `WINDOWS_NATIVE_V1_SYNTHETIC` behind the single entry (gated) |
+| [#100](https://github.com/zawa356/RomRaider_agent/pull/100) | `phase9/distribution-hardening` | [#99](https://github.com/zawa356/RomRaider_agent/pull/99) | IX-4: RLDI1 TOCTOU (R9-04) + launcher env tests; Phase IX report/evidence |
 
-PR numbers above #97 are the numbers GitHub assigned at creation; the evidence file records the exact head SHAs.
+Heads: #97 `815dae7`, #98 `c42c4a6`, #99 `0612693`, #100 runtime/tests `987e504` (later commits on #100 are documentation only). Server docs: [RomRaiderServer#65](https://github.com/zawa356/RomRaiderServer/pull/65) on #64 (docs only).
 
 ## Results by item
 
@@ -33,6 +33,16 @@ PR numbers above #97 are the numbers GitHub assigned at creation; the evidence f
 | Writer quiescence / process provenance / directory durability | WRITER_UNPROVEN / UNKNOWN | unchanged |
 | Production, Sender, formal ACK, ECU/X270 | NOT_RUN (disabled) | out of scope |
 | GitHub Actions | CI NOT RUN | jobs `steps=0` |
+
+## Independent review (separate agent context, read-only, at bc91d17)
+
+P1: A-B-A between a JAR's hash and its entry scan (the scan re-opened the path) → fixed in `987e504` (one bounded read,
+hash = pin, scan of a private copy of exactly those bytes) + GREEN regression. P2 fixed: handle closed on `Error` after open;
+`Refusal` message = bare code (preflight `cause()` keeps it); `WORKING_DIRECTORY_MISSING` before the run record (no orphan);
+test exemptions removed; CLI test builds the same entry closure as the Windows harness; `build-offline-tools.sh` OUT_DIR
+guard; JarFile leak. Documented, not changed: 8.3 short paths refused but untested; possible `READER_LENGTH_UNSTABLE` while
+a writer appends (fails closed); JNA extracts `jnidispatch` to temp; only `com.sun.jna.Native`'s JAR is hashed (RLAP1
+profile pin covers the classpath). No P0.
 
 ## Compatibility changes
 
