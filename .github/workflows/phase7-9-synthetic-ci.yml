@@ -1,0 +1,87 @@
+name: Phase VII-IX synthetic entry / inventory / RLWR1 CI
+# Public-repo CI for the Phase VII-IX suites (single offline entry, readiness, RLDI1 inventory and races, multi-session,
+# CLI tool JAR, RLWR1 Windows reader candidate). Synthetic fixtures only. Windows jobs build with JDK17 x64 and re-run every
+# suite with --run-only under an actual Zulu 8 x86 JVM (sun.arch.data.model=32 asserted). Linux runs the same suites;
+# Windows-native parts report NOT_RUN there and are never counted as PASS.
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/**'
+      - 'src/test/java/**'
+      - 'scripts/**'
+      - 'lib/test-dependencies.sha256'
+      - '.github/workflows/phase7-9-synthetic-ci.yml'
+  push:
+    branches: [main, 'ci/**', 'phase9/**']
+    paths:
+      - 'src/main/java/**'
+      - 'src/test/java/**'
+      - 'scripts/**'
+      - 'lib/test-dependencies.sha256'
+      - '.github/workflows/phase7-9-synthetic-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: phase7-9-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  suites:
+    name: ${{ matrix.group }} (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        group: [phase7, phase8, phase9]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Remember JDK17 x64
+        shell: bash
+        run: echo "ROMLOGGER_CI_JDK17=$JAVA_HOME" >> "$GITHUB_ENV"
+      - name: Install actual Zulu 8 x86 (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '8'
+          architecture: x86
+      - name: Select JDK17 for builds, keep Java 8 x86 for --run-only (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "ROMLOGGER_CI_JAVA8_X86_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          echo "JAVA_HOME=$ROMLOGGER_CI_JDK17" >> "$GITHUB_ENV"
+          echo "$ROMLOGGER_CI_JDK17/bin" >> "$GITHUB_PATH"
+      - name: Fetch and verify pinned test dependencies
+        shell: bash
+        run: |
+          bash scripts/test-product-v1-spool.sh --deps-only
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            mkdir -p build/identity-deps
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --max-time 90 \
+              -o build/identity-deps/jna-5.14.0.jar https://repo.maven.apache.org/maven2/net/java/dev/jna/jna/5.14.0/jna-5.14.0.jar
+            printf '%s  %s\n' 34ed1e1f27fa896bca50dbc4e99cf3732967cec387a7a0d5e3486c09673fe8c6 build/identity-deps/jna-5.14.0.jar | sha256sum -c -
+          fi
+      - name: Runtime facts
+        shell: bash
+        run: |
+          java -XshowSettings:properties -version 2>&1 | grep -E 'java.version =|sun.arch.data.model' || true
+          if [[ -n "${ROMLOGGER_CI_JAVA8_X86_HOME:-}" ]]; then "$ROMLOGGER_CI_JAVA8_X86_HOME/bin/java" -XshowSettings:properties -version 2>&1 | grep -E 'java.version =|sun.arch.data.model'; fi
+      - name: Run ${{ matrix.group }} suites
+        shell: bash
+        run: bash scripts/ci-phase7-9.sh ${{ matrix.group }}
+      - name: Assert no production RomRaider.jar and no tracked build output
+        if: always()
+        shell: bash
+        run: |
+          test ! -f lib/RomRaider.jar
+          test -z "$(git ls-files -- build dist 'lib/*.jar' '*.class')"
+          git diff --exit-code
