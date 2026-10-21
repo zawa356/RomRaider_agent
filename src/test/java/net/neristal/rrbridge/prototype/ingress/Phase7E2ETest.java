@@ -78,6 +78,7 @@ public final class Phase7E2ETest {
             Phase7Fixture k=new Phase7Fixture("synthetic-phase7-kill",true,0);Deployment dk=new Deployment(k,packaged,true,0);String kLegacy=legacyState(k);
             Map<String,String> r=dk.record();List<String> command=new ArrayList<String>(Arrays.asList(r.get("java_executable"),"-cp",r.get("classpath"),OfflineCandidateEntry.MAIN));
             command.addAll(Arrays.asList(args(dk,"--synthetic-owned")));
+            Phase7EntryTest.requireWork(dk);
             Process supervisor=new ProcessBuilder(command).directory(dk.work).redirectErrorStream(true).start();supervisor.getOutputStream().close();
             final ByteArrayOutputStream out=new ByteArrayOutputStream();final InputStream in=supervisor.getInputStream();
             Thread drain=new Thread(new Runnable(){public void run(){byte[] b=new byte[4096];int n;try{while((n=in.read(b))!=-1)synchronized(out){out.write(b,0,n);}}catch(IOException e){}}});drain.start();

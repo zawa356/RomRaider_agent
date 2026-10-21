@@ -47,6 +47,7 @@ public final class Phase7AdversarialTest {
     }
     static Process start(Deployment d,String mode)throws Exception {
         Map<String,String> r=d.record();List<String> c=new ArrayList<String>(Arrays.asList(r.get("java_executable"),"-cp",r.get("classpath"),OfflineCandidateEntry.MAIN));c.addAll(Arrays.asList(args(d,mode)));
+        Phase7EntryTest.requireWork(d);
         Process p=new ProcessBuilder(c).directory(d.work).redirectErrorStream(true).start();p.getOutputStream().close();return p;
     }
     static Result finish(Process p)throws Exception {

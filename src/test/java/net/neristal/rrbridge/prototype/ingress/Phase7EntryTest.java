@@ -26,6 +26,8 @@ public final class Phase7EntryTest {
             f=fixture;
             dist=DeploymentBindingTest.privateDir(Files.createDirectory(f.home.resolve("dist"))).toFile();
             work=DeploymentBindingTest.privateDir(Files.createDirectory(f.home.resolve("work"))).toFile();
+            // Phase IX R9-03: an empty directory under %TEMP% can be removed by an external temp cleaner; keep it non-empty.
+            Files.write(work.toPath().resolve(KEEP),"synthetic fixture working directory".getBytes(StandardCharsets.US_ASCII));
             for(File jar:packaged){Path copy=dist.toPath().resolve(jar.getName());Files.copy(jar.toPath(),copy);DeploymentBindingTest.privateFile(copy);jars.add(copy.toFile().getCanonicalFile());}
             if(marker)OfflineCandidateEntry.createOwnedMarker(true,f.layout,f.home.toFile());
             profile=f.home.resolve("offline-candidate.rlop1").toFile();
@@ -54,6 +56,12 @@ public final class Phase7EntryTest {
         }
         String output()throws Exception {return DeploymentTransition.fileSha(f.output);}
     }
+    static final String KEEP=".romlogger-fixture-keep";
+    /** Names the cause (R9-03) instead of an opaque CreateProcess error=267; never retries or recreates the directory. */
+    static void requireWork(Deployment d){
+        if(!Files.isDirectory(d.work.toPath(),LinkOption.NOFOLLOW_LINKS))
+            throw new AssertionError("FIXTURE_WORKDIR_MISSING: owned fixture work directory removed before process start (keep marker "+(new File(d.work,KEEP).exists()?"present":"absent")+")");
+    }
     static final class Result {final int exit;final String json;Result(int exit,String json){this.exit=exit;this.json=json;}}
     static Result inProcess(String[] args,OfflineCandidateEntry.RuntimeFacts facts)throws Exception {
         ByteArrayOutputStream bytes=new ByteArrayOutputStream();int exit=OfflineCandidateEntry.run(args,facts,new PrintStream(bytes,true,"UTF-8"));
@@ -63,6 +71,7 @@ public final class Phase7EntryTest {
     static Result process(Deployment d,String[] args)throws Exception {
         Map<String,String> r=d.record();List<String> command=new ArrayList<String>(Arrays.asList(r.get("java_executable"),"-cp",r.get("classpath"),OfflineCandidateEntry.MAIN));
         command.addAll(Arrays.asList(args));
+        requireWork(d);
         ProcessBuilder b=new ProcessBuilder(command).directory(d.work).redirectErrorStream(true);
         b.environment().remove("JAVA_TOOL_OPTIONS");
         Process p=b.start();p.getOutputStream().close();
