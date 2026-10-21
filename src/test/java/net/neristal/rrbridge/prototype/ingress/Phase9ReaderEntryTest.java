@@ -93,12 +93,23 @@ public final class Phase9ReaderEntryTest {
         File rec=Files.createTempDirectory("romlogger-phase9-rldi-").resolve("install.rldi1").toFile();
         DeploymentBinding.createRecord(rec.toPath(),DeploymentBinding.encodeRecord(DistributionInventory.describe(inst.toFile(),OfflineCandidateEntry.MAIN,roles)));
         DistributionInventory.Report rep=DistributionInventory.inspect(true,inst.toFile(),rec);
-        check(rep.matched()&&rep.unapprovedMains.isEmpty()&&rep.json().contains("\"state\":\"BLOCKED\"")&&rep.json().contains("\"global_old_binary_exclusion\":\"NOT_PROVEN\""),"RLDI1 install with RLWR1 + pinned JNA MATCHED (still BLOCKED, old binaries NOT_PROVEN) "+rep.json());
+        // Phase IX finding: the entry's REQUIRED third-party JARs carry mains (JNA Native, sqlite-jdbc OSInfo), a manifest
+        // Main-Class and multi-release META-INF classes, so a real install cannot be RLDI1 MATCHED. Not relaxed here
+        // (design decision, see phase9 report); the test pins the current fail-closed result exactly.
+        check("MISMATCH".equals(rep.inventory)&&rep.unapprovedMains.equals(Arrays.asList("com.sun.jna.Native","org.sqlite.util.OSInfo"))
+            &&rep.findings.containsKey("UNAPPROVED_MANIFEST_MAIN")&&rep.findings.containsKey("VERSIONED_OR_META_CLASS")&&rep.json().contains("\"state\":\"BLOCKED\""),
+            "real install (approved JAR + sqlite-jdbc + slf4j + JNA) is RLDI1 MISMATCH only because of third-party dependency mains/META-INF (open design item) "+rep.findings+" "+rep.unapprovedMains);
+        Map<String,String> own=new TreeMap<String,String>();own.put(product.get(0).getName(),"approved_jar");
+        Path alone=Files.createTempDirectory("romlogger-phase9-install1-");Files.copy(product.get(0).toPath(),alone.resolve(product.get(0).getName()));
+        File rec1=rec.toPath().resolveSibling("alone.rldi1").toFile();
+        DeploymentBinding.createRecord(rec1.toPath(),DeploymentBinding.encodeRecord(DistributionInventory.describe(alone.toFile(),OfflineCandidateEntry.MAIN,own)));
+        DistributionInventory.Report one=DistributionInventory.inspect(true,alone.toFile(),rec1);
+        check(one.matched()&&one.unapprovedMains.isEmpty()&&one.json().contains("\"global_old_binary_exclusion\":\"NOT_PROVEN\""),"approved JAR with RLWR1 + binding alone is RLDI1 MATCHED (still BLOCKED) "+one.json());
         Files.copy(testJar.toPath(),inst.resolve(testJar.getName()));roles.put(testJar.getName(),"dependency_jar");
         File rec2=rec.toPath().resolveSibling("with-test.rldi1").toFile();
         DeploymentBinding.createRecord(rec2.toPath(),DeploymentBinding.encodeRecord(DistributionInventory.describe(inst.toFile(),OfflineCandidateEntry.MAIN,roles)));
         rep=DistributionInventory.inspect(true,inst.toFile(),rec2);
-        check("MISMATCH".equals(rep.inventory)&&!rep.unapprovedMains.isEmpty(),"test JAR in the install is RLDI1 MISMATCH ("+rep.unapprovedMains.size()+" unapproved mains)");
+        check("MISMATCH".equals(rep.inventory)&&rep.unapprovedMains.size()>2,"test JAR in the install adds further RLDI1 MISMATCH mains ("+rep.unapprovedMains.size()+" unapproved mains)");
         System.out.println("Phase IX reader entry test passed "+checks+" checks; RLWR1 adoption BLOCKED; launch/production/ACK disabled");
     }
     private Phase9ReaderEntryTest(){}
