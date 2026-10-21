@@ -43,6 +43,12 @@ public final class Phase9InventoryNoWriteTest {
         Install bad=new Install(Phase8InventoryTest.classes(OfflineCandidateEntry.class,DistributionInventory.class,DeploymentTransitionCli.class));
         String mm=child(bad.root,bad.record,missingTmp);
         check(mm.contains("\"inventory\":\"MISMATCH\"")&&mm.contains(DeploymentTransitionCli.class.getName()),"secondary main still found from the in-memory scan: "+mm);
+        // A local header whose name differs from its central-directory name (the JVM reads by central directory) is refused.
+        Install skew=new Install();Path jar=skew.root.resolve("lib/romlogger-offline.jar");byte[] z=Files.readAllBytes(jar);
+        check(z[0]==0x50&&z[1]==0x4b&&z[2]==3&&z[3]==4,"fixture: JAR starts with a local header");
+        int nameAt=30;z[nameAt]=(byte)(z[nameAt]=='x'?'y':'x');Files.write(jar,z);skew.pin();
+        DistributionInventory.Report sk=DistributionInventory.inspect(true,skew.root.toFile(),skew.record);
+        check(!sk.matched()&&sk.findings.containsKey("JAR_UNREADABLE"),"local/central name mismatch is JAR_UNREADABLE: "+sk.findings);
         if(red)throw new AssertionError("expected RED on the pre-fix code");
         System.out.println("Phase IX inventory no-write test passed "+checks+" checks");
     }

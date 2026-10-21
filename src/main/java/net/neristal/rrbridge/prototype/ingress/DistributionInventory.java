@@ -110,19 +110,13 @@ public final class DistributionInventory {
                 }
                 if(ext.equals("jar")){
                     boolean isApproved=want!=null&&"approved_jar".equals(want[1]);
-                    if(pinnedSha.containsKey(name)){
-                        // Scanned bytes = hashed bytes (review P1, A-B-A): one bounded read, its hash must equal the pin, and the
-                        // JAR entries are scanned from a private copy of exactly those bytes, never by re-opening the install path.
-                        byte[] snapshot=readFile(f);
-                        require(pinnedSha.get(name).equals(DeploymentTransition.sha(snapshot)),"INPUT_CHANGED_DURING_INVENTORY");
-                        hook.at("HASHED:"+name);
-                        Path copy=Files.createTempFile("rldi1-scan-",".jar");
-                        try{
-                            if(Files.getFileAttributeView(copy,PosixFileAttributeView.class)!=null)Files.setPosixFilePermissions(copy,PosixFilePermissions.fromString("rw-------"));
-                            Files.write(copy,snapshot);
-                            approvedMainFound|=scanJar(copy.toFile(),approved,isApproved,findings,mains,classOwner,f.getName());
-                        }finally{Files.deleteIfExists(copy);}
-                    }else{hook.at("HASHED:"+name);approvedMainFound|=scanJar(f,approved,isApproved,findings,mains,classOwner,f.getName());}
+                    if(e.getValue().size()>MAX_FILE){if(want==null)add(findings,"FILE_BOUND");continue;}
+                    // Scanned bytes = hashed bytes (review P1, A-B-A) and nothing is written (read-only contract, CI-5 P2): one
+                    // bounded read, its hash must equal the pin, and the JAR entries are parsed from exactly those bytes in memory.
+                    byte[] snapshot=readFile(f);
+                    if(pinnedSha.containsKey(name))require(pinnedSha.get(name).equals(DeploymentTransition.sha(snapshot)),"INPUT_CHANGED_DURING_INVENTORY");
+                    hook.at("HASHED:"+name);
+                    approvedMainFound|=scanJar(snapshot,approved,isApproved,findings,mains,classOwner,f.getName());
                 }
             }
             if(approvedJars!=1)add(findings,"APPROVED_JAR_COUNT");
@@ -187,38 +181,100 @@ public final class DistributionInventory {
     private static String rel(Path base,Path f){StringBuilder b=new StringBuilder();for(Path part:base.relativize(f)){if(b.length()>0)b.append('/');b.append(part.toString());}return b.toString();}
     private static void add(Map<String,Integer> m,String code){Integer n=m.get(code);m.put(code,n==null?1:n+1);}
 
-    /** Returns true iff this JAR is the approved one and declares the approved main. */
-    private static boolean scanJar(File f,String approved,boolean isApproved,Map<String,Integer> findings,List<String> mains,Map<String,String> owner,String label)throws Exception {
+    /** Returns true iff this JAR is the approved one and declares the approved main. Parses the given bytes only. */
+    private static boolean scanJar(byte[] jarBytes,String approved,boolean isApproved,Map<String,Integer> findings,List<String> mains,Map<String,String> owner,String label)throws Exception {
         boolean found=false;Set<String> legacy=new HashSet<String>(Arrays.asList(LEGACY_ENTRIES));
-        try(JarFile jar=new JarFile(f,false)){
-            Manifest mf=jar.getManifest();
-            if(mf!=null){
+        List<ZipEntryView> entries;
+        try{entries=ZipEntryView.read(jarBytes);}catch(java.util.zip.ZipException bad){add(findings,"JAR_UNREADABLE");return false;}
+        if(entries.size()>MAX_JAR_ENTRIES)throw new Refusal("JAR_ENTRY_BOUND");
+        try{
+            for(ZipEntryView e:entries)if(e.name.equalsIgnoreCase("META-INF/MANIFEST.MF")){
+                Manifest mf=new Manifest(new ByteArrayInputStream(e.data(MAX_CLASS)));
                 for(Object k:mf.getMainAttributes().keySet()){String key=k.toString();
                     if(key.equalsIgnoreCase("Class-Path")||key.equalsIgnoreCase("Launcher-Agent-Class")||key.equalsIgnoreCase("Boot-Class-Path")||key.equalsIgnoreCase("Premain-Class")||key.equalsIgnoreCase("Agent-Class"))add(findings,"JAR_MANIFEST_CLASSPATH_OR_AGENT");}
                 String main=mf.getMainAttributes().getValue("Main-Class");
                 if(main!=null&&!(isApproved&&approved.equals(main.trim())))add(findings,"UNAPPROVED_MANIFEST_MAIN");
+                break;
             }
-            int n=0;Set<String> local=new HashSet<String>();
-            for(Enumeration<JarEntry> en=jar.entries();en.hasMoreElements();){
-                JarEntry e=en.nextElement();String name=e.getName();
-                if(++n>MAX_JAR_ENTRIES)throw new Refusal("JAR_ENTRY_BOUND");
+            Set<String> local=new HashSet<String>();
+            for(ZipEntryView e:entries){
+                String name=e.name;
                 if(!local.add(name)){add(findings,"JAR_DUPLICATE_ENTRY");continue;}
                 String lower=name.toLowerCase(Locale.ROOT);
                 if(lower.endsWith(".jar")||lower.endsWith(".zip")||lower.endsWith(".war")||lower.endsWith(".ear"))add(findings,"NESTED_ARCHIVE");
-                if(!lower.endsWith(".class")||e.isDirectory())continue;
+                if(!lower.endsWith(".class")||name.endsWith("/"))continue;
                 if(name.startsWith("META-INF/")){add(findings,"VERSIONED_OR_META_CLASS");continue;}
                 String cls=name.substring(0,name.length()-6).replace('/','.');
                 if(!cls.equals("module-info")){String prior=owner.put(cls,label);if(prior!=null)add(findings,"DUPLICATE_CLASS");}
                 if(legacy.contains(cls))add(findings,"LEGACY_ENTRY_CLASS_PRESENT");
-                if(e.getSize()>MAX_CLASS)throw new Refusal("CLASS_BOUND");
-                byte[] bytes;try(InputStream in=jar.getInputStream(e)){bytes=readBounded(in,MAX_CLASS);}
-                if(declaresMain(bytes)){
+                if(e.size>MAX_CLASS)throw new Refusal("CLASS_BOUND");
+                if(declaresMain(e.data(MAX_CLASS))){
                     if(isApproved&&cls.equals(approved))found=true;
                     else{add(findings,"UNAPPROVED_MAIN_METHOD");mains.add(cls);}
                 }
             }
         }catch(java.util.zip.ZipException bad){add(findings,"JAR_UNREADABLE");}
         return found;
+    }
+
+    /**
+     * Minimal in-memory ZIP reader with the JVM's view of a JAR (CI-5 P2): entries come from the central directory, located
+     * via the end record as java.util.zip does; each local header must exist at the recorded offset with the same name; data
+     * is STORED or DEFLATED with the central sizes and CRC-32. ZIP64, encryption, other methods or any inconsistency are a
+     * ZipException (JAR_UNREADABLE). No file is opened or created.
+     */
+    static final class ZipEntryView {
+        final String name;final long size;private final byte[] zip;private final int offset,csize,method;private final long crc;
+        private ZipEntryView(String name,byte[] zip,int offset,int csize,long size,int method,long crc){this.name=name;this.zip=zip;this.offset=offset;this.csize=csize;this.size=size;this.method=method;this.crc=crc;}
+        private static int u16(byte[] b,long i)throws java.util.zip.ZipException{if(i<0||i+2>b.length)throw new java.util.zip.ZipException("bounds");return (b[(int)i]&0xff)|((b[(int)i+1]&0xff)<<8);}
+        private static long u32(byte[] b,long i)throws java.util.zip.ZipException{if(i<0||i+4>b.length)throw new java.util.zip.ZipException("bounds");return (u16(b,i)|((long)u16(b,i+2)<<16))&0xffffffffL;}
+        static List<ZipEntryView> read(byte[] b)throws java.util.zip.ZipException {
+            int eocd=-1;
+            for(int i=b.length-22;i>=Math.max(0,b.length-22-65535);i--)if(u32(b,i)==0x06054b50L&&i+22+u16(b,i+20)==b.length){eocd=i;break;}
+            if(eocd<0)throw new java.util.zip.ZipException("no end record");
+            int count=u16(b,eocd+10);long cdSize=u32(b,eocd+12),cdOff=u32(b,eocd+16);
+            if(u16(b,eocd+4)!=0||u16(b,eocd+6)!=0||u16(b,eocd+8)!=count||count==0xffff||cdSize==0xffffffffL||cdOff==0xffffffffL||cdOff+cdSize!=eocd)
+                throw new java.util.zip.ZipException("unsupported or inconsistent directory");
+            List<ZipEntryView> out=new ArrayList<ZipEntryView>();long p=cdOff;
+            for(int i=0;i<count;i++){
+                if(u32(b,p)!=0x02014b50L)throw new java.util.zip.ZipException("central header");
+                int flags=u16(b,p+8),method=u16(b,p+10);long crc=u32(b,p+16),cs=u32(b,p+20),us=u32(b,p+24);
+                int nl=u16(b,p+28),el=u16(b,p+30),cl=u16(b,p+32);long lo=u32(b,p+42);
+                if((flags&1)!=0||(method!=0&&method!=8)||cs==0xffffffffL||us==0xffffffffL||lo==0xffffffffL)throw new java.util.zip.ZipException("unsupported entry");
+                if(p+46+nl>eocd)throw new java.util.zip.ZipException("bounds");
+                String name=new String(b,(int)p+46,nl,(flags&0x800)!=0?java.nio.charset.StandardCharsets.UTF_8:java.nio.charset.StandardCharsets.ISO_8859_1);
+                if(lo>=cdOff||u32(b,lo)!=0x04034b50L)throw new java.util.zip.ZipException("local header");
+                int lnl=u16(b,lo+26),lel=u16(b,lo+28);
+                if(lnl!=nl||lo+30+nl>cdOff||!Arrays.equals(Arrays.copyOfRange(b,(int)lo+30,(int)lo+30+nl),Arrays.copyOfRange(b,(int)p+46,(int)p+46+nl)))
+                    throw new java.util.zip.ZipException("local/central name mismatch");
+                long data=lo+30+lnl+lel;
+                if(data+cs>cdOff)throw new java.util.zip.ZipException("bounds");
+                out.add(new ZipEntryView(name,b,(int)data,(int)cs,us,method,crc));
+                p+=46+nl+el+cl;
+            }
+            if(p!=eocd)throw new java.util.zip.ZipException("directory size");
+            return out;
+        }
+        /** Entry bytes (bounded), CRC-32 verified. */
+        byte[] data(long bound)throws IOException {
+            if(size>bound)throw new Refusal("CLASS_BOUND");
+            byte[] out;
+            if(method==0){
+                if(csize!=size)throw new java.util.zip.ZipException("stored size");
+                out=Arrays.copyOfRange(zip,offset,offset+csize);
+            }else{
+                java.util.zip.Inflater inf=new java.util.zip.Inflater(true);
+                try{
+                    inf.setInput(zip,offset,csize);out=new byte[(int)size];int n=0;
+                    while(n<out.length){int k=inf.inflate(out,n,out.length-n);if(k==0&&(inf.finished()||inf.needsInput()||inf.needsDictionary()))break;n+=k;}
+                    if(n!=out.length)throw new java.util.zip.ZipException("deflated size");
+                }catch(java.util.zip.DataFormatException bad){throw new java.util.zip.ZipException("deflate");}
+                finally{inf.end();}
+            }
+            java.util.zip.CRC32 c=new java.util.zip.CRC32();c.update(out);
+            if(c.getValue()!=crc)throw new java.util.zip.ZipException("crc");
+            return out;
+        }
     }
     /** Whole listed file in one bounded read (size already checked against MAX_FILE). */
     private static byte[] readFile(File f)throws IOException {

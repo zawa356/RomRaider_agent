@@ -126,3 +126,13 @@ The approved entry needs sqlite-jdbc (and slf4j; JNA for RLWR1). Inventoried as 
 `VERSIONED_OR_META_CLASS` (multi-release classes) → `MISMATCH`. Phase VIII's packaged-closure MATCHED covered the approved
 JAR alone. This is **not relaxed**: options (an RLDI2 per-SHA-256 allow-list of known third-party entries, or
 repackaging) are an owner/design decision. Pinned by `Phase9ReaderEntryTest`.
+
+## Update: no file is written during inventory (CI-5 P2, 2026-10-21)
+
+Phase IX `987e504` scanned each JAR from a private temp copy of the hashed bytes; that contradicted the read-only
+contract and made the inventory UNAVAILABLE when no writable temp directory existed (RED:
+`Phase9InventoryNoWriteTest`, child JVM with a non-existent `java.io.tmpdir`). The JAR is now parsed in memory from
+exactly the hashed bytes (`ZipEntryView`: end record → central directory → local header at the recorded offset with the
+same name → STORED/DEFLATED data with central sizes and CRC-32; ZIP64/encryption/other methods/inconsistency →
+`JAR_UNREADABLE`). The A-B-A guarantee is unchanged (scanned bytes = hashed bytes); nothing is opened for writing or
+created.
