@@ -13,7 +13,9 @@ out=build/phase7-$test_class
 if [[ "${1:-}" != "--run-only" ]]; then
  rm -rf "$out"; mkdir -p "$out/main" "$out/test" "$out/jars"
  # Dependency closure of the entry only (the javaagent classes need RomRaider.jar and are not part of this offline tool).
- javac --release 8 -encoding UTF-8 -cp "$deps" -sourcepath src/main/java -d "$out/main" src/main/java/net/neristal/rrbridge/prototype/ingress/OfflineCandidateEntry.java
+ # Phase IX-3: on Windows the RLWR1 JNA binding (loaded by fixed name, not referenced statically) joins the closure.
+ binding=(); if [[ $windows == 1 ]]; then binding=(src/main/java/net/neristal/rrbridge/prototype/ingress/WindowsProductReaderJna.java); fi
+ javac --release 8 -encoding UTF-8 -cp "$deps" -sourcepath src/main/java -d "$out/main" src/main/java/net/neristal/rrbridge/prototype/ingress/OfflineCandidateEntry.java "${binding[@]}"
  (cd "$out/main" && jar cf ../jars/romlogger-offline.jar .)
  tests=("src/test/java/net/neristal/rrbridge/prototype/ingress/${test_class}.java")
  if [[ $windows == 1 ]]; then tests+=(src/test/java/net/neristal/rrbridge/prototype/ingress/WindowsWatermarkV2Test.java); else tests+=(src/test/java/net/neristal/rrbridge/prototype/ingress/PosixWatermarkV2Test.java); fi

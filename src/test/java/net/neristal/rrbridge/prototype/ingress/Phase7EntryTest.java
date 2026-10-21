@@ -22,7 +22,9 @@ public final class Phase7EntryTest {
     static final class Deployment {
         final Phase7Fixture f;final File profile,dist,work;final List<File> jars=new ArrayList<File>();
         Deployment(String payload,List<File> packaged,boolean marker,int generation)throws Exception {this(new Phase7Fixture(payload),packaged,marker,generation);}
-        Deployment(Phase7Fixture fixture,List<File> packaged,boolean marker,int generation)throws Exception {
+        Deployment(Phase7Fixture fixture,List<File> packaged,boolean marker,int generation)throws Exception {this(fixture,packaged,marker,generation,READER);}
+        /** Phase IX-3: same deployment pinned to an explicit reader value (e.g. RLWR1 without the test JAR). */
+        Deployment(Phase7Fixture fixture,List<File> packaged,boolean marker,int generation,String reader)throws Exception {
             f=fixture;
             dist=DeploymentBindingTest.privateDir(Files.createDirectory(f.home.resolve("dist"))).toFile();
             work=DeploymentBindingTest.privateDir(Files.createDirectory(f.home.resolve("work"))).toFile();
@@ -31,7 +33,7 @@ public final class Phase7EntryTest {
             for(File jar:packaged){Path copy=dist.toPath().resolve(jar.getName());Files.copy(jar.toPath(),copy);DeploymentBindingTest.privateFile(copy);jars.add(copy.toFile().getCanonicalFile());}
             if(marker)OfflineCandidateEntry.createOwnedMarker(true,f.layout,f.home.toFile());
             profile=f.home.resolve("offline-candidate.rlop1").toFile();
-            OfflineCandidateEntry.createProfile(profile,f.layout,f.home.toFile(),work,jars,READER,generation);
+            OfflineCandidateEntry.createProfile(profile,f.layout,f.home.toFile(),work,jars,reader,generation);
             DeploymentTransitionTest.privatize(f.home);
         }
         /** Same deployment and JARs, newly pinned for another expected generation (operator re-pins after a transition). */

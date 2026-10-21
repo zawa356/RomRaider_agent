@@ -29,6 +29,10 @@ public final class OfflineCandidateEntry {
     public static final String MAIN=OfflineCandidateEntry.class.getName();
     public static final String MARKER_NAME=".romlogger-synthetic-owned.rlso1";
     public static final String READER_POSIX="POSIX",READER_WINDOWS_TEST="WINDOWS_NATIVE_TEST_ONLY";
+    /** Phase IX-3: RLWR1 product reader candidate, synthetic-owned profiles only; adoption stays BLOCKED (owner decisions open). */
+    public static final String READER_WINDOWS_V1_SYNTHETIC="WINDOWS_NATIVE_V1_SYNTHETIC";
+    /** SHA-256 of the only accepted JNA JAR (5.14.0) for READER_WINDOWS_V1_SYNTHETIC, independent of the profile pin. */
+    static final String JNA_5_14_0_SHA256="34ed1e1f27fa896bca50dbc4e99cf3732967cec387a7a0d5e3486c09673fe8c6";
     static final String WINDOWS_TEST_READER_CLASS="net.neristal.rrbridge.prototype.ingress.WindowsWatermarkV2Test";
     static final long CHILD_TIMEOUT_MILLIS=600000;static final int CHILD_OUTPUT_LIMIT=65536;
     private static final String[] LAYOUT_KEYS={"root","legacy","output","session","manifest","ledger","device","vehicle","payload","manifest_session"};
@@ -78,7 +82,7 @@ public final class OfflineCandidateEntry {
      * The description is computed from the given JARs and the CURRENT runtime: create it under the runtime it will pin.
      */
     public static void createProfile(File profile,DeploymentBinding.Layout l,File dataRoot,File workingDirectory,List<File> classpath,String reader,int expectedGeneration)throws Exception {
-        require(READER_POSIX.equals(reader)||READER_WINDOWS_TEST.equals(reader),"READER_UNSUPPORTED");
+        require(knownReader(reader),"READER_UNSUPPORTED");
         Map<String,String> m=new TreeMap<String,String>();
         m.put("version",PROFILE_VERSION);m.put("mode","SYNTHETIC_OWNED_ONLY");m.put("main_class",MAIN);m.put("reader",reader);
         m.put("profile_uuid",UUID.randomUUID().toString());m.put("user",System.getProperty("user.name"));
@@ -141,7 +145,7 @@ public final class OfflineCandidateEntry {
         require(PROFILE_VERSION.equals(record.get("version")),"PROFILE_VERSION");
         require("SYNTHETIC_OWNED_ONLY".equals(record.get("mode")),"PROFILE_MODE_UNSUPPORTED");
         require(MAIN.equals(record.get("main_class")),"UNKNOWN_OR_LEGACY_ENTRY_MAIN_CLASS");
-        require(READER_POSIX.equals(record.get("reader"))||READER_WINDOWS_TEST.equals(record.get("reader")),"READER_UNSUPPORTED");
+        require(knownReader(record.get("reader")),"READER_UNSUPPORTED");
         for(String k:LAYOUT_KEYS)require(record.get("layout."+k)!=null,"PROFILE_FORMAT");
         // Strict field set: an extra field (e.g. a smuggled authorization flag) is refused, never ignored.
         Set<String> allowed=new HashSet<String>(Arrays.asList("version","mode","main_class","reader","profile_uuid","user","working_directory","data_root",
@@ -171,11 +175,37 @@ public final class OfflineCandidateEntry {
         try{return new Rlc2IntegrationStore.Admission(p.layout.session.toPath(),p.layout.manifestSession,new HashSet<String>(Arrays.asList(sources.split(",",-1))));}
         catch(IllegalArgumentException bad){throw new Refusal("SOURCE_ADMISSION_REQUIRED");}
     }
-    /** Only the reader pinned by the profile. The Windows native reader is test-only code present in the pinned classpath. */
+    /** Reports which reader the profile pins; an RLWR1 run is labelled adoption BLOCKED with its open owner decisions. */
+    static void readerFields(Profile p,Map<String,String> f){
+        String r=p.record.get("reader");f.put("reader",r);
+        if(READER_WINDOWS_V1_SYNTHETIC.equals(r)){f.put("reader_version",WindowsProductReader.VERSION);f.put("reader_adoption","BLOCKED");
+            f.put("reader_share_mode","READ_WRITE");f.put("share_delete_decision","OWNER_DECISION_REQUIRED");f.put("distribution_license","OWNER_DECISION_REQUIRED");}
+    }
+    static boolean knownReader(String r){return READER_POSIX.equals(r)||READER_WINDOWS_TEST.equals(r)||READER_WINDOWS_V1_SYNTHETIC.equals(r);}
+    /** Only the reader pinned by the profile. The Windows test reader is test-only code present in the pinned classpath. */
     static WatermarkV2Prototype.ReadOpener reader(Profile p)throws Exception {
         if(READER_POSIX.equals(p.record.get("reader")))return WatermarkV2Prototype.POSIX_READER;
+        if(READER_WINDOWS_V1_SYNTHETIC.equals(p.record.get("reader")))return productReader();
         try{java.lang.reflect.Field f=Class.forName(WINDOWS_TEST_READER_CLASS).getDeclaredField("READER");f.setAccessible(true);return (WatermarkV2Prototype.ReadOpener)f.get(null);}
         catch(ReflectiveOperationException|LinkageError unavailable){throw new Refusal("READER_UNAVAILABLE");}
+    }
+
+    /**
+     * RLWR1 for synthetic-owned profiles: Windows only, the JNA classes must come from a JAR whose bytes hash to the pinned
+     * 5.14.0 value (checked here, in addition to the profile's RLAP1 pin), the test-only reader class must not be loadable
+     * (no test JAR on the pinned classpath), and the share mode is the conservative READ_WRITE (no FILE_SHARE_DELETE).
+     */
+    static WatermarkV2Prototype.ReadOpener productReader()throws Exception {
+        require(System.getProperty("os.name","").startsWith("Windows"),"READER_PLATFORM_UNSUPPORTED");
+        boolean testReader;try{Class.forName(WINDOWS_TEST_READER_CLASS,false,OfflineCandidateEntry.class.getClassLoader());testReader=true;}catch(ClassNotFoundException|LinkageError absent){testReader=false;}
+        require(!testReader,"READER_TEST_CODE_ON_CLASSPATH");
+        File jna;
+        try{java.security.CodeSource cs=Class.forName("com.sun.jna.Native",false,OfflineCandidateEntry.class.getClassLoader()).getProtectionDomain().getCodeSource();
+            jna=cs==null?null:new File(cs.getLocation().toURI());}
+        catch(ClassNotFoundException|LinkageError|java.net.URISyntaxException|IllegalArgumentException absent){throw new Refusal("READER_NATIVE_UNAVAILABLE");}
+        require(jna!=null&&jna.isFile()&&JNA_5_14_0_SHA256.equals(DeploymentTransition.fileSha(jna)),"READER_DEPENDENCY_UNPINNED");
+        try{return WindowsProductReader.create(WindowsProductReader.ShareMode.READ_WRITE);}
+        catch(WindowsProductReader.Refusal r){throw new Refusal(r.code);}
     }
 
     // ------------------------------------------------------------------ result JSON (codes and counts only; no paths or IDs)
@@ -206,7 +236,7 @@ public final class OfflineCandidateEntry {
     static Outcome diagnose(String[] a,RuntimeFacts facts){
         Map<String,String> f=new TreeMap<String,String>();f.put("data_ownership","UNKNOWN");f.put("profile","UNKNOWN");
         try{
-            Profile p=verifyProfile(new File(a[1]),facts);f.put("profile","MATCHED_PINNED_LAUNCH");
+            Profile p=verifyProfile(new File(a[1]),facts);f.put("profile","MATCHED_PINNED_LAUNCH");readerFields(p,f);
             try{requireOwned(p);f.put("data_ownership","SYNTHETIC_OWNED_MARKER_MATCHED");}catch(Refusal r){f.put("data_ownership",r.getMessage());}
             OfflineCandidatePreflight.Report report=preflight(p,a[2],admission(p,a[3]),facts,reader(p));
             f.put("preflight",report.json());f.put("prerequisites_matched",String.valueOf(report.prerequisitesMatched));
@@ -217,7 +247,7 @@ public final class OfflineCandidateEntry {
     static Outcome syntheticOwned(String[] a,RuntimeFacts facts){
         Map<String,String> f=new TreeMap<String,String>();f.put("child_started","false");
         try{
-            Profile p=verifyProfile(new File(a[1]),facts);f.put("profile","MATCHED_PINNED_LAUNCH");
+            Profile p=verifyProfile(new File(a[1]),facts);f.put("profile","MATCHED_PINNED_LAUNCH");readerFields(p,f);
             requireOwned(p);f.put("data_ownership","SYNTHETIC_OWNED_MARKER_MATCHED");
             Rlc2IntegrationStore.Admission admission=admission(p,a[3]);WatermarkV2Prototype.ReadOpener reader=reader(p);
             OfflineCandidatePreflight.Report report=preflight(p,a[2],admission,facts,reader);

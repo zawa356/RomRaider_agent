@@ -33,3 +33,40 @@ Sender/containers/VPS/MCP/Caddy/secrets. No merge, rebase, force push, tag, rele
 IX-1 R9-01 (CLI clean build + 4 CLI process tests + separate tool classes), R9-02 (report timeline), R9-03 (error=267
 isolation); IX-2 RLWR1 synthetic Windows reader; IX-3 gated entry wiring if IX-2 stable; IX-4 RLDI1 TOCTOU; IX-5 frozen
 acceptance and handoff. Branches stack on #96.
+
+## 2026-10-21 ≈10:20–11:00 JST — IX-1 (branch `phase9/cli-review-closure`, Draft PR #97)
+
+R9-01 (P1) — **reproduced**. At `ab32e6b5`, a clean `scripts/test-ingress-diagnostics.sh` (JDK17 x64) exits 0 but leaves
+no `IngressDiagnosticsCli`, `DeploymentTransitionCli`, `ArtifactProvenanceCli` or `DeploymentBindingCli` class in
+`build/ingress-diagnostics`; the documented `java … IngressDiagnosticsCli` fails with `ClassNotFoundException`
+(log `r901-diag-x64.log` SHA256 2219fc6b075e0a22ed9007a0bff52409489ded21e3727450fe166a0740932325). Nothing in the repo
+built the four split-out CLIs (they are not referenced by tests or the entry). Fix (`bc4226d`/`815dae7`):
+`scripts/build-offline-tools.sh` (separate tool JAR from `src/main` only; no Main-Class, JNA or test classes),
+`test-ingress-diagnostics.sh` compiles + starts `IngressDiagnosticsCli` explicitly, `scripts/test-phase9-cli.sh`
+(+`Phase9CliProcessTest`, 39 checks) separates build stage and child-JVM run stage (child classpath = tool JAR + deps).
+First drafts of my own test had two wrong expectations (IngressDiagnostics 2-arg = SESSION LEDGER; `--describe` of the
+tool JAR correctly refuses MAIN_CLASS_MISSING) — test corrected, product unchanged.
+
+R9-02 — `phase8_report.md`: row annotated "BLOCKED at 8b8a0f0 (historical)" and a timeline section appended.
+
+R9-03 — investigation (owned/read-only only): all 330 leftover `%TEMP%\romlogger-phase7-*` homes (created by earlier
+sessions' tests; not touched) have every file but **no `work` directory**, and `work` is the only always-empty
+directory of a fixture. Home-directory mtimes cluster at **2026-10-20 22:43** (262 homes) and **2026-10-21 04:53** (50);
+the failing x64 multisession run spanned ≈22:38 (start of restart pass) – 22:54 (log write). No repository code deletes
+`work`. Storage Sense is enabled (`01=1`, temp cleanup `04=1`, run cadence `2048=0` = on low disk space; C: ≈6 GB free).
+No Task Scheduler entry ran at those minutes; event logs show nothing attributable. Conclusion: an external cleaner
+removed empty directories under %TEMP% during the run — **ROOT_CAUSE_NOT_PROVEN** as to the exact actor. Owned probe
+(empty `work` + non-empty sibling under %TEMP% and a control outside TEMP, 20 s sampling, paths not logged) started
+10:42 (`r903-probe-*.log`). Fix: supervisor refuses `WORKING_DIRECTORY_MISSING` before `ProcessBuilder.start`
+(RED at bc4226d: `[5 REVIEW_REQUIRED]`, `r903-red-x64.log` 7bb96c5f…; GREEN at 815dae7 x64 + actual x86, 14 checks);
+fixture `work/` gets a keep marker; harness throws `FIXTURE_WORKDIR_MISSING` (no retry, no recreation).
+
+## 2026-10-21 ≈11:00–11:10 JST — IX-2 (branch `phase9/windows-reader-synthetic`, `c42c4a6`)
+
+RLWR1 `WindowsProductReader` (+ `WindowsProductReaderJna`) implemented per design with stable codes. Dev-tree results
+(not frozen): `scripts/test-phase9-reader.sh` JDK17 x64 exit0 (fake 54, native 43, RLC2 scenarios 99/198 incl. both share
+modes; log 42a6f9ac…), actual Zulu8 x86 `--run-only` exit0 (model=32, pointer=4, fake 54, native 44, scenarios 100/200;
+log 63167c89…). Iterations recorded: handle-count threshold (JVM background handles +27 → warm-up and <64 bound; a
+per-open leak would add ≥200), no-JNA child had to be a JNA-free nested class, MAX_READ long→int compile error, and the
+binding is loaded by fixed class name so the logic class compiles without JNA. NOT_RUN: symlinks (no privilege),
+non-NTFS/mapped/subst drives (no owned fixture). FILE_SHARE_DELETE and JNA licence: OWNER_DECISION_REQUIRED.

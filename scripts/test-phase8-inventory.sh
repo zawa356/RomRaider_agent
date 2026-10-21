@@ -10,7 +10,8 @@ out=build/phase8-inventory
 if [[ "${1:-}" != "--run-only" ]]; then
  rm -rf "$out"; mkdir -p "$out/closure" "$out/test" "$out/jars"
  # Same dependency closure as scripts/phase7-packaged.sh builds for the approved entry.
- javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath src/main/java -d "$out/closure" src/main/java/net/neristal/rrbridge/prototype/ingress/OfflineCandidateEntry.java
+ binding=(); if [[ $windows == 1 ]]; then binding=(src/main/java/net/neristal/rrbridge/prototype/ingress/WindowsProductReaderJna.java); fi
+ javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath src/main/java -d "$out/closure" src/main/java/net/neristal/rrbridge/prototype/ingress/OfflineCandidateEntry.java "${binding[@]}"
  (cd "$out/closure" && jar cf ../jars/romlogger-offline.jar .)
  javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath "src/main/java${sep}src/test/java" -d "$out/test" src/test/java/net/neristal/rrbridge/prototype/ingress/Phase8InventoryTest.java
 fi
