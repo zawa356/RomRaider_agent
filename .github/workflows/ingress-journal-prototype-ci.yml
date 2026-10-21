@@ -67,6 +67,13 @@ jobs:
       ROMLOGGER_REQUIRE_SYMLINK_TESTS: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Use a long-name temp directory on Windows
+        # CI verification only (2026-10-21): hosted runner %TEMP% is an 8.3 short path refused by product path guards.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -110,6 +117,13 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Use a long-name temp directory on Windows
+        # CI verification only (2026-10-21): hosted runner %TEMP% is an 8.3 short path refused by product path guards.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -148,6 +162,13 @@ jobs:
       ROMLOGGER_RLC2_PREVIEW_ENABLE: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Use a long-name temp directory on Windows
+        # CI verification only (2026-10-21): hosted runner %TEMP% is an 8.3 short path refused by product path guards.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
