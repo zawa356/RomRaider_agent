@@ -14,7 +14,7 @@ on:
       - 'src/test/java/net/neristal/rrbridge/prototype/ingress/**'
       - '.github/workflows/product-v1-real-server-e2e.yml'
   push:
-    branches: [main, 'feat/**', 'ci/**']
+    branches: [main, 'feat/**']
     paths:
       - 'src/main/java/net/neristal/rrbridge/product/v1/**'
       - 'src/test/java/net/neristal/rrbridge/product/v1/**'

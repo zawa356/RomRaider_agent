@@ -18,6 +18,8 @@ case "$group" in
 esac
 summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
 x86="${ROMLOGGER_CI_JAVA8_X86_HOME:-}"
+# A Windows path (C:\...) in a bash PATH prefix is not searched: convert it, or the x86 check sees JDK17 (fails closed).
+if [[ -n $x86 ]] && command -v cygpath >/dev/null; then x86=$(cygpath -u "$x86"); fi
 model(){ java -XshowSettings:properties -version 2>&1 | sed -n 's/^ *sun.arch.data.model = //p' | tr -d '\r'; }
 echo "### $group on $(uname -s) (x86 rerun: $([[ -n $x86 ]] && echo yes || echo NOT_RUN))" >> "$summary"
 echo "| suite | runtime | exit | PASS lines |" >> "$summary"; echo "|---|---|---|---|" >> "$summary"

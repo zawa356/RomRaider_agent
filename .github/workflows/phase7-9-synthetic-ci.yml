@@ -12,7 +12,7 @@ on:
       - 'lib/test-dependencies.sha256'
       - '.github/workflows/phase7-9-synthetic-ci.yml'
   push:
-    branches: [main, 'ci/**', 'phase9/**']
+    branches: [main]
     paths:
       - 'src/main/java/**'
       - 'src/test/java/**'
@@ -39,6 +39,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Use a long-name temp directory on Windows
+        # The hosted runner's %TEMP% is an 8.3 short path (C:\Users\RUNNER~1\...). Product path guards correctly refuse
+        # such aliases (DeploymentBinding PATH_ALIAS, RLWR1 READER_PATH_CHANGED); synthetic fixtures need a canonical path.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

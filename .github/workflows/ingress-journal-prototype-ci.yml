@@ -69,6 +69,14 @@ jobs:
       ROMLOGGER_REQUIRE_SYMLINK_TESTS: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Use a long-name temp directory on Windows
+        # The hosted runner's %TEMP% is an 8.3 short path (C:\Users\RUNNER~1\...). Product path guards correctly refuse
+        # such aliases (DeploymentBinding PATH_ALIAS, RLWR1 READER_PATH_CHANGED); synthetic fixtures need a canonical path.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -113,6 +121,14 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+      - name: Use a long-name temp directory on Windows
+        # The hosted runner's %TEMP% is an 8.3 short path (C:\Users\RUNNER~1\...). Product path guards correctly refuse
+        # such aliases (DeploymentBinding PATH_ALIAS, RLWR1 READER_PATH_CHANGED); synthetic fixtures need a canonical path.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -151,6 +167,14 @@ jobs:
       ROMLOGGER_RLC2_PREVIEW_ENABLE: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: Use a long-name temp directory on Windows
+        # The hosted runner's %TEMP% is an 8.3 short path (C:\Users\RUNNER~1\...). Product path guards correctly refuse
+        # such aliases (DeploymentBinding PATH_ALIAS, RLWR1 READER_PATH_CHANGED); synthetic fixtures need a canonical path.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "TMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "TEMP=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
