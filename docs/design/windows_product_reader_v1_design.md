@@ -54,3 +54,10 @@ any production path. Adoption requires a new reader version, its own implementat
   on the real writer behaviour, which is out of scope for synthetic work.
 - Whether JNA (Apache/LGPL dual licence) may ship in the offline tool distribution (GPL v2 RomRaider context, AGENTS §2).
 - Minimum Windows version and whether network/redirected drives are ever acceptable (currently: no).
+
+## Update 2026-10-21 (Phase IX-2)
+
+A synthetic candidate implementing §2 now exists: [RLWR1 interface](../interfaces/windows_product_reader_v1.md)
+(`WindowsProductReader` + `WindowsProductReaderJna`). It is not wired into the entry (that is Phase IX-3, gated) and §4
+decisions remain open. Differences from §2: hard-linked sources are refused (`READER_HARDLINK_PRESENT`), the final path
+of the opened handle must equal the requested path (`READER_PATH_CHANGED`), and subst/removable drives are refused.
