@@ -106,3 +106,23 @@ co-installed layout is MISMATCH while the entry JAR alone is MATCHED (still BLOC
 `DeploymentTransitionCli --plan-synthetic` use the POSIX reader; on Windows their exit 0 is not claimed.
 Launch environments must not carry `JAVA_TOOL_OPTIONS`/`_JAVA_OPTIONS`/`JDK_JAVA_OPTIONS` (the JVM honours them before
 any CLI code runs); the CLIs cannot refuse them themselves.
+
+## Update: changes that keep size and mtime (Phase IX-4, R9-04, 2026-10-21)
+
+Before Phase IX the final re-check compared only size, mtime and the file set, so a same-size/same-mtime byte change
+or a byte-identical physical replacement made after hashing was still reported `MATCHED` (reproduced:
+`bash scripts/test-phase9-inventory-race.sh --expect-red` on the pre-fix code, 4 RED). Now, for every listed file, the
+physical identity (`DeploymentBinding.fileIdentity`: POSIX dev/inode, NTFS volume serial + file ID) is read before
+hashing; a JAR is re-hashed right after its entries are scanned (scanned bytes = hashed bytes, else stop); at the end every
+listed file is re-hashed and its identity re-read. Any difference stops with `INPUT_CHANGED_DURING_INVENTORY`; an
+unavailable identity stops with `FILE_IDENTITY_<code>`. Limits that remain: Java cannot hash and identify through one
+handle, so a change-and-restore entirely between two reads is not excluded; the inventory is a snapshot, not runtime
+fencing; Windows ACLs stay `UNKNOWN_WINDOWS_ACL_NOT_INSPECTED`; `global_old_binary_exclusion=NOT_PROVEN`.
+
+## Finding F-IX-1: a real install with the entry's own dependencies cannot be MATCHED (2026-10-21, open)
+
+The approved entry needs sqlite-jdbc (and slf4j; JNA for RLWR1). Inventoried as `dependency_jar`, these produce
+`UNAPPROVED_MAIN_METHOD` (`com.sun.jna.Native`, `org.sqlite.util.OSInfo`), `UNAPPROVED_MANIFEST_MAIN` (sqlite-jdbc) and
+`VERSIONED_OR_META_CLASS` (multi-release classes) → `MISMATCH`. Phase VIII's packaged-closure MATCHED covered the approved
+JAR alone. This is **not relaxed**: options (an RLDI2 per-SHA-256 allow-list of known third-party entries, or
+repackaging) are an owner/design decision. Pinned by `Phase9ReaderEntryTest`.

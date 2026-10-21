@@ -93,20 +93,27 @@ public final class DistributionInventory {
             files=tree.size();
             for(String name:listed.keySet())if(!tree.containsKey(name))add(findings,"LISTED_FILE_MISSING");
             int approvedJars=0;boolean approvedMainFound=false;Map<String,String> classOwner=new HashMap<String,String>();
+            // Phase IX-4 (R9-04): per listed file, physical identity before hashing and the hash itself are pinned and re-checked at the end.
+            Map<String,String> pinnedSha=new HashMap<String,String>(),pinnedId=new HashMap<String,String>();
             for(Map.Entry<String,BasicFileAttributes> e:tree.entrySet()){
                 String name=e.getKey();File f=base.resolve(name.replace('/',File.separatorChar)).toFile();String[] want=listed.get(name);
                 String ext=name.lastIndexOf('.')>name.lastIndexOf('/')?name.substring(name.lastIndexOf('.')+1).toLowerCase(Locale.ROOT):"";
                 if(want==null){add(findings,LAUNCHER_EXT.contains(ext)?"UNLISTED_EXECUTABLE_OR_ARCHIVE":"UNLISTED_FILE");}
                 else{
                     if(e.getValue().size()>MAX_FILE){add(findings,"FILE_BOUND");continue;}
-                    if(!want[0].equals(DeploymentTransition.fileSha(f)))add(findings,"FILE_HASH_MISMATCH");
+                    pinnedId.put(name,identityOf(f));
+                    String sha=DeploymentTransition.fileSha(f);pinnedSha.put(name,sha);
+                    if(!want[0].equals(sha))add(findings,"FILE_HASH_MISMATCH");
                     boolean jarRole=want[1].endsWith("_jar");
                     if(jarRole!=ext.equals("jar")||("launcher".equals(want[1])!=(LAUNCHER_EXT.contains(ext)&&!ext.equals("jar"))))add(findings,"ROLE_DOES_NOT_MATCH_FILE");
                     if("approved_jar".equals(want[1]))approvedJars++;
                 }
                 if(ext.equals("jar")){
                     boolean isApproved=want!=null&&"approved_jar".equals(want[1]);
+                    hook.at("HASHED:"+name);
                     approvedMainFound|=scanJar(f,approved,isApproved,findings,mains,classOwner);
+                    // The bytes scanned for entries must be the bytes that were hashed (no swap between hash and scan).
+                    if(pinnedSha.containsKey(name))require(pinnedSha.get(name).equals(DeploymentTransition.fileSha(f)),"INPUT_CHANGED_DURING_INVENTORY");
                 }
             }
             if(approvedJars!=1)add(findings,"APPROVED_JAR_COUNT");
@@ -121,6 +128,12 @@ public final class DistributionInventory {
             }
             Walk again=new Walk(base);Files.walkFileTree(base,EnumSet.noneOf(FileVisitOption.class),MAX_DEPTH+1,again);
             require(again.tree.keySet().equals(tree.keySet())&&again.links==walk.links,"INPUT_CHANGED_DURING_INVENTORY");
+            // Same size and mtime is not enough (R9-04): every listed file is re-hashed and its physical identity re-read.
+            for(Map.Entry<String,String> e:pinnedSha.entrySet()){
+                File f=base.resolve(e.getKey().replace('/',File.separatorChar)).toFile();
+                String id;try{id=identityOf(f);}catch(IOException gone){throw new Refusal("INPUT_CHANGED_DURING_INVENTORY");}
+                require(id.equals(pinnedId.get(e.getKey()))&&e.getValue().equals(DeploymentTransition.fileSha(f)),"INPUT_CHANGED_DURING_INVENTORY");
+            }
             if(!findings.isEmpty())return new Report("MISMATCH",findings.keySet().iterator().next(),findings,mains,files,acl);
             return new Report("MATCHED","INVENTORY_MATCHED_NOT_AUTHORIZATION",findings,mains,files,acl);
         }catch(Exception failure){
@@ -157,6 +170,10 @@ public final class DistributionInventory {
             require(out.put(p,new String[]{sha,role})==null,"INVENTORY_DUPLICATE_PATH");
         }
         return out;
+    }
+    /** Physical identity (POSIX dev/inode or NTFS volume + file ID) of a listed file; unavailable is a refusal, never skipped. */
+    private static String identityOf(File f)throws IOException {
+        try{return DeploymentBinding.fileIdentity(f);}catch(DeploymentBinding.Refusal r){throw new Refusal("FILE_IDENTITY_"+r.getMessage());}
     }
     private static String rel(Path base,Path f){StringBuilder b=new StringBuilder();for(Path part:base.relativize(f)){if(b.length()>0)b.append('/');b.append(part.toString());}return b.toString();}
     private static void add(Map<String,Integer> m,String code){Integer n=m.get(code);m.put(code,n==null?1:n+1);}
