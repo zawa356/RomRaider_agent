@@ -227,6 +227,8 @@ public final class OfflineCandidateEntry {
             Map<String,String> run=new TreeMap<String,String>();run.put("version",RUN_VERSION);run.put("nonce",nonce);run.put("profile_sha256",p.sha256);run.put("manifest_sha256",a[2]);run.put("sources",a[3]);
             DeploymentBinding.createRecord(runs.resolve(nonce+".rlor1"),DeploymentBinding.encodeRecord(run));
             List<String> command=Arrays.asList(p.javaExecutable.getPath(),"-cp",p.record.get("classpath"),MAIN,"--synthetic-owned-child",a[1],a[2],a[3],nonce);
+            // Phase IX R9-03: a pinned working directory removed after the profile check is a stable refusal, not a Win32 error.
+            require(Files.isDirectory(p.workingDirectory.toPath(),LinkOption.NOFOLLOW_LINKS),"WORKING_DIRECTORY_MISSING");
             ProcessBuilder builder=new ProcessBuilder(command).directory(p.workingDirectory);
             for(String name:new String[]{"JAVA_TOOL_OPTIONS","_JAVA_OPTIONS","JDK_JAVA_OPTIONS","CLASSPATH"})builder.environment().remove(name);
             Process child=builder.start();f.put("child_started","true");

@@ -28,7 +28,7 @@ Phase VII session; Server runtime/schema/wire unchanged at d8c7a2f).
 | F2 uncoded preflight cause | IMPLEMENTED_AND_TESTED (code-only `inspection_cause`); end-to-end reader code lost by adapter = documented limit | 2ccae84 |
 | fileSha bound while reading | IMPLEMENTED_AND_TESTED | 2ccae84 |
 | VIII-1 RLDI1 inventory, entry `--inventory` | IMPLEMENTED_AND_TESTED | 8b8a0f0 Windows x64, actual x86, Linux (worklog) |
-| VIII-1 real entry package inventory-clean | **BLOCKED** | four secondary `main` classes in the closure JAR → MISMATCH |
+| VIII-1 real entry package inventory-clean | **BLOCKED at 8b8a0f0** (historical; see timeline below: MATCHED since 95a4a30) | four secondary `main` classes in the closure JAR → MISMATCH |
 | VIII-1 old-binary exclusion beyond one directory | NOT PROVEN (by design) | copies elsewhere / other users / hand-started JVMs out of reach; D2 blocker |
 | VIII-1 Windows ACL inspection | UNKNOWN | not inspected |
 | VIII-2 ≥10 sessions through the entry, restart 0 dup, cross-session refusals, concurrency | IMPLEMENTED_AND_TESTED | 8b8a0f0 Windows x64, actual x86, Linux |
@@ -49,3 +49,18 @@ Phase VII session; Server runtime/schema/wire unchanged at d8c7a2f).
 5. Only then, and only with explicit authorization: any path toward a real Sender/formal ACK.
 
 Do not merge any PR while CI has not executed. Keep launch/production/ACK disabled.
+
+## Timeline update — added 2026-10-21 by Phase IX (R9-02); rows above are kept as written at 8b8a0f0
+
+| Head | Entry closure RLDI1 | Source |
+|---|---|---|
+| `8b8a0f0` (#95, Phase VIII) | **MISMATCH** — four secondary `main` (ArtifactProvenance, DeploymentBinding, DeploymentTransition, IngressDiagnostics) | this report, worklog Phase VIII results |
+| `95a4a30` (#96, VIII-1b runtime/tests) | **MATCHED**, `unapproved_mains=[]`, `findings={}`; still `state=BLOCKED`, `launch_authorized=false` | [phase8_worklog.md](phase8_worklog.md) "Phase VIII-1b" (Windows x64 + actual x86 exit0) |
+| `ab32e6b5` (#96 head) | unchanged from 95a4a30 (documentation only) | same |
+| Phase IX `phase9/cli-review-closure` | MATCHED kept; the split-out CLIs now have an explicit separate tool JAR build and real process tests (R9-01) | [phase9_worklog.md](phase9_worklog.md), [phase9 evidence](phase9_validation_evidence.md) |
+
+Next safe gate 1 of this report ("split the four secondary main CLIs out") was closed by #96 for the **one inventoried
+directory** only. Still true at every head: MATCHED is not launch/production/ACK authorization;
+`global_old_binary_exclusion=NOT_PROVEN`; Windows ACL `UNKNOWN_WINDOWS_ACL_NOT_INSPECTED`; production AUTH disabled.
+At 95a4a30 the x64 multisession first attempt failed (exit1, `CreateProcess error=267`) and the same-head rerun passed;
+both remain recorded. Phase IX analysed that failure (R9-03) — see the Phase IX worklog.

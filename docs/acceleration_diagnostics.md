@@ -37,7 +37,7 @@ the absence of a concurrent writer from its own observations.
 Linux (after existing dependency setup):
 
 ```bash
-bash scripts/test-ingress-diagnostics.sh
+bash scripts/test-ingress-diagnostics.sh   # builds IngressDiagnosticsCli explicitly since Phase IX (R9-01)
 java -cp 'build/ingress-diagnostics:lib/*' \
   net.neristal.rrbridge.prototype.ingress.IngressDiagnosticsCli SESSION LEDGER --json
 ```

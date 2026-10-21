@@ -86,3 +86,23 @@ The four CLIs above moved to `ArtifactProvenanceCli`, `DeploymentBindingCli`, `D
 `javac -sourcepath src/main/java OfflineCandidateEntry.java` now has no unapproved main and RLDI1 reports it `MATCHED`
 (`scripts/test-phase8-inventory.sh` now requires this). `MATCHED` is still only an inventory of this directory: it is not
 launch permission, not production authorization and not proof that old binaries elsewhere are excluded.
+
+## Update: explicit offline tool build (Phase IX-1, R9-01, 2026-10-21)
+
+The four tool CLIs were not compiled by any build or test script at 95a4a30/ab32e6b5 (no test referenced
+`IngressDiagnosticsCli`, so a clean `scripts/test-ingress-diagnostics.sh` build produced no CLI class and the documented
+`java … IngressDiagnosticsCli` failed with `ClassNotFoundException`). They are now built explicitly:
+
+```bash
+bash scripts/build-offline-tools.sh [OUT_DIR]   # default build/offline-tools → romlogger-offline-tools.jar (no Main-Class, no JNA, no test classes)
+```
+
+The tool JAR is a separate artifact. It must not be placed in an approved entry install: RLDI1 reports such a directory
+`MISMATCH` (four `UNAPPROVED_MAIN_METHOD` + `DUPLICATE_CLASS`). `scripts/test-phase9-cli.sh` builds it in its own stage,
+then starts every CLI as a real child JVM with classpath = tool JAR + pinned dependencies only (usage exit 2, refused
+exit 5, synthetic success exit 0 where the CLI does not need a native reader, no path/canary leak), and proves the
+co-installed layout is MISMATCH while the entry JAR alone is MATCHED (still BLOCKED). The JAR is not byte-reproducible
+(JAR entry timestamps); its SHA-256 is printed per build. `IngressDiagnosticsCli` healthy-session and
+`DeploymentTransitionCli --plan-synthetic` use the POSIX reader; on Windows their exit 0 is not claimed.
+Launch environments must not carry `JAVA_TOOL_OPTIONS`/`_JAVA_OPTIONS`/`JDK_JAVA_OPTIONS` (the JVM honours them before
+any CLI code runs); the CLIs cannot refuse them themselves.

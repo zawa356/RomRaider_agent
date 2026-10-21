@@ -48,3 +48,11 @@ Fixed codes, counts and hashes only; no paths, payload or session identifiers. E
 ## Not provided
 
 Product live operation, automatic start, Sender connection, formal ACK, existing DB migration, global fencing, exclusion of arbitrary old binaries, Windows running-process provenance, Windows directory durability.
+
+## Update: vanished working directory (Phase IX-1, R9-03, 2026-10-21)
+
+Immediately before starting the child, the supervisor re-checks that the pinned `working_directory` still exists as a
+directory (no link following). If it was removed after the profile check, the run is refused with the stable code
+`WORKING_DIRECTORY_MISSING` (exit 5), no child is started and no data or output byte changes. Previously the same case
+surfaced as an uncoded `REVIEW_REQUIRED` (Win32 `CreateProcess error=267` inside `ProcessBuilder.start`). The supervisor
+never recreates the directory and never retries. Test: `bash scripts/phase7-packaged.sh Phase9WorkdirTest`.
