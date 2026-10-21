@@ -94,3 +94,16 @@ non-NTFS/mapped/subst drives (no owned fixture). FILE_SHARE_DELETE and JNA licen
   make it deterministic, so no RED is claimed). Frozen acceptance at bc91d17 was stopped after 7 suites (all exit0; logs
   kept in `accept-bc91d17`) because the review fixes change runtime code; owned leftover JVM/driver processes of that
   checkout were terminated (only those).
+
+## 2026-10-21 12:09–15:16 JST — IX-5 frozen acceptance and close
+
+- Frozen `987e504` (all Phase IX runtime/tests): 11 suites JDK17 x64 + 11 suites actual Zulu8 x86, **all exit0**,
+  dirty=0 before/after (table in [evidence](phase9_validation_evidence.md)). Multisession 10 sessions passed first time on
+  both runtimes. IX-1 frozen `815dae7` x64 10 suites exit0; its x86 part interrupted by me (covered by 987e504).
+- CI on all phase9 branches: jobs `steps=0` → CI NOT RUN. No merge, rebase, force push, tag or release.
+- R9-03 probe stopped at ≈15:17 (owned process only); only one removal observed (11:46:25). Probe dirs
+  (`%TEMP%\romlogger-p9probe-*`, `C:\Dev\RomLogger\p9-probe-*`) are owned synthetic leftovers.
+- Server: docs-only Draft PR RomRaiderServer#65 on #64.
+- Not run: Linux, owned PG16/HTTP35/10k load, Phase V/VI suites, symlink and non-NTFS fixtures.
+- Resume point: owner decisions in the [Phase IX report](phase9_report.md) (FILE_SHARE_DELETE, JNA licence, F-IX-1
+  RLDI1 third-party dependency policy); then RLDI2 design / Windows ACL evidence / Linux rerun of Phase IX scripts.

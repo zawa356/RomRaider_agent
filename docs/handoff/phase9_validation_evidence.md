@@ -42,7 +42,34 @@ head, whose actual-x86 run is below. Dev-tree (not frozen) actual-x86 IX-1 runs 
 
 ## Top frozen `987e5044924d6965cd1ec83da29ab2fe36dfad6a` (PR #100 head) — `phase9-accept-987e504`
 
-(results appended below when the run completes)
+`phase9-accept-987e504`, dirty=0 before and after, 12:09–15:16 JST, sequential (concurrent with the 815dae7 x64 run until 12:30). This head contains all Phase IX runtime/test code (IX-1…IX-4 + review fixes); later commits on #100 are documentation only.
+
+| Runtime / command | Exit | PASS lines | Log SHA-256 |
+|---|---|---|---|
+| JDK17 x64 `test-phase9-cli.sh` | 0 | 39 | 7af8cdc070f235ed7b1729331b31d2d7307e12946a4d677c5402da88337aaf87 |
+| JDK17 x64 `test-ingress-diagnostics.sh` | 0 | 76 | d1be36d64ae50143b201ba01259b95c0998c69711c2544902e5012683da744a8 |
+| JDK17 x64 `test-phase9-reader.sh` | 0 | 298 | 305500974afcdd0383d0d1afff40f8be4f3df14ced148df7ec21ad3d2e62d228 |
+| JDK17 x64 `test-phase9-inventory-race.sh` | 0 | 17 | 59f2e1aaa50e6b0277e925a5ce801b098f3ee4a18808dd1554b612ba1a6261ab |
+| JDK17 x64 `test-phase8-inventory.sh` | 0 | 70 | f425de994f702bd23be404d47975e5d49519f9310cff859e2162ff4db88ff2bc |
+| JDK17 x64 `phase7-packaged.sh Phase9WorkdirTest` | 0 | 15 | dcef49c93cc585c73732eb412bca73cee1fbc5c6b2ed7c59b7cddedefb0be31e |
+| JDK17 x64 `phase7-packaged.sh Phase9LauncherEnvTest` | 0 | 25 | ed3195bc435839f475026eb359eb2a2a7a5880757790602efe8bb8491d815085 |
+| JDK17 x64 `phase7-packaged.sh Phase9ReaderEntryTest` | 0 | 74 | 3b5b2ef715dadf96200831ca3433a98bb51f62d3c19014760c8c9bf12059734c |
+| JDK17 x64 `test-phase8-readiness.sh` | 0 | 22 | cafec28af24cbadab4b67aa8f4846c50339632442d7b04fa60308dd0f6c58cae |
+| JDK17 x64 `test-phase7.sh` | 0 | 256 | ff18309f4db6a8041536185f2589cd06d89e1e42d4773a5272e31a28a1b32d91 |
+| JDK17 x64 `test-phase8-multisession.sh` | 0 | 229 | 6e6f7d071ba658719f7831a3845b87e3297c13ef892042f3488b299f814750f3 |
+| actual Zulu8 x86 `test-phase9-cli.sh` | 0 | 39 | f1f44b3e6ff9c9c2c9c3917e1e97390c4a3a33769233247b38e02b2e3b4bb587 |
+| actual Zulu8 x86 `test-ingress-diagnostics.sh` | 0 | 79 | 8dec91b9e8c74cf16d43c572dfe39a8d61937cf7ae8d7ef1f5c539b35dff135d |
+| actual Zulu8 x86 `test-phase9-reader.sh` | 0 | 299 | 92cd609071779b2bd016718d8482e6ce354beadcab6769298db58997c5ebb79b |
+| actual Zulu8 x86 `test-phase9-inventory-race.sh` | 0 | 17 | 59f2e1aaa50e6b0277e925a5ce801b098f3ee4a18808dd1554b612ba1a6261ab |
+| actual Zulu8 x86 `test-phase8-inventory.sh` | 0 | 71 | 3082ba8d5389a03084b6bb053ab01691d31e112cb06cf04eed629c0efc2339c4 |
+| actual Zulu8 x86 `phase7-packaged.sh Phase9WorkdirTest` | 0 | 15 | dcef49c93cc585c73732eb412bca73cee1fbc5c6b2ed7c59b7cddedefb0be31e |
+| actual Zulu8 x86 `phase7-packaged.sh Phase9LauncherEnvTest` | 0 | 23 | f28aa69291f889d0da2cf64eac6f0c5fe4bc924a13f4746b94cb01eb835f7464 |
+| actual Zulu8 x86 `phase7-packaged.sh Phase9ReaderEntryTest` | 0 | 75 | 320d5f23602a40d18d9cfe90a0eccec1d80796d19ada94bbc048207c73d7433a |
+| actual Zulu8 x86 `test-phase8-readiness.sh` | 0 | 23 | 3a6a0b952739e4b518028c628f0d9f3c1c204a341b369d7b8e13d74e95ccdc9b |
+| actual Zulu8 x86 `test-phase7.sh` | 0 | 260 | 8dad265a54c85bc3927e0b2826f3379232cb38e1f25f7f37a4b7de8c80a29599 |
+| actual Zulu8 x86 `test-phase8-multisession.sh` | 0 | 230 | 71b4d39150ede56476fcda068d11d38109f300b2a69a8cc927610ae6d9efc7d2 |
+
+Notes: x86 logs whose SHA equals the x64 log (inventory-race, Phase9WorkdirTest) print no runtime line; the script refused to run unless `sun.arch.data.model=32`. x86 Phase9LauncherEnvTest: `JDK_JAVA_OPTIONS` IGNORED_BY_RUNTIME on Java 8 (reported, 23 vs 25 PASS lines). Multisession = 10 sessions, first attempt, both runtimes; no `CreateProcess error=267` this session.
 
 ## Not run / not proven
 

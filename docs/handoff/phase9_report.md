@@ -69,3 +69,12 @@ profile pin covers the classpath). No P0.
 Decide 1–3; then an independent review of RLWR1 native calls; RLDI2 design for third-party dependencies; Windows ACL
 evidence; only then any path toward real-writer measurements (still synthetic until authorized). Do not merge while CI
 has not executed. Launch/production/ACK stay disabled.
+
+## Phase status (handoff format)
+
+- Time: 2026-10-21 ≈10:15–15:20 JST. Agent main `4f80c5e`, Server main `d8c7a2f` (unchanged).
+- IX-0 COMPLETE · IX-1 COMPLETE (#97) · IX-2 COMPLETE as synthetic candidate, adoption BLOCKED (#98) · IX-3 COMPLETE for a
+  3-session subset, BLOCKED by F-IX-1 and owner decisions (#99) · IX-4 COMPLETE for R9-04 + launcher env; Windows ACL
+  NOT_RUN/UNKNOWN (#100) · IX-5 COMPLETE (frozen 987e504 Windows x64 + actual x86 exit0; Linux/HTTP NOT_RUN; CI NOT RUN).
+- Original data, ACK, Server wire/schema untouched; production/launch/ACK disabled; no ECU/X270/RomRaider contact.
+- Next agent reads: AGENTS.md → bootstrap → this report → evidence → worklog on branch `phase9/distribution-hardening`.
