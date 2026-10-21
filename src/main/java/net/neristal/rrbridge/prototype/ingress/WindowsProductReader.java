@@ -47,7 +47,8 @@ public final class WindowsProductReader implements WatermarkV2Prototype.ReadOpen
     public static final class Refusal extends IOException {
         public final String code;public final int win32;
         Refusal(String code){this(code,0);}
-        Refusal(String code,int win32){super(win32==0?code:code+" win32="+win32);this.code=code;this.win32=win32;}
+        // Message is the bare code so generic IOException handlers (preflight cause()) keep it; the Win32 number is a field.
+        Refusal(String code,int win32){super(code);this.code=code;this.win32=win32;}
     }
 
     /** Minimal native surface. Raw handle values; structures are returned as little-endian byte images. */
@@ -133,7 +134,7 @@ public final class WindowsProductReader implements WatermarkV2Prototype.ReadOpen
         }
         long h=api.createFile(path,GENERIC_READ,share.bits,FLAG_OPEN_REPARSE_POINT);
         if(invalid(h))throw openFailure(api.lastError());
-        Handle handle=new Handle(h);
+        Handle handle=new Handle(h);boolean ok=false;
         try{
             String fs=api.fileSystem(h);
             if(fs==null||!"NTFS".equalsIgnoreCase(fs))throw new Refusal("READER_FILESYSTEM_UNSUPPORTED");
@@ -142,8 +143,8 @@ public final class WindowsProductReader implements WatermarkV2Prototype.ReadOpen
             if(fin.startsWith("\\\\?\\")&&!fin.startsWith("\\\\?\\UNC\\"))fin=fin.substring(4);
             if(!fin.equalsIgnoreCase(path))throw new Refusal("READER_PATH_CHANGED");
             handle.opened=handle.check();
-            return handle;
-        }catch(IOException|RuntimeException e){handle.closeQuietly();throw e;}
+            ok=true;return handle;
+        }finally{if(!ok)handle.closeQuietly();}// also on Error (e.g. UnsatisfiedLinkError on first bind)
     }
 
     private static Refusal openFailure(int err){

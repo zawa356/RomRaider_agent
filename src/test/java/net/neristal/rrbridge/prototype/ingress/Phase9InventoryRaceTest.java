@@ -47,6 +47,20 @@ public final class Phase9InventoryRaceTest {
              DistributionInventory.Report r=during(t,stage,rel,REPLACE,done);
              stopped(r,done[0]&&Arrays.equals(before,Files.readAllBytes(f))&&!id.equals(net.neristal.rrbridge.product.v1.DeploymentBinding.fileIdentity(f.toFile())),"byte-identical physical replacement of "+rel+" at "+stage);}
         }
+        // Review P1 (A-B-A): the pinned approved JAR carries an unapproved main; a clean JAR is swapped in right after hashing
+        // and the original restored before the end. The scan must still see the hashed (pinned) bytes.
+        if(!Boolean.getBoolean("phase9.expectRed")){
+            final Install t=new Install(Phase8InventoryTest.classes(OfflineCandidateEntry.class,DistributionInventory.class,DeploymentTransitionCli.class));
+            final Path jar=t.root.resolve("lib/romlogger-offline.jar");final byte[] original=Files.readAllBytes(jar);final FileTime m=Files.getLastModifiedTime(jar);
+            final byte[] clean;{Path tmp=t.home.resolve("clean.jar");Phase8InventoryTest.jar(tmp,null,Phase8InventoryTest.classes(OfflineCandidateEntry.class,DistributionInventory.class));clean=Files.readAllBytes(tmp);}
+            check("MISMATCH".equals(t.inspect().inventory),"baseline: pinned approved JAR with a secondary main is MISMATCH");
+            final boolean[] swapped={false,false};
+            DistributionInventory.Report r=DistributionInventory.inspect(true,t.root.toFile(),t.record,new DistributionInventory.Hook(){public void at(String s)throws Exception{
+                if(s.equals("HASHED:lib/romlogger-offline.jar")){Files.write(jar,clean);swapped[0]=true;}
+                if(s.equals("SCANNED")&&swapped[0]){Files.write(jar,original);Files.setLastModifiedTime(jar,m);swapped[1]=true;}}});
+            check(swapped[0]&&swapped[1]&&Arrays.equals(original,Files.readAllBytes(jar)),"A-B-A fixture swapped a clean JAR in and restored the original");
+            check(!r.matched()&&r.unapprovedMains.contains(DeploymentTransitionCli.class.getName()),"A-B-A: scan used the hashed bytes, secondary main still found ["+r.inventory+" "+r.reason+"]");
+        }
         // Regressions: unchanged install still MATCHED; directory swapped for a junction/symlink stops.
         {Install t=new Install();DistributionInventory.Report r=t.inspect();check(r.matched(),"untouched install stays MATCHED (still BLOCKED) "+r.json());}
         {final Install t=new Install();final boolean[] done={false};

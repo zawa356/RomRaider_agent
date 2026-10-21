@@ -10,7 +10,10 @@ out=build/phase9-cli
 if [[ "${1:-}" != "--run-only" ]]; then
  rm -rf "$out"; mkdir -p "$out/closure" "$out/test" "$out/jars"
  bash scripts/build-offline-tools.sh "$out/tools"
- javac --release 8 -encoding UTF-8 -cp "$deps" -sourcepath src/main/java -d "$out/closure" src/main/java/net/neristal/rrbridge/prototype/ingress/OfflineCandidateEntry.java
+ # Same entry closure as phase7-packaged.sh / test-phase8-inventory.sh (on Windows incl. the RLWR1 JNA binding).
+ binding=(); ecp="$deps"
+ case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) binding=(src/main/java/net/neristal/rrbridge/prototype/ingress/WindowsProductReaderJna.java); ecp="${deps};build/identity-deps/jna-5.14.0.jar";; esac
+ javac --release 8 -encoding UTF-8 -cp "$ecp" -sourcepath src/main/java -d "$out/closure" src/main/java/net/neristal/rrbridge/prototype/ingress/OfflineCandidateEntry.java "${binding[@]}"
  (cd "$out/closure" && jar cf ../jars/romlogger-offline.jar .)
  javac --release 8 -encoding UTF-8 -cp "$deps" -sourcepath "src/main/java${sep}src/test/java" -d "$out/test" src/test/java/net/neristal/rrbridge/product/v1/Phase9CliProcessTest.java
 fi

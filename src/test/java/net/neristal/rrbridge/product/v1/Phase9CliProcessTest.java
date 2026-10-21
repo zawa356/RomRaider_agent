@@ -50,7 +50,8 @@ public final class Phase9CliProcessTest {
         toolJar=new File(a[0]).getAbsoluteFile();File entryJar=new File(a[1]).getAbsoluteFile();deps=a[2];
         home=DeploymentBindingTest.privateDir(Files.createTempDirectory("romlogger-phase9-cli-"));
         String own=System.getProperty("java.class.path");
-        check(!(toolJar+File.pathSeparator+deps).contains(own.split(File.pathSeparator.equals(";")?";":":")[0]),"child classpath excludes this test's class directory");
+        boolean excluded=true;for(String part:own.split(File.pathSeparator.equals(";")?";":":")){if(part.endsWith(".jar"))continue;String abs=new File(part).getAbsolutePath();for(String c:(toolJar+File.pathSeparator+deps).split(File.pathSeparator.equals(";")?";":":"))if(new File(c).getAbsolutePath().equals(abs))excluded=false;}
+        check(excluded,"child classpath excludes every class directory of this test");
 
         // 1. tool JAR holds exactly the four CLIs as public static mains (loaded in an isolated loader from the JAR only).
         try(URLClassLoader l=new URLClassLoader(new URL[]{toolJar.toURI().toURL()},ClassLoader.getSystemClassLoader().getParent())){
@@ -116,7 +117,7 @@ public final class Phase9CliProcessTest {
         File shadowJar=home.resolve("shadow.jar").toFile();
         try(JarOutputStream j=new JarOutputStream(new FileOutputStream(shadowJar))){
             j.putNextEntry(new JarEntry("net/neristal/rrbridge/prototype/ingress/IngressDiagnosticsCli.class"));
-            try(InputStream in=new JarFile(toolJar).getInputStream(new JarFile(toolJar).getJarEntry("net/neristal/rrbridge/product/v1/DeploymentBindingCli.class"))){byte[] b=new byte[8192];int n;while((n=in.read(b))>0)j.write(b,0,n);}
+            try(JarFile tj=new JarFile(toolJar);InputStream in=tj.getInputStream(tj.getJarEntry("net/neristal/rrbridge/product/v1/DeploymentBindingCli.class"))){byte[] b=new byte[8192];int n;while((n=in.read(b))>0)j.write(b,0,n);}
         }
         Map<String,String> env=new HashMap<String,String>();env.put("CLASSPATH",shadowJar.toString());
         r=run(toolJar+File.pathSeparator+deps,env,CLIS[3]);check(r.exit==2&&!r.out.contains("REVIEW_REQUIRED"),"CLASSPATH environment cannot shadow an explicit -cp");

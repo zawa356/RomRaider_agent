@@ -1,5 +1,15 @@
 # Development environment bootstrap — start here
 
+## Phase IX current entry — 2026-10-21 (not merged)
+
+Use [this bootstrap on the Phase IX top branch](https://github.com/zawa356/RomRaider_agent/blob/phase9/distribution-hardening/docs/ops/development_environment_bootstrap.md) → [Phase IX report](https://github.com/zawa356/RomRaider_agent/blob/phase9/distribution-hardening/docs/handoff/phase9_report.md) → [evidence](https://github.com/zawa356/RomRaider_agent/blob/phase9/distribution-hardening/docs/handoff/phase9_validation_evidence.md) → [append-only worklog](https://github.com/zawa356/RomRaider_agent/blob/phase9/distribution-hardening/docs/handoff/phase9_worklog.md).
+
+Stack: … #96 → [#97](https://github.com/zawa356/RomRaider_agent/pull/97) `phase9/cli-review-closure` → [#98](https://github.com/zawa356/RomRaider_agent/pull/98) `phase9/windows-reader-synthetic` → [#99](https://github.com/zawa356/RomRaider_agent/pull/99) `phase9/windows-reader-entry-gated` → [#100](https://github.com/zawa356/RomRaider_agent/pull/100) `phase9/distribution-hardening` (top). Server docs: [RomRaiderServer#65](https://github.com/zawa356/RomRaiderServer/pull/65) on #64. All draft/unmerged; CI NOT RUN. Implementation worktree `C:\Dev\RomLogger\phase9-work`; frozen checkouts `C:\Dev\RomLogger\phase9-accept-<sha7>`; logs `C:\Dev\RomLogger\logs\phase9`.
+
+New tests: `scripts/test-phase9-cli.sh` (tool JAR + 4 CLI child JVMs; build tools with `scripts/build-offline-tools.sh`), `scripts/test-phase9-reader.sh` (RLWR1), `scripts/test-phase9-inventory-race.sh` (`--expect-red` on pre-fix code), `scripts/phase7-packaged.sh Phase9WorkdirTest|Phase9ReaderEntryTest|Phase9LauncherEnvTest`. Windows: `--run-only` under actual Zulu8 x86 with `ROMLOGGER_EXPECT_DATA_MODEL=32` after the JDK17 build.
+
+RLWR1 adoption BLOCKED (FILE_SHARE_DELETE, JNA licence = OWNER_DECISION_REQUIRED). Finding F-IX-1: a real install with the entry's sqlite-jdbc/JNA JARs is RLDI1 MISMATCH (not relaxed). Synthetic fixtures under %TEMP% can lose empty directories to the VM's temp cleaner (R9-03). Earlier entries below are history.
+
 ## Phase VII current entry — 2026-10-20 (not merged)
 
 Use [this bootstrap on the Phase VII top branch](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/ops/development_environment_bootstrap.md) → [Phase VII report](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_report.md) → [exact-head evidence](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_validation_evidence.md) → [independent review](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_independent_review.md) / [append-only worklog](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_worklog.md). main contains neither Phase V/VI nor VII.

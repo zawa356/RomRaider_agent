@@ -70,3 +70,27 @@ log 63167c89…). Iterations recorded: handle-count threshold (JVM background ha
 per-open leak would add ≥200), no-JNA child had to be a JNA-free nested class, MAX_READ long→int compile error, and the
 binding is loaded by fixed class name so the logic class compiles without JNA. NOT_RUN: symlinks (no privilege),
 non-NTFS/mapped/subst drives (no owned fixture). FILE_SHARE_DELETE and JNA licence: OWNER_DECISION_REQUIRED.
+
+## 2026-10-21 ≈11:15–12:20 JST — IX-3, IX-4, independent review, fixes
+
+- IX-3 (`4285e7d`, `0612693`): my first `Phase9ReaderEntryTest` ran forged deployments with the *base* profile path
+  (test bug; the product refused correctly once invoked with the forged profile, as Phase VIII already showed). Fixed.
+  Finding **F-IX-1**: a real install with the entry's sqlite-jdbc/slf4j/JNA JARs is RLDI1 MISMATCH (third-party mains,
+  manifest Main-Class, multi-release classes). Pinned in the test; not relaxed. x64 dev 72 checks.
+- IX-4 (`6736229` RED test, `bc91d17` fix): `--expect-red` on the pre-fix code → 4/4 MATCHED (same-size/same-mtime byte
+  change and byte-identical physical replacement of approved JAR/profile). Fixed → 14 checks; Phase VIII inventory 70.
+  Launcher env test 25 checks x64.
+- R9-03 probe result: **11:46:25 the owned empty `work` dir under %TEMP% vanished**; its non-empty sibling, marker file and
+  the control outside TEMP stayed (free space 4.92 GB). Mechanism proven (external removal of empty directories under
+  %TEMP%); actor not identified (Storage Sense most likely) → still ROOT_CAUSE_NOT_PROVEN for the actor. VM setting not
+  changed (owner's machine).
+- Independent review (separate agent context, read-only) at bc91d17: P1 A-B-A between JAR hash and scan (scan re-opened
+  the path); P2: handle not closed on `Error` after open; `Refusal` message `CODE win32=N` lost the code through
+  `cause()`; `WORKING_DIRECTORY_MISSING` checked after the run record was created (orphan); weak test assertion
+  (`||d==a`), CLI test built a different entry JAR than the Windows closure; `rm -rf` on any OUT_DIR; JarFile leak;
+  short-name (8.3) path refusal untested; concurrent append could cause `READER_LENGTH_UNSTABLE` (fails closed);
+  JNA extracts `jnidispatch.dll` to temp (the reader itself writes nothing; JNA does). All fixed except the last three,
+  which are documented. The A-B-A case is covered by a new GREEN regression (no hook existed on the pre-fix code to
+  make it deterministic, so no RED is claimed). Frozen acceptance at bc91d17 was stopped after 7 suites (all exit0; logs
+  kept in `accept-bc91d17`) because the review fixes change runtime code; owned leftover JVM/driver processes of that
+  checkout were terminated (only those).

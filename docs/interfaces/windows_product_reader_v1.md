@@ -78,3 +78,15 @@ fixture without system changes; logic covered by the fake test). Linux: fake tes
 
 Still UNKNOWN / unproven: directory durability, process provenance, writer quiescence (WRITER_UNPROVEN), real
 RomRaider writer behaviour.
+
+## 7. Review notes (2026-10-21)
+
+- `Refusal.getMessage()` is the bare code; the Win32 number is only in `Refusal.win32`.
+- A handle opened by `open()` is closed on every failure path, including `Error`s thrown by a first native bind.
+- Short (8.3) path forms resolve to a different final path and are refused with `READER_PATH_CHANGED` (fail-closed, not
+  covered by a fixture). Callers should pass `toRealPath()` forms.
+- `READER_LENGTH_UNSTABLE` can occur if a writer appends between the two size queries; it fails closed (retry is the
+  caller's explicit decision), not measured under load.
+- JNA extracts its `jnidispatch` native library to a temp directory on first use (`jna.nosys=true` default, so it is not
+  loaded from PATH/working directory). The reader writes nothing to sources; the JNA extraction is a deployment concern
+  for the owner decision on JNA.

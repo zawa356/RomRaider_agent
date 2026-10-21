@@ -110,10 +110,19 @@ public final class DistributionInventory {
                 }
                 if(ext.equals("jar")){
                     boolean isApproved=want!=null&&"approved_jar".equals(want[1]);
-                    hook.at("HASHED:"+name);
-                    approvedMainFound|=scanJar(f,approved,isApproved,findings,mains,classOwner);
-                    // The bytes scanned for entries must be the bytes that were hashed (no swap between hash and scan).
-                    if(pinnedSha.containsKey(name))require(pinnedSha.get(name).equals(DeploymentTransition.fileSha(f)),"INPUT_CHANGED_DURING_INVENTORY");
+                    if(pinnedSha.containsKey(name)){
+                        // Scanned bytes = hashed bytes (review P1, A-B-A): one bounded read, its hash must equal the pin, and the
+                        // JAR entries are scanned from a private copy of exactly those bytes, never by re-opening the install path.
+                        byte[] snapshot=readFile(f);
+                        require(pinnedSha.get(name).equals(DeploymentTransition.sha(snapshot)),"INPUT_CHANGED_DURING_INVENTORY");
+                        hook.at("HASHED:"+name);
+                        Path copy=Files.createTempFile("rldi1-scan-",".jar");
+                        try{
+                            if(Files.getFileAttributeView(copy,PosixFileAttributeView.class)!=null)Files.setPosixFilePermissions(copy,PosixFilePermissions.fromString("rw-------"));
+                            Files.write(copy,snapshot);
+                            approvedMainFound|=scanJar(copy.toFile(),approved,isApproved,findings,mains,classOwner,f.getName());
+                        }finally{Files.deleteIfExists(copy);}
+                    }else{hook.at("HASHED:"+name);approvedMainFound|=scanJar(f,approved,isApproved,findings,mains,classOwner,f.getName());}
                 }
             }
             if(approvedJars!=1)add(findings,"APPROVED_JAR_COUNT");
@@ -179,7 +188,7 @@ public final class DistributionInventory {
     private static void add(Map<String,Integer> m,String code){Integer n=m.get(code);m.put(code,n==null?1:n+1);}
 
     /** Returns true iff this JAR is the approved one and declares the approved main. */
-    private static boolean scanJar(File f,String approved,boolean isApproved,Map<String,Integer> findings,List<String> mains,Map<String,String> owner)throws Exception {
+    private static boolean scanJar(File f,String approved,boolean isApproved,Map<String,Integer> findings,List<String> mains,Map<String,String> owner,String label)throws Exception {
         boolean found=false;Set<String> legacy=new HashSet<String>(Arrays.asList(LEGACY_ENTRIES));
         try(JarFile jar=new JarFile(f,false)){
             Manifest mf=jar.getManifest();
@@ -199,7 +208,7 @@ public final class DistributionInventory {
                 if(!lower.endsWith(".class")||e.isDirectory())continue;
                 if(name.startsWith("META-INF/")){add(findings,"VERSIONED_OR_META_CLASS");continue;}
                 String cls=name.substring(0,name.length()-6).replace('/','.');
-                if(!cls.equals("module-info")){String prior=owner.put(cls,f.getName());if(prior!=null)add(findings,"DUPLICATE_CLASS");}
+                if(!cls.equals("module-info")){String prior=owner.put(cls,label);if(prior!=null)add(findings,"DUPLICATE_CLASS");}
                 if(legacy.contains(cls))add(findings,"LEGACY_ENTRY_CLASS_PRESENT");
                 if(e.getSize()>MAX_CLASS)throw new Refusal("CLASS_BOUND");
                 byte[] bytes;try(InputStream in=jar.getInputStream(e)){bytes=readBounded(in,MAX_CLASS);}
@@ -210,6 +219,10 @@ public final class DistributionInventory {
             }
         }catch(java.util.zip.ZipException bad){add(findings,"JAR_UNREADABLE");}
         return found;
+    }
+    /** Whole listed file in one bounded read (size already checked against MAX_FILE). */
+    private static byte[] readFile(File f)throws IOException {
+        try(InputStream in=new FileInputStream(f)){return readBounded(in,MAX_FILE);}
     }
     private static byte[] readBounded(InputStream in,long bound)throws IOException {
         ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;

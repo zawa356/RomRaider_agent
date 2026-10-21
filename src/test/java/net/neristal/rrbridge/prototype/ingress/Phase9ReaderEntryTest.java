@@ -64,7 +64,8 @@ public final class Phase9ReaderEntryTest {
         check(root.exit==5&&!root.json.contains("STORED_SYNTHETIC_OWNED")&&!root.json.contains("\"child_started\":true"),"other session's owner root refused before any child ["+OfflineCandidateEntry.field(root.json,"reason")+"]");safe(root,a,"forged owner root");
         Result cross=fx(forged(a,"layout.output",b.f.output.getPath()),"--synthetic-owned");
         check(cross.exit==5&&!cross.json.contains("STORED_SYNTHETIC_OWNED")&&!cross.json.contains("\"child_started\":true"),"other session's output refused ["+cross.exit+" "+OfflineCandidateEntry.field(cross.json,"reason")+"]");
-        for(Deployment d:all)check(outputs.get(d.f.payload).equals(d.output())||d==a,d.f.payload+": refused attempts changed nothing");
+        safe(cross,a,"forged output");
+        for(Deployment d:all)check(outputs.get(d.f.payload).equals(d.output()),d.f.payload+": refused attempts changed nothing");
 
         // ---- 2. reader gate refusals (each through a real supervisor JVM).
         Deployment withTest=new Deployment(new Phase7Fixture("synthetic-phase9-testjar",true,0),packaged,true,0,V1);

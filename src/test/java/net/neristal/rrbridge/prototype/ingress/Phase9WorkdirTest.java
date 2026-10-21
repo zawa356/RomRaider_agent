@@ -24,10 +24,12 @@ public final class Phase9WorkdirTest {
         Map<String,String> data=d.data();String out=d.output();
 
         Path held=d.work.toPath().resolveSibling("work-held-by-test");Files.move(d.work.toPath(),held);
+        Path runs=d.f.home.resolve("owned-runs");long records=Files.list(runs).count();
         Result missing=inProcess(d.args("--synthetic-owned"),d.facts());
         refused("WORKING_DIRECTORY_MISSING",5,missing,d,"supervisor refuses a vanished working directory before any child");
         check(!missing.json.contains("\"child_started\":true"),"no child started for a vanished working directory");
         check(data.equals(d.data())&&out.equals(d.output()),"vanished working directory leaves data and output unchanged");
+        check(Files.list(runs).count()==records,"no orphan one-shot run record for the refused run");
         String harness;try{process(d,d.args("--synthetic-owned"));harness="started";}catch(AssertionError e){harness=e.getMessage();}
         check(harness.startsWith("FIXTURE_WORKDIR_MISSING"),"harness names a missing work directory instead of CreateProcess error=267 ["+harness+"]");
 

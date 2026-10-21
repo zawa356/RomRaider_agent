@@ -7,6 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 sep=":"; case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) sep=";";; esac
 out="${1:-build/offline-tools}"
+case "$out" in build/*) ;; *) echo "OUT_DIR must be under build/ (it is wiped)"; exit 2;; esac
 cp="lib/sqlite-jdbc.jar${sep}lib/slf4j-api.jar${sep}lib/slf4j-nop.jar"
 clis=(net/neristal/rrbridge/product/v1/ArtifactProvenanceCli net/neristal/rrbridge/product/v1/DeploymentBindingCli
       net/neristal/rrbridge/prototype/ingress/DeploymentTransitionCli net/neristal/rrbridge/prototype/ingress/IngressDiagnosticsCli)

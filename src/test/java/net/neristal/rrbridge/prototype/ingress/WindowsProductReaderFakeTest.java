@@ -47,7 +47,8 @@ public final class WindowsProductReaderFakeTest {
             b.putLong(0,4096).putLong(8,data.length).putInt(16,stdLinks).put(20,(byte)(deletePending?1:0)).put(21,(byte)(directoryStd?1:0));return true;
         }
         public String finalPath(long h){return finalOverride!=null?finalOverride:finalPrefix+handles.get(h);}
-        public String fileSystem(long h){return fs;}
+        boolean fsError;
+        public String fileSystem(long h){if(fsError)throw new UnsatisfiedLinkError("synthetic");return fs;}
         public int driveType(String root){return driveType;}
         public String dosDevice(String d){return dos;}
         public boolean seek(long h,long off){if(seekFails){last=87;return false;}pos=off;return true;}
@@ -125,7 +126,7 @@ public final class WindowsProductReaderFakeTest {
         for(final int[] e:new int[][]{{32},{5},{2},{3},{1450}}){
             Fake f=new Fake();f.openError=e[0];String want=e[0]==32?"READER_SHARING_VIOLATION":e[0]==2||e[0]==3?"READER_NOT_FOUND":"READER_OPEN_DENIED";
             WindowsProductReader.Refusal r=null;try{reader(f).open(src);}catch(WindowsProductReader.Refusal x){r=x;}
-            check(r!=null&&want.equals(r.code)&&r.win32==e[0]&&f.balanced()&&!r.getMessage().contains("fake"),"open error "+e[0]+" → "+want+" with Win32 number, no path");
+            check(r!=null&&want.equals(r.code)&&r.win32==e[0]&&f.balanced()&&r.getMessage().equals(want),"open error "+e[0]+" → "+want+" with Win32 number, no path");
         }
         {Fake f=new Fake();f.pointer=4;f.openError=5;f.invalidValue=0xffffffffL;check("READER_OPEN_DENIED".equals(code(new Action(){public void run()throws Exception{reader(f).open(src);}})),"32-bit INVALID_HANDLE_VALUE 0xffffffff detected");}
         {Fake f=new Fake();f.pointer=8;f.openError=5;f.invalidValue=0L;check("READER_OPEN_DENIED".equals(code(new Action(){public void run()throws Exception{reader(f).open(src);}})),"NULL handle detected");}
@@ -151,6 +152,9 @@ public final class WindowsProductReaderFakeTest {
         {final Fake f=new Fake();f.data=payload;final WatermarkV2Prototype.ReadHandle h=reader(f).open(src);
          f.data=Arrays.copyOf(payload,payload.length+50);check(h.length()==payload.length+50&&Arrays.equals(h.read(0,10),Arrays.copyOf(payload,10)),"growth is accepted (append-only writer)");
          f.data=Arrays.copyOf(payload,100);check("READER_LENGTH_SHRANK".equals(code(new Action(){public void run()throws Exception{h.length();}})),"shrink below an observed length refused");h.close();}
+        {final Fake f=new Fake();f.fsError=true;
+         String c;try{reader(f).open(src);c="OK";}catch(LinkageError err){c="ERROR";}
+         check("ERROR".equals(c)&&f.balanced(),"Error thrown after open (first native bind) still closes the handle");}
         {final Fake f=new Fake();f.data=payload;f.closeFails=true;final WatermarkV2Prototype.ReadHandle h=reader(f).open(src);
          check("READER_HANDLE_INVALID".equals(code(new Action(){public void run()throws Exception{h.close();}}))&&"READER_HANDLE_CLOSED".equals(code(new Action(){public void run()throws Exception{h.read(0,1);}})),"CloseHandle failure coded; handle unusable afterwards");}
         System.out.println("RLWR1 fake test passed "+checks+" checks; adoption BLOCKED; owner decisions open");

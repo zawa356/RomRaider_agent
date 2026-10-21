@@ -7,7 +7,8 @@ sep=":"; case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) sep=";";; esac
 cp="lib/sqlite-jdbc.jar${sep}lib/slf4j-api.jar${sep}lib/slf4j-nop.jar"
 out=build/phase9-inventory-race; red=false
 for arg in "$@"; do [[ $arg == --expect-red ]] && red=true; done
-if [[ "${1:-}" != "--run-only" ]]; then
+runonly=false; for arg in "$@"; do [[ $arg == --run-only ]] && runonly=true; done
+if [[ $runonly == false ]]; then
  rm -rf "$out"; mkdir -p "$out"
  javac --release 8 -encoding UTF-8 -cp "$cp" -sourcepath "src/main/java${sep}src/test/java" -d "$out" src/test/java/net/neristal/rrbridge/prototype/ingress/Phase9InventoryRaceTest.java
 fi
