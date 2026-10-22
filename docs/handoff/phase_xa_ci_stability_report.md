@@ -67,6 +67,12 @@ See evidence for every run. Code head `86c680b`: Ingress, Spool, Phase VII–IX 
 real-Server E2E **failed on infrastructure** (`pip` IncompleteRead while downloading Server deps) — not counted, re-run
 on the final head. Final-head results and repeat runs: evidence file.
 
+## Additional finding during the gate
+
+At the docs head `5119b48` the Windows `Phase9ReaderEntryTest` (from Phase IX, mine) failed with `UNSAFE_ACCESS`: it wrote
+an RLDI1 record into a temp directory that was not made private, so the result depended on the runner's inherited TEMP
+ACL (3 passes, 1 failure). Reproduced locally; fixed in the test only. Product `privateAccess` unchanged.
+
 ## Gates unchanged / owner decisions still open
 
 synthetic_only, launch/production/ACK disabled, `formal_ack=DISABLED`, WRITER_UNPROVEN, `global_old_binary_exclusion=

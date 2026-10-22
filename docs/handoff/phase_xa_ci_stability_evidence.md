@@ -63,4 +63,12 @@ Server (read-only, not re-run): PR #65 head `7455f83` — PoC 39535242731 attemp
 Java-Agent E2E 39564309265 success. That Server E2E uses its own pinned old Agent snapshot; it is **not** the Phase IX/X-A
 Agent E2E (that is the Agent `product-v1-real-server-e2e` above).
 
-The next commit (this evidence, docs only) gets its own CI run; its result is recorded in the PR #104 body.
+## Docs head `5119b48` — FAIL (recorded, then fixed)
+
+| Workflow | Run | Attempt | Result |
+|---|---|---|---|
+| Phase VII–IX | 39728825326 | 1 | **failure**: `phase9 (windows-latest)` job 119658888410, `Phase9ReaderEntryTest` JDK17 → `UNSAFE_ACCESS` from `createRecord` into a non-private temp dir (test-fixture defect; see worklog). Other 5 jobs success |
+| Spool / real-Server E2E / Ingress | 39728825278 / 39728825153 / 39728825155 | 1 | success |
+
+Fix: test-only, `Phase9ReaderEntryTest` fixture dirs made private. The acceptance head is therefore the fix commit; its runs
+are recorded in the PR #104 body (to avoid a docs-commit loop).

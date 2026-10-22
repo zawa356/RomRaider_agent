@@ -5,6 +5,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.jar.*;
 import net.neristal.rrbridge.product.v1.DeploymentBinding;
+import net.neristal.rrbridge.product.v1.DeploymentBindingTest;
 import net.neristal.rrbridge.prototype.ingress.Phase7EntryTest.Deployment;
 import net.neristal.rrbridge.prototype.ingress.Phase7EntryTest.Result;
 import static net.neristal.rrbridge.prototype.ingress.Phase7EntryTest.*;
@@ -73,7 +74,7 @@ public final class Phase9ReaderEntryTest {
         List<File> noJna=new ArrayList<File>();for(File f:product)if(!f.equals(jna))noJna.add(f);
         Deployment without=new Deployment(new Phase7Fixture("synthetic-phase9-nojna",true,0),noJna,true,0,V1);
         refused("READER_NATIVE_UNAVAILABLE",5,process(without,without.args("--diagnose")),without,"RLWR1 without JNA refused (no fallback)");
-        Path tamperedDir=Files.createTempDirectory("romlogger-phase9-jna-");File tampered=tamperedDir.resolve("jna-5.14.0.jar").toFile();
+        Path tamperedDir=DeploymentBindingTest.privateDir(Files.createTempDirectory("romlogger-phase9-jna-"));File tampered=tamperedDir.resolve("jna-5.14.0.jar").toFile();
         try(JarFile in=new JarFile(jna);JarOutputStream out=new JarOutputStream(new FileOutputStream(tampered),in.getManifest())){
             for(Enumeration<JarEntry> e=in.entries();e.hasMoreElements();){JarEntry x=e.nextElement();if(x.getName().equals("META-INF/MANIFEST.MF"))continue;
                 out.putNextEntry(new JarEntry(x.getName()));try(InputStream s=in.getInputStream(x)){byte[] buf=new byte[8192];int k;while((k=s.read(buf))>0)out.write(buf,0,k);}}
@@ -89,9 +90,9 @@ public final class Phase9ReaderEntryTest {
         refused("PRODUCTION_LIVE_NOT_IMPLEMENTED",6,inProcess(new String[]{"--production-live"},OfflineCandidateEntry.RuntimeFacts.current()),null,"production live still refused");
 
         // ---- 3. RLDI1 install: approved JAR + pinned dependencies (JNA as dependency_jar) MATCHED; adding the test JAR MISMATCH.
-        Path inst=Files.createTempDirectory("romlogger-phase9-install-");Map<String,String> roles=new TreeMap<String,String>();
+        Path inst=DeploymentBindingTest.privateDir(Files.createTempDirectory("romlogger-phase9-install-"));Map<String,String> roles=new TreeMap<String,String>();
         for(File f:product){Files.copy(f.toPath(),inst.resolve(f.getName()));roles.put(f.getName(),f.equals(product.get(0))?"approved_jar":"dependency_jar");}
-        File rec=Files.createTempDirectory("romlogger-phase9-rldi-").resolve("install.rldi1").toFile();
+        File rec=DeploymentBindingTest.privateDir(Files.createTempDirectory("romlogger-phase9-rldi-")).resolve("install.rldi1").toFile();
         DeploymentBinding.createRecord(rec.toPath(),DeploymentBinding.encodeRecord(DistributionInventory.describe(inst.toFile(),OfflineCandidateEntry.MAIN,roles)));
         DistributionInventory.Report rep=DistributionInventory.inspect(true,inst.toFile(),rec);
         // Phase IX finding: the entry's REQUIRED third-party JARs carry mains (JNA Native, sqlite-jdbc OSInfo), a manifest
@@ -101,7 +102,7 @@ public final class Phase9ReaderEntryTest {
             &&rep.findings.containsKey("UNAPPROVED_MANIFEST_MAIN")&&rep.findings.containsKey("VERSIONED_OR_META_CLASS")&&rep.json().contains("\"state\":\"BLOCKED\""),
             "real install (approved JAR + sqlite-jdbc + slf4j + JNA) is RLDI1 MISMATCH only because of third-party dependency mains/META-INF (open design item) "+rep.findings+" "+rep.unapprovedMains);
         Map<String,String> own=new TreeMap<String,String>();own.put(product.get(0).getName(),"approved_jar");
-        Path alone=Files.createTempDirectory("romlogger-phase9-install1-");Files.copy(product.get(0).toPath(),alone.resolve(product.get(0).getName()));
+        Path alone=DeploymentBindingTest.privateDir(Files.createTempDirectory("romlogger-phase9-install1-"));Files.copy(product.get(0).toPath(),alone.resolve(product.get(0).getName()));
         File rec1=rec.toPath().resolveSibling("alone.rldi1").toFile();
         DeploymentBinding.createRecord(rec1.toPath(),DeploymentBinding.encodeRecord(DistributionInventory.describe(alone.toFile(),OfflineCandidateEntry.MAIN,own)));
         DistributionInventory.Report one=DistributionInventory.inspect(true,alone.toFile(),rec1);

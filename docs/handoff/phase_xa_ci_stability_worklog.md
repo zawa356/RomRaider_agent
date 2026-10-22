@@ -67,3 +67,15 @@ steps moved after the suites (`if: always()`) so the real suites meet the cold f
   Sysnative ≤ 0.76 s — the 64-bit PowerShell change, not only the 30 s bound, removes the x86 risk.
 - Workflow audit: no `continue-on-error`; `if:` only for Windows-specific setup/native steps and post-suite `always()`;
   one informational `|| true` (runtime print). No P1 structural false-success found.
+
+## ≈17:40 — FAIL at the docs head `5119b48` (not a drive-gate failure)
+
+Phase VII–IX run 39728825326 attempt 1: `phase9 (windows-latest)` job 119658888410 failed in `Phase9ReaderEntryTest`
+(JDK17 x64) with `DeploymentBinding$Refusal: UNSAFE_ACCESS`, thrown from `DeploymentBinding.createRecord` when the test
+wrote its RLDI1 record into a directory made with plain `Files.createTempDirectory` (all other fixtures use
+`DeploymentBindingTest.privateDir`). On Windows the record inherits the temp directory's ACL; an inherited ALLOW-write ACE
+for another principal is correctly refused. The three earlier attempts at `94d2f15` passed → depends on the runner's
+inherited TEMP ACL. Local owned reproduction: inherited `Users` write ACE → `UNSAFE_ACCESS`; same after `privateDir` →
+created. Classification: **Phase IX test-fixture defect (mine), product behaviour correct**. Fix: the four temp dirs of
+`Phase9ReaderEntryTest` are made private like every other fixture (test-only change; product check unchanged). The other
+three workflows at `5119b48` succeeded (Spool 39728825278, E2E 39728825153, Ingress 39728825155).
