@@ -49,3 +49,13 @@ synthetic_only=true; state=BLOCKED; launch_authorized=false; production_authoriz
 formal_ack=DISABLED; writer_quiescence=WRITER_UNPROVEN; global_old_binary_exclusion=NOT_PROVEN; Windows ACL, process
 provenance and directory durability unproven; RLWR1 adoption BLOCKED. CI uses only synthetic fixtures and disposable
 PostgreSQL services; `contents: read`; no secrets; no `pull_request_target`; no X270/ECU/RomRaider/production access.
+
+## Addendum 2026-10-22 (Phase X-A): Windows failures at the final head `32b139f`
+
+The rows above for #103 describe the last **code** head `763e6fe` (all four workflows success) and remain true. The
+documentation-only final head `32b139ff55b878ddaaf9fdbbe63086621b7dd5b3` was **not** all green: on 2026-10-21 ≈08:58–09:01
+UTC (17:58–18:01 JST) Spool 39573357800 and real-Server E2E 39573358311 succeeded, but Ingress 39573354521 (Windows job
+119132739485, `DeploymentBindingTest`) and Phase VII–IX 39573358384 (Windows phase7 job 119132829917, `Phase7EntryTest` on
+JDK17 and `Phase7ReviewC2Test` on Zulu8 x86) **failed with `DRIVE_TYPE_UNPROVEN`**. Phase X-A measured these as the
+WindowsDriveGate 10 s probe timeout on the first (cold) PowerShell probe of a fresh runner; analysis, fix and new runs:
+[Phase X-A report](phase_xa_ci_stability_report.md) / [evidence](phase_xa_ci_stability_evidence.md) (PR #104).

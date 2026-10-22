@@ -81,3 +81,13 @@ Verification branches `ci-verify/pr80-7da3837`, `ci-verify/pr86-297126c`, `ci-ve
 `ci-verify/pr96-ab32e6b` = original head + one commit adding only the Windows long-name `TMP` step to the ingress
 workflow. They are not PRs, change no code and must not be merged. Branch protection / required checks: none configured
 (`mergeable=MERGEABLE` on every PR); merge order is the stack order #80 → … → #103. **Merge: NOT DONE.**
+
+## Addendum 2026-10-22 (Phase X-A): Windows failures at the final head `32b139f`
+
+The rows above for #103 describe the last **code** head `763e6fe` (all four workflows success) and remain true. The
+documentation-only final head `32b139ff55b878ddaaf9fdbbe63086621b7dd5b3` was **not** all green: on 2026-10-21 ≈08:58–09:01
+UTC (17:58–18:01 JST) Spool 39573357800 and real-Server E2E 39573358311 succeeded, but Ingress 39573354521 (Windows job
+119132739485, `DeploymentBindingTest`) and Phase VII–IX 39573358384 (Windows phase7 job 119132829917, `Phase7EntryTest` on
+JDK17 and `Phase7ReviewC2Test` on Zulu8 x86) **failed with `DRIVE_TYPE_UNPROVEN`**. Phase X-A measured these as the
+WindowsDriveGate 10 s probe timeout on the first (cold) PowerShell probe of a fresh runner; analysis, fix and new runs:
+[Phase X-A report](phase_xa_ci_stability_report.md) / [evidence](phase_xa_ci_stability_evidence.md) (PR #104).

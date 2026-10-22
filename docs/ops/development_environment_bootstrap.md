@@ -1,5 +1,14 @@
 # Development environment bootstrap — start here
 
+## Phase X-A current entry — 2026-10-22 (not merged)
+
+Top of the Agent stack: Draft PR [#104](https://github.com/zawa356/RomRaider_agent/pull/104) `ci/phase-xa-windows-probe`
+on #103. Read [Phase X-A report](https://github.com/zawa356/RomRaider_agent/blob/ci/phase-xa-windows-probe/docs/handoff/phase_xa_ci_stability_report.md)
+→ [evidence](https://github.com/zawa356/RomRaider_agent/blob/ci/phase-xa-windows-probe/docs/handoff/phase_xa_ci_stability_evidence.md).
+Windows `DRIVE_TYPE_UNPROVEN` at `32b139f` = cold-start probe timeouts; fixed by a measured 30 s bound and 64-bit
+PowerShell from x86 JVMs (gate not weakened). RLDI1 ZIP parser hardened (15 RED → GREEN). New tests:
+`scripts/test-phase-xa-drive.sh`, `scripts/test-phase-xa-zip.sh`. Dev VM C: is nearly full — run heavy suites on CI.
+
 ## CI status — 2026-10-21 (both repositories PUBLIC)
 
 GitHub-hosted runners now execute (before 2026-10-21 every job had `steps=0` = CI NOT RUN; that history stays). Top of the

@@ -136,3 +136,14 @@ exactly the hashed bytes (`ZipEntryView`: end record → central directory → l
 same name → STORED/DEFLATED data with central sizes and CRC-32; ZIP64/encryption/other methods/inconsistency →
 `JAR_UNREADABLE`). The A-B-A guarantee is unchanged (scanned bytes = hashed bytes); nothing is opened for writing or
 created.
+
+## Update: stricter in-memory ZIP parsing (Phase X-A-2, 2026-10-22)
+
+The in-memory parser (`ZipEntryView`, since #103) now also refuses (`JAR_UNREADABLE`): local headers whose method/flags —
+or, without a data descriptor, CRC/sizes — differ from the central directory (with a descriptor the local values may be
+zero but never contradict); DEFLATE data that does not end exactly at the declared size (longer, unterminated, padded,
+non-empty 0-byte); flags 0x40/0x2000 (as 0x1 before); control bytes in names, and non-ASCII names unless flagged UTF-8 and
+valid UTF-8; overlapping entry spans. New finding **`JAR_MANIFEST_AMBIGUOUS`**: more than one case variant of
+`META-INF/MANIFEST.MF`; every variant's `Main-Class`/agent attributes are inspected. Real sqlite-jdbc, slf4j, JNA and
+JDK-made JARs read identically to `java.util.jar`. Test: `bash scripts/test-phase-xa-zip.sh` (`--expect-red` reproduced 15
+accepted cases on the previous parser). F-IX-1 (third-party dependency mains) unchanged — not relaxed.
