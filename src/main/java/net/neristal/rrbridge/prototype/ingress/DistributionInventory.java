@@ -188,13 +188,17 @@ public final class DistributionInventory {
         try{entries=ZipEntryView.read(jarBytes);}catch(java.util.zip.ZipException bad){add(findings,"JAR_UNREADABLE");return false;}
         if(entries.size()>MAX_JAR_ENTRIES)throw new Refusal("JAR_ENTRY_BOUND");
         try{
+            // Phase X-A-2: the JVM's JarFile takes the exact "META-INF/MANIFEST.MF" first and falls back to a case-insensitive
+            // match. More than one case variant is ambiguous (a decoy could hide Main-Class) and is a finding; every variant is
+            // still inspected so no Main-Class/agent attribute is missed.
+            int manifests=0;for(ZipEntryView e:entries)if(e.name.equalsIgnoreCase("META-INF/MANIFEST.MF"))manifests++;
+            if(manifests>1)add(findings,"JAR_MANIFEST_AMBIGUOUS");
             for(ZipEntryView e:entries)if(e.name.equalsIgnoreCase("META-INF/MANIFEST.MF")){
                 Manifest mf=new Manifest(new ByteArrayInputStream(e.data(MAX_CLASS)));
                 for(Object k:mf.getMainAttributes().keySet()){String key=k.toString();
                     if(key.equalsIgnoreCase("Class-Path")||key.equalsIgnoreCase("Launcher-Agent-Class")||key.equalsIgnoreCase("Boot-Class-Path")||key.equalsIgnoreCase("Premain-Class")||key.equalsIgnoreCase("Agent-Class"))add(findings,"JAR_MANIFEST_CLASSPATH_OR_AGENT");}
                 String main=mf.getMainAttributes().getValue("Main-Class");
                 if(main!=null&&!(isApproved&&approved.equals(main.trim())))add(findings,"UNAPPROVED_MANIFEST_MAIN");
-                break;
             }
             Set<String> local=new HashSet<String>();
             for(ZipEntryView e:entries){
@@ -228,6 +232,22 @@ public final class DistributionInventory {
         private ZipEntryView(String name,byte[] zip,int offset,int csize,long size,int method,long crc){this.name=name;this.zip=zip;this.offset=offset;this.csize=csize;this.size=size;this.method=method;this.crc=crc;}
         private static int u16(byte[] b,long i)throws java.util.zip.ZipException{if(i<0||i+2>b.length)throw new java.util.zip.ZipException("bounds");return (b[(int)i]&0xff)|((b[(int)i+1]&0xff)<<8);}
         private static long u32(byte[] b,long i)throws java.util.zip.ZipException{if(i<0||i+4>b.length)throw new java.util.zip.ZipException("bounds");return (u16(b,i)|((long)u16(b,i+2)<<16))&0xffffffffL;}
+        /**
+         * Entry name exactly as the JVM's ZipFile decodes it (UTF-8). Non-ASCII bytes are accepted only with the UTF-8 flag
+         * and only if they are valid UTF-8, so this view and the JVM's view cannot name the same bytes differently.
+         */
+        private static String name(byte[] b,int off,int len,boolean utf8)throws java.util.zip.ZipException {
+            boolean ascii=true;
+            for(int i=off;i<off+len;i++){
+                if(b[i]>=0&&b[i]<0x20)throw new java.util.zip.ZipException("name encoding");// control characters
+                if(b[i]<0)ascii=false;
+            }
+            if(ascii)return new String(b,off,len,java.nio.charset.StandardCharsets.US_ASCII);
+            if(!utf8)throw new java.util.zip.ZipException("name encoding");
+            try{return java.nio.charset.StandardCharsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(b,off,len)).toString();}
+            catch(java.nio.charset.CharacterCodingException bad){throw new java.util.zip.ZipException("name encoding");}
+        }
         static List<ZipEntryView> read(byte[] b)throws java.util.zip.ZipException {
             int eocd=-1;
             for(int i=b.length-22;i>=Math.max(0,b.length-22-65535);i--)if(u32(b,i)==0x06054b50L&&i+22+u16(b,i+20)==b.length){eocd=i;break;}
@@ -235,24 +255,36 @@ public final class DistributionInventory {
             int count=u16(b,eocd+10);long cdSize=u32(b,eocd+12),cdOff=u32(b,eocd+16);
             if(u16(b,eocd+4)!=0||u16(b,eocd+6)!=0||u16(b,eocd+8)!=count||count==0xffff||cdSize==0xffffffffL||cdOff==0xffffffffL||cdOff+cdSize!=eocd)
                 throw new java.util.zip.ZipException("unsupported or inconsistent directory");
-            List<ZipEntryView> out=new ArrayList<ZipEntryView>();long p=cdOff;
+            List<ZipEntryView> out=new ArrayList<ZipEntryView>();List<long[]> spans=new ArrayList<long[]>();long p=cdOff;
             for(int i=0;i<count;i++){
                 if(u32(b,p)!=0x02014b50L)throw new java.util.zip.ZipException("central header");
                 int flags=u16(b,p+8),method=u16(b,p+10);long crc=u32(b,p+16),cs=u32(b,p+20),us=u32(b,p+24);
                 int nl=u16(b,p+28),el=u16(b,p+30),cl=u16(b,p+32);long lo=u32(b,p+42);
-                if((flags&1)!=0||(method!=0&&method!=8)||cs==0xffffffffL||us==0xffffffffL||lo==0xffffffffL)throw new java.util.zip.ZipException("unsupported entry");
+                // Encryption (0x1), strong encryption (0x40) and masked headers (0x2000) are never part of a JAR we accept.
+                if((flags&0x2041)!=0||(method!=0&&method!=8)||cs==0xffffffffL||us==0xffffffffL||lo==0xffffffffL)throw new java.util.zip.ZipException("unsupported entry");
                 if(p+46+nl>eocd)throw new java.util.zip.ZipException("bounds");
-                String name=new String(b,(int)p+46,nl,(flags&0x800)!=0?java.nio.charset.StandardCharsets.UTF_8:java.nio.charset.StandardCharsets.ISO_8859_1);
+                String name=name(b,(int)p+46,nl,(flags&0x800)!=0);
                 if(lo>=cdOff||u32(b,lo)!=0x04034b50L)throw new java.util.zip.ZipException("local header");
                 int lnl=u16(b,lo+26),lel=u16(b,lo+28);
                 if(lnl!=nl||lo+30+nl>cdOff||!Arrays.equals(Arrays.copyOfRange(b,(int)lo+30,(int)lo+30+nl),Arrays.copyOfRange(b,(int)p+46,(int)p+46+nl)))
                     throw new java.util.zip.ZipException("local/central name mismatch");
+                // Phase X-A-2: the local header must describe the same entry as the central one (readers that walk local
+                // headers must not see another method, flags, CRC or size). With a data descriptor (0x8) the local CRC/sizes
+                // may be zero, otherwise they must equal the central values.
+                long lcrc=u32(b,lo+14),lcs=u32(b,lo+18),lus=u32(b,lo+22);
+                if(u16(b,lo+6)!=flags||u16(b,lo+8)!=method)throw new java.util.zip.ZipException("local/central header mismatch");
+                boolean descriptor=(flags&0x8)!=0;
+                if(descriptor?!((lcrc==0||lcrc==crc)&&(lcs==0||lcs==cs)&&(lus==0||lus==us)):(lcrc!=crc||lcs!=cs||lus!=us))throw new java.util.zip.ZipException("local/central header mismatch");
                 long data=lo+30+lnl+lel;
                 if(data+cs>cdOff)throw new java.util.zip.ZipException("bounds");
+                spans.add(new long[]{lo,data+cs});
                 out.add(new ZipEntryView(name,b,(int)data,(int)cs,us,method,crc));
                 p+=46+nl+el+cl;
             }
             if(p!=eocd)throw new java.util.zip.ZipException("directory size");
+            // No entry's header or data may overlap another's (same-offset aliases included).
+            Collections.sort(spans,new Comparator<long[]>(){public int compare(long[] x,long[] y){return x[0]<y[0]?-1:x[0]>y[0]?1:0;}});
+            for(int i=1;i<spans.size();i++)if(spans.get(i)[0]<spans.get(i-1)[1])throw new java.util.zip.ZipException("overlapping entries");
             return out;
         }
         /** Entry bytes (bounded), CRC-32 verified. */
@@ -268,6 +300,10 @@ public final class DistributionInventory {
                     inf.setInput(zip,offset,csize);out=new byte[(int)size];int n=0;
                     while(n<out.length){int k=inf.inflate(out,n,out.length-n);if(k==0&&(inf.finished()||inf.needsInput()||inf.needsDictionary()))break;n+=k;}
                     if(n!=out.length)throw new java.util.zip.ZipException("deflated size");
+                    // Phase X-A-2: the stream must END exactly here (final block seen, no more output, no unread input), so a
+                    // longer, unterminated or padded stream cannot give this view a different byte count than the JVM's.
+                    byte[] more=new byte[1];
+                    if(inf.inflate(more)!=0||!inf.finished()||inf.getRemaining()!=0)throw new java.util.zip.ZipException("deflate stream end");
                 }catch(java.util.zip.DataFormatException bad){throw new java.util.zip.ZipException("deflate");}
                 finally{inf.end();}
             }

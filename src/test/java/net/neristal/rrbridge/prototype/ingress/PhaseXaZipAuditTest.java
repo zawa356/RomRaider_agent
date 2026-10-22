@@ -148,6 +148,25 @@ public final class PhaseXaZipAuditTest {
          m.put("META-INF/versions/9/x/Hidden.class",Phase8InventoryTest.classBytes(DeploymentTransitionCli.class));
          DistributionInventory.Report r=new Install(m).inspect();
          check(!r.matched()&&r.findings.containsKey("VERSIONED_OR_META_CLASS"),"multi-release class under META-INF/versions is a finding "+r.findings);}
+        // ---- real JARs must not be falsely refused: same names and bytes as the JDK's JarFile (no false JAR_UNREADABLE).
+        if(!RED){
+            List<File> real=new ArrayList<File>();for(String n:new String[]{"lib/sqlite-jdbc.jar","lib/slf4j-api.jar","lib/slf4j-nop.jar","build/identity-deps/jna-5.14.0.jar"})if(new File(n).isFile())real.add(new File(n));
+            Path dir=Files.createTempDirectory("romlogger-phasexa-jdkjar-");File made=dir.resolve("jdk-made.jar").toFile();
+            Manifest mf=new Manifest();mf.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION,"1.0");
+            try(JarOutputStream j=new JarOutputStream(new FileOutputStream(made),mf)){for(int i=0;i<5;i++){j.putNextEntry(new JarEntry("p/E"+i+".class"));j.write(cls);j.closeEntry();}}
+            real.add(made);
+            for(File f:real){
+                byte[] z=Files.readAllBytes(f.toPath());Map<String,byte[]> ours=new TreeMap<String,byte[]>();
+                for(DistributionInventory.ZipEntryView e:DistributionInventory.ZipEntryView.read(z))ours.put(e.name,e.size<=DistributionInventory.MAX_CLASS?e.data(DistributionInventory.MAX_CLASS):null);
+                Map<String,byte[]> jdk=new TreeMap<String,byte[]>();
+                try(JarFile j=new JarFile(f,false)){for(Enumeration<JarEntry> en=j.entries();en.hasMoreElements();){JarEntry je=en.nextElement();
+                    ByteArrayOutputStream o=new ByteArrayOutputStream();try(InputStream in=j.getInputStream(je)){byte[] x=new byte[8192];int k;while((k=in.read(x))>0)o.write(x,0,k);}jdk.put(je.getName(),o.toByteArray());}}
+                boolean same=ours.keySet().equals(jdk.keySet());
+                for(Map.Entry<String,byte[]> e:ours.entrySet())if(e.getValue()!=null&&!Arrays.equals(e.getValue(),jdk.get(e.getKey())))same=false;
+                check(same,"real JAR "+f.getName()+" ("+ours.size()+" entries) read identically to the JDK, not refused");
+            }
+            made.delete();Files.delete(dir);
+        }
         if(RED){System.out.println("RED_COUNT "+red);if(red==0)throw new AssertionError("expected the pre-fix parser to accept at least one malformed case");}
         System.out.println("Phase X-A ZIP audit passed "+checks+" checks"+(red>0?" with "+red+" RED reproductions":"")+"; RLDI1 still BLOCKED by design");
     }

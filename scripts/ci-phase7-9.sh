@@ -11,7 +11,7 @@ umask 077
 group="${1:?group}"
 case "$group" in
  phase7) suites=("test-phase7.sh" "test-phase7-review-closure.sh");;
- phase8) suites=("test-phase8-inventory.sh" "test-phase8-readiness.sh" "test-phase8-multisession.sh");;
+ phase8) suites=("test-phase8-inventory.sh" "test-phase-xa-zip.sh" "test-phase8-readiness.sh" "test-phase8-multisession.sh");;
  phase9) suites=("test-phase9-cli.sh" "test-phase9-reader.sh" "test-phase9-inventory-race.sh"
                  "phase7-packaged.sh Phase9WorkdirTest" "phase7-packaged.sh Phase9LauncherEnvTest" "phase7-packaged.sh Phase9ReaderEntryTest"
                  "x64only:test-build-offline-tools-guard.sh");;

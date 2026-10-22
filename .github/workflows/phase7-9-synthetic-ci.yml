@@ -88,7 +88,7 @@ jobs:
         run: |
           bash scripts/test-phase-xa-drive.sh
           if [[ -n "${ROMLOGGER_CI_JAVA8_X86_HOME:-}" ]]; then
-            PATH="$ROMLOGGER_CI_JAVA8_X86_HOME/bin:$PATH" ROMLOGGER_EXPECT_DATA_MODEL=32 bash scripts/test-phase-xa-drive.sh --run-only
+            PATH="$(cygpath -u "$ROMLOGGER_CI_JAVA8_X86_HOME")/bin:$PATH" ROMLOGGER_EXPECT_DATA_MODEL=32 bash scripts/test-phase-xa-drive.sh --run-only
           fi
       - name: Run ${{ matrix.group }} suites
         shell: bash
