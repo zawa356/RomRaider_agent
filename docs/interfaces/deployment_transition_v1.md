@@ -1,5 +1,15 @@
 # RLDT1 deployment transition / RLDB2 versioned binding (Phase IV candidate, synthetic only)
 
+## Phase VI abandon exclusion extension
+
+The final Phase VI entry correction also performs the read-only Windows drive-root proof at the start of `plan` (before root/anchor chain reads) and `commitSynthetic` (before Worker/Lane/Publication file access). `DeploymentBinding.requireLocalDrives` checks every distinct root without filesystem traversal, and the existing later layout checks still repeat. Normal entries always use the fixed system probe; package-scoped test seams inject only the early observation. A synthetic Remote+missing-binding fixture reproduced the prior ordering: plan read binding evidence first, and commit created lock files before rejecting anything about the drive. No actual SMB was accessed.
+
+New prepare records additionally retain `old_lane_lock`, `new_lane_lock`, `old_publication_lock`, `new_publication_lock`: exact hash-derived UUID `.lane.lock` basenames, without raw payload Session text. Commit already holds these scopes. Abandon now takes the exact legacy Worker guard, validates the prepared generation and old-layout lock names, and retains shared read-only locks on every distinct existing old/new Lane/Publication file through marker creation. Busy scopes return `BLOCKED_UNCOOPERATIVE_PROCESS` without creating an abandon marker. Unknown/missing lock-set fields return `ABANDON_LOCK_SET_UNKNOWN`; no lock is created or repaired for abandon. Completed historical RLDT1 generations remain readable. An interrupted historical prepare without these fields requires manual contract review, not automatic upgrade or deletion. Earlier binaries do not enforce this extension and still require operational exclusion.
+
+Because the additional lock-set fields participate in the deterministic plan digest, an approved pre-extension dry-run digest is not reusable: recomputation returns PLAN_CHANGED. A fresh explicit plan review is required; no automatic approval or digest rewriting is provided.
+
+RED reproduced the previous method creating an abandon marker while a separate JVM held the old payload Lane. This establishes a missing exclusion gate, not a demonstrated simultaneous double activation. Dedicated tests cover all four old/new Lane/Publication competitors, abandon/retry, four actual child halt stages and SAME_SESSION physical Source UUID reuse from another already-stored run. Physical power loss and global fencing remain unproven.
+
 `net.neristal.rrbridge.prototype.ingress.DeploymentTransition`. This is a candidate implementation used with isolated synthetic fixtures and explicit opt-in. It never activates a restored copy, changes production state, connects a formal ACK or proves global fencing. RLDB1 ([deployment_binding_v1.md](deployment_binding_v1.md)) is unchanged as a format. It now refuses with `BINDING_SUPERSEDED` once any RLDT1 evidence exists for its root or legacy anchor.
 
 ## Why
@@ -64,8 +74,8 @@ The plan record contains the old and new generation, kind, manifest session UUID
 ## Read-only CLI
 
 ```
-java -cp <classes>:lib/* net.neristal.rrbridge.prototype.ingress.DeploymentTransition --inspect-active-synthetic --external-single-active ROOT LEGACY OUTPUT SESSION MANIFEST LEDGER DEVICE VEHICLE PAYLOAD MANIFEST_SESSION
-java -cp <classes>:lib/* net.neristal.rrbridge.prototype.ingress.DeploymentTransition --plan-synthetic --external-single-active <old 10 fields> NEW_SESSION NEW_MANIFEST NEW_PAYLOAD NEW_MANIFEST_SESSION ADMITTED_CSV|- PURPOSE
+java -cp <classes>:lib/* net.neristal.rrbridge.prototype.ingress.DeploymentTransitionCli --inspect-active-synthetic --external-single-active ROOT LEGACY OUTPUT SESSION MANIFEST LEDGER DEVICE VEHICLE PAYLOAD MANIFEST_SESSION
+java -cp <classes>:lib/* net.neristal.rrbridge.prototype.ingress.DeploymentTransitionCli --plan-synthetic --external-single-active <old 10 fields> NEW_SESSION NEW_MANIFEST NEW_PAYLOAD NEW_MANIFEST_SESSION ADMITTED_CSV|- PURPOSE
 ```
 
 Exit codes: 0 verified/planned, 2 usage, 3 `BLOCKED_UNCOOPERATIVE_PROCESS`, 5 review required. The JSON contains no paths, purpose text or bodies, and always reports `production_authorized=false`, `ack_eligible=false`, `automatic_activation=false` and `global_fencing=false`. The plan CLI uses the POSIX reader; on Windows the physical identity reader stays test-only (the same as `Rlc2IntegrationCli`). The inspect CLI needs no reader.

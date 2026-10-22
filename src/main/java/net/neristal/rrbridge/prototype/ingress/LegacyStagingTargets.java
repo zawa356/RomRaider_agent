@@ -1,0 +1,49 @@
+package net.neristal.rrbridge.prototype.ingress;
+
+import java.io.*;
+import java.nio.channels.FileChannel;
+import java.nio.file.*;
+import net.neristal.rrbridge.product.v1.DeploymentBinding;
+
+/** SQLite writes only inside a new, retained, private directory. Final targets are never opened writable. */
+final class LegacyStagingTargets {
+    final File vault,rli2;
+    private final Path work;
+    private final Path parent;
+    private final String parentIdentity,workIdentity;
+    static Path work(File vault){return Paths.get(vault.getAbsolutePath()+".rlpc1-work");}
+    LegacyStagingTargets(File finalVault,File finalRli2)throws Exception {
+        parent=finalVault.getAbsoluteFile().getParentFile().toPath();
+        if(!parent.equals(finalRli2.getAbsoluteFile().getParentFile().toPath()))throw new IOException("STAGING_SAME_PRIVATE_PARENT_REQUIRED");
+        DeploymentBinding.safe(parent.toFile());DeploymentBinding.privateAccess(parent);
+        parentIdentity=DeploymentBinding.fileIdentity(parent.toFile());
+        work=work(finalVault);
+        // Atomic directory claim. A partial attempt is retained and cannot be adopted/recovered on retry.
+        try{
+            if(Files.getFileAttributeView(parent,java.nio.file.attribute.PosixFileAttributeView.class)!=null)
+                Files.createDirectory(work,java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
+            else Files.createDirectory(work);
+        }catch(FileAlreadyExistsException exists){throw new IOException("STAGING_TARGET_EXISTS");}
+        DeploymentBinding.safe(work.toFile());DeploymentBinding.privateAccess(work);
+        workIdentity=DeploymentBinding.fileIdentity(work.toFile());
+        verify();
+        vault=work.resolve("vault.db").toFile();rli2=work.resolve("candidate.rlc2-integration.db").toFile();
+        Files.createFile(vault.toPath());Files.createFile(rli2.toPath());
+    }
+    void verify()throws Exception {
+        if(!parentIdentity.equals(DeploymentBinding.fileIdentity(parent.toFile()))||!workIdentity.equals(DeploymentBinding.fileIdentity(work.toFile())))throw new IOException("STAGING_DIRECTORY_CHANGED");
+        DeploymentBinding.privateAccess(parent);DeploymentBinding.privateAccess(work);
+    }
+    void publish(File staged,File target)throws Exception {
+        verify();
+        if(!target.getAbsoluteFile().getParentFile().toPath().equals(parent)||!staged.getAbsoluteFile().getParentFile().toPath().equals(work))throw new IOException("STAGING_DIRECTORY_CHANGED");
+        DeploymentBinding.safe(staged);
+        // Force file content before publication. Hard-link insertion is atomic no-replace, unlike ATOMIC_MOVE.
+        try(FileChannel channel=FileChannel.open(staged.toPath(),StandardOpenOption.WRITE)){channel.force(true);}
+        try{Files.createLink(target.toPath(),staged.toPath());}
+        catch(FileAlreadyExistsException collision){throw new IOException("STAGING_TARGET_EXISTS");}
+        catch(UnsupportedOperationException unavailable){throw new IOException("STAGING_ATOMIC_PUBLICATION_UNAVAILABLE",unavailable);}
+        // Only our internal name is removed. A halt before this point leaves a multi-link INCOMPLETE artifact.
+        Files.delete(staged.toPath());DeploymentBinding.safe(target);
+    }
+}

@@ -1,0 +1,93 @@
+# Public CI validation — 2026-10-21 (run / SHA / result table)
+
+Collected from the GitHub REST API after all runs completed (≈17:50 JST). Both repositories PUBLIC (verified 16:35 JST).
+Agent main `4f80c5e` and Server main `d8c7a2f` unchanged. `conclusion=success` alone is not accepted: each row lists jobs
+with step counts and skipped steps; logs were read for the core claims (see the notes and the worklog). Older runs with
+`steps=0` (before the visibility change) stay **CI NOT RUN** and are not re-labelled.
+
+Classes: **C1** real test-build defect (spool compile, #97…#100); **C2** Windows runner 8.3 `%TEMP%` refused by product
+path guards (environment; fixed in CI by long-name `TMP`); **C3** my CI-script x86 PATH bug (caught by the model-32
+assertion); **C4** intermittent fail-closed probe timeouts on hosted Windows (PowerShell `Add-Type` 10 s /
+fsutil 5 s) — passed on rerun, open P2.
+
+## Runs
+
+| Repo | PR / branch | Tested SHA | Workflow | Run (attempt) | Event | Started (UTC) | Jobs: conclusion (steps, skipped) | Result | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| Agent | #100 original `phase9/distribution-hardening` | `d37c3bd` | Product v1 Windows Agent spool CI | [39563411217](https://github.com/zawa356/RomRaider_agent/actions/runs/39563411217) (a1) | workflow_dispatch | 2026-10-21T07:38:29Z | durability (ubuntu-latest): failure (10, 2); durability (windows-latest): failure (10, 2) | **failure** | C1 compile defect; PUBLIC_RUNNER_CONFIRMED |
+| Agent | #101 `ci/public-restart` | `693aa28` | Product v1 REAL Server E2E (public Server, pinned SHA) | [39564212303](https://github.com/zawa356/RomRaider_agent/actions/runs/39564212303) (a1) | pull_request | 2026-10-21T07:45:18Z | real-server-e2e: success (17, 0) | **success** |  |
+| Agent | #101 `ci/public-restart` | `693aa28` | Product v1 REAL Server E2E (public Server, pinned SHA) | [39564215100](https://github.com/zawa356/RomRaider_agent/actions/runs/39564215100) (a1) | workflow_dispatch | 2026-10-21T07:45:19Z | real-server-e2e: success (17, 0) | **success** |  |
+| Agent | #101 `ci/public-restart` | `693aa28` | Product v1 Windows Agent spool CI | [39564212197](https://github.com/zawa356/RomRaider_agent/actions/runs/39564212197) (a1) | pull_request | 2026-10-21T07:45:18Z | durability (ubuntu-latest): success (10, 0); durability (windows-latest): success (10, 0) | **success** |  |
+| Agent | #101 first `ci/public-restart` | `693aa28` | Isolated ingress journal prototype CI | [39564209789](https://github.com/zawa356/RomRaider_agent/actions/runs/39564209789) (a1) | workflow_dispatch | 2026-10-21T07:45:16Z | Test-only native identity and bound READ (Zulu8 x86): failure (10, 0); RLC2 quarantine PostgreSQL16 (no Server ACK): success (14, 0); Fsync journal recovery / quota / CRC (ubuntu-latest): success (14, 1); Fsync journal recovery / quota / CRC (windows-latest): failure (14, 2) | **failure** | C2 8.3 TEMP (Windows), Linux/PG pass |
+| Agent | #101 first `ci/public-restart` | `693aa28` | Phase VII-IX synthetic entry / inventory / RLWR1 CI | [39564212325](https://github.com/zawa356/RomRaider_agent/actions/runs/39564212325) (a1) | pull_request | 2026-10-21T07:45:18Z | phase8 (windows-latest): failure (14, 0); phase7 (windows-latest): failure (14, 0); phase8 (ubuntu-latest): success (13, 2); phase9 (windows-latest): failure (14, 0); phase7 (ubuntu-latest): success (13, 2); phase9 (ubuntu-latest): success (13, 2) | **failure** | C2/C3 (Windows), Linux pass |
+| Agent | #101 `ci/public-restart` | `a590d6f` | Product v1 REAL Server E2E (public Server, pinned SHA) | [39565160885](https://github.com/zawa356/RomRaider_agent/actions/runs/39565160885) (a1) | pull_request | 2026-10-21T07:53:14Z | real-server-e2e: success (17, 0) | **success** |  |
+| Agent | #101 `ci/public-restart` | `a590d6f` | Product v1 Windows Agent spool CI | [39565160844](https://github.com/zawa356/RomRaider_agent/actions/runs/39565160844) (a1) | pull_request | 2026-10-21T07:53:14Z | durability (ubuntu-latest): success (10, 0); durability (windows-latest): success (10, 0) | **success** |  |
+| Agent | #101 `ci/public-restart` | `a590d6f` | Isolated ingress journal prototype CI | [39565160914](https://github.com/zawa356/RomRaider_agent/actions/runs/39565160914) (a1) | pull_request | 2026-10-21T07:53:14Z | RLC2 quarantine PostgreSQL16 (no Server ACK): success (15, 1); Fsync journal recovery / quota / CRC (windows-latest): success (15, 0); Test-only native identity and bound READ (Zulu8 x86): success (11, 0); Fsync journal recovery / quota / CRC (ubuntu-latest): success (15, 2) | **success** | x86 batch model 32 |
+| Agent | #101 `ci/public-restart` | `a590d6f` | Phase VII-IX synthetic entry / inventory / RLWR1 CI | [39565160789](https://github.com/zawa356/RomRaider_agent/actions/runs/39565160789) (a1) | pull_request | 2026-10-21T07:53:14Z | phase7 (windows-latest): success (15, 0); phase7 (ubuntu-latest): success (14, 3); phase9 (ubuntu-latest): success (14, 3); phase8 (windows-latest): success (15, 0); phase8 (ubuntu-latest): success (14, 3); phase9 (windows-latest): success (15, 0) | **success** | Windows x64 + actual Java8 x86 per suite |
+| Agent | #102 `fix/offline-tools-outdir` | `87483c8` | Phase VII-IX synthetic entry / inventory / RLWR1 CI | [39567145418](https://github.com/zawa356/RomRaider_agent/actions/runs/39567145418) (a1) | pull_request | 2026-10-21T08:09:21Z | phase8 (ubuntu-latest): success (14, 3); phase9 (windows-latest): success (15, 0); phase7 (windows-latest): success (15, 0); phase7 (ubuntu-latest): success (14, 3); phase8 (windows-latest): success (15, 0); phase9 (ubuntu-latest): success (14, 3) | **success** |  |
+| Agent | #103 `fix/rldi1-no-temp-write` | `763e6fe` | Isolated ingress journal prototype CI | [39568456592](https://github.com/zawa356/RomRaider_agent/actions/runs/39568456592) (a1) | pull_request | 2026-10-21T08:19:58Z | Fsync journal recovery / quota / CRC (windows-latest): success (15, 0); RLC2 quarantine PostgreSQL16 (no Server ACK): success (15, 1); Fsync journal recovery / quota / CRC (ubuntu-latest): success (15, 2); Test-only native identity and bound READ (Zulu8 x86): success (11, 0) | **success** |  |
+| Agent | #103 `fix/rldi1-no-temp-write` | `763e6fe` | Product v1 Windows Agent spool CI | [39568456690](https://github.com/zawa356/RomRaider_agent/actions/runs/39568456690) (a1) | pull_request | 2026-10-21T08:19:58Z | durability (ubuntu-latest): success (10, 0); durability (windows-latest): success (10, 0) | **success** |  |
+| Agent | #103 `fix/rldi1-no-temp-write` | `763e6fe` | Product v1 REAL Server E2E (public Server, pinned SHA) | [39568456657](https://github.com/zawa356/RomRaider_agent/actions/runs/39568456657) (a1) | pull_request | 2026-10-21T08:19:58Z | real-server-e2e: success (17, 0) | **success** | real Java->FastAPI->PG16 |
+| Agent | #103 `fix/rldi1-no-temp-write` | `763e6fe` | Phase VII-IX synthetic entry / inventory / RLWR1 CI | [39568456604](https://github.com/zawa356/RomRaider_agent/actions/runs/39568456604) (a1) | pull_request | 2026-10-21T08:19:58Z | phase8 (ubuntu-latest): success (14, 3); phase7 (windows-latest): success (15, 0); phase8 (windows-latest): success (15, 0); phase9 (ubuntu-latest): success (14, 3); phase7 (ubuntu-latest): success (14, 3); phase9 (windows-latest): success (15, 0) | **success** |  |
+| Agent | #80 original `phase5/provenance-hardening` | `7da3837` | Isolated ingress journal prototype CI | [39566651419](https://github.com/zawa356/RomRaider_agent/actions/runs/39566651419) (a1) | workflow_dispatch | 2026-10-21T08:05:23Z | Test-only native identity and bound READ (Zulu8 x86): failure (10, 0); Fsync journal recovery / quota / CRC (windows-latest): failure (14, 2); RLC2 quarantine PostgreSQL16 (no Server ACK): success (14, 0); Fsync journal recovery / quota / CRC (ubuntu-latest): success (14, 1) | **failure** | C2 only (see verify) |
+| Agent | #80 original `phase5/provenance-hardening` | `7da3837` | Product v1 Windows Agent spool CI | [39566657153](https://github.com/zawa356/RomRaider_agent/actions/runs/39566657153) (a1) | workflow_dispatch | 2026-10-21T08:05:26Z | durability (windows-latest): success (10, 0); durability (ubuntu-latest): success (10, 0) | **success** |  |
+| Agent | #80 verify(+TMP) `ci-verify/pr80-7da3837` | `0f400a9` | Isolated ingress journal prototype CI | [39567332215](https://github.com/zawa356/RomRaider_agent/actions/runs/39567332215) (a1) | workflow_dispatch | 2026-10-21T08:10:51Z | Test-only native identity and bound READ (Zulu8 x86): success (11, 0); RLC2 quarantine PostgreSQL16 (no Server ACK): success (15, 1); Fsync journal recovery / quota / CRC (ubuntu-latest): success (15, 2); Fsync journal recovery / quota / CRC (windows-latest): success (15, 0) | **success** |  |
+| Agent | #86 original `phase6/transition-drive-preflight` | `297126c` | Product v1 Windows Agent spool CI | [39568609521](https://github.com/zawa356/RomRaider_agent/actions/runs/39568609521) (a1) | workflow_dispatch | 2026-10-21T08:21:09Z | durability (ubuntu-latest): success (10, 0); durability (windows-latest): success (10, 0) | **success** |  |
+| Agent | #86 verify(+TMP) `ci-verify/pr86-297126c` | `e565294` | Isolated ingress journal prototype CI | [39568682533](https://github.com/zawa356/RomRaider_agent/actions/runs/39568682533) (a2) | workflow_dispatch | 2026-10-21T08:38:00Z | Test-only native identity and bound READ (Zulu8 x86): success (11, 0); Fsync journal recovery / quota / CRC (ubuntu-latest): success (15, 2); Fsync journal recovery / quota / CRC (windows-latest): success (15, 0); RLC2 quarantine PostgreSQL16 (no Server ACK): success (15, 1) | **success** | attempt1 FAIL C4, attempt2 PASS |
+| Agent | #92 original `phase7/review-closure` | `ae5ff53` | Product v1 Windows Agent spool CI | [39568614522](https://github.com/zawa356/RomRaider_agent/actions/runs/39568614522) (a1) | workflow_dispatch | 2026-10-21T08:21:12Z | durability (ubuntu-latest): success (10, 0); durability (windows-latest): success (10, 0) | **success** |  |
+| Agent | #92 verify(+TMP) `ci-verify/pr92-ae5ff53` | `5abd7ec` | Isolated ingress journal prototype CI | [39568704194](https://github.com/zawa356/RomRaider_agent/actions/runs/39568704194) (a2) | workflow_dispatch | 2026-10-21T08:38:02Z | Test-only native identity and bound READ (Zulu8 x86): success (11, 0); RLC2 quarantine PostgreSQL16 (no Server ACK): success (15, 1); Fsync journal recovery / quota / CRC (ubuntu-latest): success (15, 2); Fsync journal recovery / quota / CRC (windows-latest): success (15, 0) | **success** | attempt1 FAIL C4 DRIVE_TYPE_UNPROVEN, attempt2 PASS |
+| Agent | #96 original `phase8/entry-closure-cli-split` | `ab32e6b` | Isolated ingress journal prototype CI | [39566662555](https://github.com/zawa356/RomRaider_agent/actions/runs/39566662555) (a1) | workflow_dispatch | 2026-10-21T08:05:28Z | RLC2 quarantine PostgreSQL16 (no Server ACK): success (14, 0); Test-only native identity and bound READ (Zulu8 x86): failure (10, 0); Fsync journal recovery / quota / CRC (ubuntu-latest): success (14, 1); Fsync journal recovery / quota / CRC (windows-latest): failure (14, 2) | **failure** | C2 only |
+| Agent | #96 original `phase8/entry-closure-cli-split` | `ab32e6b` | Product v1 Windows Agent spool CI | [39566667639](https://github.com/zawa356/RomRaider_agent/actions/runs/39566667639) (a1) | workflow_dispatch | 2026-10-21T08:05:31Z | durability (windows-latest): success (10, 0); durability (ubuntu-latest): success (10, 0) | **success** |  |
+| Agent | #96 verify(+TMP) `ci-verify/pr96-ab32e6b` | `f980f8f` | Isolated ingress journal prototype CI | [39567357247](https://github.com/zawa356/RomRaider_agent/actions/runs/39567357247) (a2) | workflow_dispatch | 2026-10-21T08:20:55Z | Test-only native identity and bound READ (Zulu8 x86): success (11, 0); RLC2 quarantine PostgreSQL16 (no Server ACK): success (15, 1); Fsync journal recovery / quota / CRC (windows-latest): success (15, 0); Fsync journal recovery / quota / CRC (ubuntu-latest): success (15, 2) | **success** | attempt1 FAIL C4 DRIVE_TYPE_UNPROVEN, attempt2 PASS |
+| Agent | #97 original `phase9/cli-review-closure` | `815dae7` | Product v1 Windows Agent spool CI | [39568619064](https://github.com/zawa356/RomRaider_agent/actions/runs/39568619064) (a1) | workflow_dispatch | 2026-10-21T08:21:14Z | durability (ubuntu-latest): failure (10, 2); durability (windows-latest): failure (10, 2) | **failure** | C1 compile defect (expected) |
+| Server | #65 `phase9/agent-reader-progress` | `7455f83` | PoC checks | [39535242731](https://github.com/zawa356/RomRaiderServer/actions/runs/39535242731) (a2) | pull_request | 2026-10-21T07:38:52Z | supervisor-unit: success (8, 0); compose-smoke: success (11, 1) | **success** | rerun of pre-public run |
+| Server | #65 `phase9/agent-reader-progress` | `7455f83` | Product v1 contract CI | [39564314019](https://github.com/zawa356/RomRaiderServer/actions/runs/39564314019) (a1) | workflow_dispatch | 2026-10-21T07:46:07Z | Atomic ACK and device authorization (PostgreSQL 16): success (12, 0); Product API container build: success (10, 1) | **success** |  |
+| Server | #65 `phase9/agent-reader-progress` | `7455f83` | Product v1 actual Java Agent to PostgreSQL E2E | [39564309265](https://github.com/zawa356/RomRaiderServer/actions/runs/39564309265) (a1) | workflow_dispatch | 2026-10-21T07:46:05Z | Pinned incremental Java 8 Agent -> FastAPI -> PostgreSQL 16: success (16, 1) | **success** | pinned old Agent snapshot, not Phase IX |
+| Server | #62 `phase5/agent-provenance-progress` | `056958d` | PoC checks | [39238624521](https://github.com/zawa356/RomRaiderServer/actions/runs/39238624521) (a2) | pull_request | 2026-10-21T08:38:19Z | supervisor-unit: success (8, 0); compose-smoke: success (11, 1) | **success** | rerun |
+| Server | #63 `phase6/agent-safety-progress` | `526e77d` | PoC checks | [39346425186](https://github.com/zawa356/RomRaiderServer/actions/runs/39346425186) (a2) | pull_request | 2026-10-21T08:38:25Z | compose-smoke: success (11, 1); supervisor-unit: success (8, 0) | **success** | rerun |
+| Server | #64 `phase7/agent-entry-progress` | `2c73c42` | PoC checks | [39384994149](https://github.com/zawa356/RomRaiderServer/actions/runs/39384994149) (a2) | pull_request | 2026-10-21T08:38:32Z | compose-smoke: success (11, 1); supervisor-unit: success (8, 0) | **success** | rerun |
+
+Skipped steps in successful jobs are the Windows-only setup steps on Linux, `if: failure()` reporting steps, or the
+cache-restore post step; no core test step was skipped. Log-verified facts:
+- Real-Server E2E (39564212303, 39565160885, 39568456657): PostgreSQL 16.15 service; "Real Server incremental / Journal /
+  Journal Worker E2E: PASS"; "REAL PostgreSQL verification: PASS (TSV 3 + journal 3 + CLI Worker 1, three profiles, no
+  duplicates)"; "Real RLC2 Server HTTP E2E passed 35 checks; test ACK only"; Server source asserted at `d8c7a2f`.
+- Actual Java 8 x86: ingress batch "RUNTIME 1.8.0_504 model=32 os=Windows Server 2025"; Phase VII–IX jobs run every suite
+  twice (JDK17 x64 model 64, then `--run-only` under Java 8 x86 model 32), e.g. Phase VII entry 108/109, multi-session
+  168/169, RLWR1 native 45/46 checks, RLWR1 RLC2 scenarios 32-bit 100/200.
+- Linux Phase IX: RLWR1 native and RLWR1-through-entry print `NOT_RUN … (Windows only)`; not counted as PASS.
+
+## Status per PR (head as of this session)
+
+| PR | Head | What ran | Status |
+|---|---|---|---|
+| Agent #80 | `7da3837` | spool (orig) PASS; ingress (orig) Windows FAIL C2, Linux/PG PASS; ingress verify (+TMP only) all PASS | code PASS with CI env fix; E2E/Phase VII–IX workflows not present at that head → NOT_RUN |
+| Agent #81–#85 | (see PR list) | nothing new | CI NOT RUN (not dispatched; boundary heads used instead) |
+| Agent #86 | `297126c` | spool (orig) PASS; ingress verify (+TMP) a1 FAIL C4, a2 PASS | PASS with intermittent C4 |
+| Agent #87–#91 | | nothing new | CI NOT RUN |
+| Agent #92 | `ae5ff53` | spool (orig) PASS; ingress verify (+TMP) a1 FAIL C4 (`DRIVE_TYPE_UNPROVEN`), a2 PASS | PASS with intermittent C4 |
+| Agent #93–#95 | | nothing new | CI NOT RUN |
+| Agent #96 | `ab32e6b` | spool (orig) PASS; ingress (orig) Windows FAIL C2; ingress verify (+TMP) a1 FAIL C4, a2 PASS | PASS with C2 env fix + intermittent C4 |
+| Agent #97 | `815dae7` | spool (orig) **FAIL C1** | **FAIL (real defect, fixed in #101)** |
+| Agent #98–#99 | `c42c4a6`, `0612693` | not dispatched | inherit C1 (same spool test file) → FAIL expected; NOT_RUN |
+| Agent #100 | `d37c3bd` | spool (dispatch) **FAIL C1** | **FAIL (fixed in #101)** |
+| Agent #101 | `a590d6f` | ingress, spool, real-Server E2E, Phase VII–IX — all success | **PASS** |
+| Agent #102 | `87483c8` | Phase VII–IX (only workflow matching its paths) success | **PASS** |
+| Agent #103 | `763e6fe` | ingress, spool, real-Server E2E, Phase VII–IX — all success | **PASS** (contains #80…#102) |
+| Server #62–#64 | `056958d`, `526e77d`, `2c73c42` | PoC rerun (a2) success | PASS (docs-only PRs; PoC only) |
+| Server #65 | `7455f83` | PoC (a2), product-v1 contract CI, Java-Agent E2E (pinned old Agent snapshot) success | PASS (Server E2E ≠ Phase IX Agent; that is the Agent real-Server E2E) |
+
+Verification branches `ci-verify/pr80-7da3837`, `ci-verify/pr86-297126c`, `ci-verify/pr92-ae5ff53`,
+`ci-verify/pr96-ab32e6b` = original head + one commit adding only the Windows long-name `TMP` step to the ingress
+workflow. They are not PRs, change no code and must not be merged. Branch protection / required checks: none configured
+(`mergeable=MERGEABLE` on every PR); merge order is the stack order #80 → … → #103. **Merge: NOT DONE.**
+
+## Addendum 2026-10-22 (Phase X-A): Windows failures at the final head `32b139f`
+
+The rows above for #103 describe the last **code** head `763e6fe` (all four workflows success) and remain true. The
+documentation-only final head `32b139ff55b878ddaaf9fdbbe63086621b7dd5b3` was **not** all green: on 2026-10-21 ≈08:58–09:01
+UTC (17:58–18:01 JST) Spool 39573357800 and real-Server E2E 39573358311 succeeded, but Ingress 39573354521 (Windows job
+119132739485, `DeploymentBindingTest`) and Phase VII–IX 39573358384 (Windows phase7 job 119132829917, `Phase7EntryTest` on
+JDK17 and `Phase7ReviewC2Test` on Zulu8 x86) **failed with `DRIVE_TYPE_UNPROVEN`**. Phase X-A measured these as the
+WindowsDriveGate 10 s probe timeout on the first (cold) PowerShell probe of a fresh runner; analysis, fix and new runs:
+[Phase X-A report](phase_xa_ci_stability_report.md) / [evidence](phase_xa_ci_stability_evidence.md) (PR #104).

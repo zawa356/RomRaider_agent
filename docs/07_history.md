@@ -407,3 +407,24 @@ Phase III adds RMI1 reference cleanup (RED10 leaked references, GREEN0 newly ret
 ## 2026-10-19 Phase III final publication
 
 PR70–73: RLDB1固定配置、read-only readiness、RLBA1 backup/RMI1 rehearsal、copy-state CLIと6子JVM fault boundaries。上記時点で未成立だった新harnessのcopy/crash matrixを今回追加した。hardlink target/source aliasとrecovery sidecar aliasの実RED→GREEN、schema reference leak cleanup。検証head ed8efd6、Windows64/actual32/Linux/HTTP35/Server57受入。詳細と未成立条件は [報告](handoff/codex_phase3_report.md)、[証跡](handoff/phase3_validation_evidence.md)、[追記log](handoff/codex_phase3_worklog.md)。CI NOT RUN。本番/正式ACK/Session rebindは未解禁。
+
+
+## 2026-10-19 — Phase V initial hardening
+
+Reproduced 32 accepted cursor/output mutations against Phase IV main (9 controls/checks passed). Added whole-cursor RLC1 payload evidence, symmetric cross-run UUID collision rejection, frozen original projections, exact typed Vault/all-eight-table RLI2 verification and private no-overwrite staging publication. Initial expanded Windows x64 acceptance: 56/0 including four child-JVM halt boundaries. Final exact-head matrix and limitations are recorded in Phase V worklog/evidence. Historical Phase IV #79/Server #61 were already merged before this session. Production migration/ACK/real-car access remain disabled.
+
+## 2026-10-19 — Phase V additional RED/GREEN and final validation baseline
+
+Windows accepted a byte-identical physical source replacement between classification and staging; native RLC2 reader/marker revalidation now refuses it. Four stored-v1 mutations retaining the old hash were also accepted: body replacement, missing unACKed body, changed ACKed timestamp and changed sequence. Compare actual retained JSON/canonical fields; keep ACKed NULL bodies legitimate, missing unACKed bodies UNKNOWN. Final implementation b4b909c,61 focused cases pass on JDK17x64/actual Zulu8x86/Linux17; Linux Phase III/IV/large multi-session and actual owned HTTP35/Server57 verification are in the Phase V evidence. Windows full batch is recorded separately at its exact frozen head. Phase V PRs stay unmerged with CI NOT RUN.
+## 2026-10-20 — Phase VI writer concurrency RED and first correction
+
+Separate JVM reproduced reserved lock without sidecars and vault-only staging completion despite a late rollback journal. Added independent legacy snapshot and explicit unproven-writer stop gate. Tests use only new synthetic fixtures; final heads/platform results are maintained in [Phase VI evidence](handoff/phase6_overnight_evidence.md). No production/ACK/Worker/service action or merge.
+
+## 2026-10-20 — Phase VI mapped-drive gate
+
+Remote+NTFS simulation passed the old path-only gate (RED). Added read-only Win32 fixed-drive and stable device-map checks before RLDB1/RLDB2 layout traversal, with injected refusal and bounded subprocess tests. Existing local NTFS passes actual Win32 queries. Actual SMB/subst/volume-mount changes NOT RUN; no network share access. Fixed-head platform/transition regression follows in Phase VI evidence.
+
+## 2026-10-20 — Phase VI late parent-replacement RED/GREEN
+
+Actual child parent replacement caused the prior stager to write a competing empty internal RLI2 before later refusal. Native parent/work identity revalidation now refuses before that write; development10 checks PASS for directory replacement and actual Windows junction insertion, preserving competitor bytes, moved own evidence and original/ACK bytes. Exact tested source heads and final matrix follow in Phase VI evidence; no global race or power-loss claim.
+

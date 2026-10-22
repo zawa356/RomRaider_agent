@@ -44,8 +44,8 @@ A PID alone, a file name alone, or the presence of an environment variable is ne
 ## CLI (read-only)
 
 ```
-java -cp <classes>:lib/* net.neristal.rrbridge.product.v1.ArtifactProvenance --describe MAIN_CLASS /abs/a.jar /abs/b.jar   # prints the RLAP1 record
-java -cp <classes>:lib/* net.neristal.rrbridge.product.v1.ArtifactProvenance --inspect-process PID RLAP1_FILE                 # JSON, exit0 inspected / 5 refused / 2 usage
+java -cp <classes>:lib/* net.neristal.rrbridge.product.v1.ArtifactProvenanceCli --describe MAIN_CLASS /abs/a.jar /abs/b.jar   # prints the RLAP1 record
+java -cp <classes>:lib/* net.neristal.rrbridge.product.v1.ArtifactProvenanceCli --inspect-process PID RLAP1_FILE                 # JSON, exit0 inspected / 5 refused / 2 usage
 ```
 
 The RLAP1 file must be private (the same access rule as RLDB1 records). The CLI does not print command lines or paths.

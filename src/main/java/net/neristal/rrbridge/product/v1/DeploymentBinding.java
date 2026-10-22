@@ -23,6 +23,13 @@ public final class DeploymentBinding {
   File[] files(){return new File[]{root,legacy,output,session,manifest,ledger};}
  }
  private static void require(boolean condition,String code)throws Refusal {if(!condition)throw new Refusal(code);}
+ /** Read-only local-root gate. Probe runs before any path/FS inspection, so Remote roots are not traversed. */
+ public static Path safeLocal(File file,WindowsDriveGate.Probe probe)throws IOException {
+  Path p=file.toPath();require(p.isAbsolute()&&p.equals(p.normalize()),"PATH_NOT_ABSOLUTE_NORMAL");
+  require(!p.toString().startsWith("\\\\"),"NETWORK_PATH_UNSUPPORTED");
+  if(System.getProperty("os.name").startsWith("Windows"))WindowsDriveGate.requireFixed(p.getRoot().toString(),probe);
+  return safe(file);
+ }
  /** Reject aliases/reparse points in EVERY existing component, before canonicalization. */
  public static Path safe(File file)throws IOException {
   Path p=file.toPath();require(p.isAbsolute()&&p.equals(p.normalize()),"PATH_NOT_ABSOLUTE_NORMAL");
@@ -74,6 +81,8 @@ public final class DeploymentBinding {
   Object vsn;try{vsn=Files.getFileStore(p).getAttribute("volume:vsn");}catch(UnsupportedOperationException e){throw new Refusal("IDENTITY_UNAVAILABLE");}
   return "ntfs:"+vsn+":"+windowsFileId(p)+"|"+a.creationTime().toString();
  }
+ /** Read-only physical identity after the existing strict path/alias checks. No creation-time-only Windows fallback. */
+ public static String fileIdentity(File file)throws IOException {return identity(safe(file));}
  /** Bounded read-only fsutil query. Localized text is ignored; exactly one hex file ID is required. */
  private static String windowsFileId(Path p)throws IOException {
   String text=fsutil("IDENTITY_UNAVAILABLE","file","queryfileid",p.toString());
@@ -100,7 +109,20 @@ public final class DeploymentBinding {
    return new String(out.toByteArray(),StandardCharsets.ISO_8859_1);
   }finally{if(process.isAlive())process.destroyForcibly();}
  }
+ /** Validate all distinct drive roots without touching any layout file. No result cache across calls. */
+ public static void requireLocalDrives(Layout... layouts)throws IOException {requireLocalDrives(WindowsDriveGate.SYSTEM,layouts);}
+ public static void requireLocalDrives(WindowsDriveGate.Probe probe,Layout... layouts)throws IOException {
+  if(System.getProperty("os.name").startsWith("Windows")){
+   Set<String> drives=new TreeSet<String>();
+   for(Layout layout:layouts)for(File f:layout.files()){
+    Path p=f.toPath();require(p.isAbsolute()&&p.equals(p.normalize()),"PATH_NOT_ABSOLUTE_NORMAL");
+    require(!p.toString().startsWith("\\\\"),"NETWORK_PATH_UNSUPPORTED");drives.add(p.getRoot().toString().toUpperCase(Locale.ROOT));
+   }
+   for(String drive:drives)WindowsDriveGate.requireFixed(drive,probe);
+  }
+ }
  private static Map<String,String> describe(Layout l)throws Exception {
+  requireLocalDrives(l);
   Map<String,String> m=new TreeMap<String,String>();m.put("version","RLDB1");m.put("mode","SYNTHETIC_ONLY");
   require(UUID.fromString(l.device).toString().equals(l.device)&&UUID.fromString(l.vehicle).toString().equals(l.vehicle)&&UUID.fromString(l.manifestSession).toString().equals(l.manifestSession),"IDENTITY_INVALID");
   require(l.payloadSession!=null&&!l.payloadSession.isEmpty()&&l.payloadSession.length()<=1024&&l.payloadSession.indexOf('\n')<0&&l.payloadSession.indexOf('\r')<0,"IDENTITY_INVALID");
@@ -171,9 +193,5 @@ public final class DeploymentBinding {
   require(actual.equals(expected),"BINDING_LAYOUT_CHANGED");
  }
  public static String json(String state,String reason) {return "{\"contract_version\":1,\"state\":\""+state+"\",\"reason\":\""+reason+"\",\"synthetic_only\":true,\"production_authorized\":false,\"ack_eligible\":false,\"global_fencing\":false}";}
- public static void main(String[] args) {
-  if(args.length!=12||!"--inspect-synthetic".equals(args[0])||!"--external-single-active".equals(args[1])){System.out.println(json("REVIEW_REQUIRED","USAGE"));System.exit(2);return;}
-  try {verify(true,true,new Layout(new File(args[2]),new File(args[3]),new File(args[4]),new File(args[5]),new File(args[6]),new File(args[7]),args[8],args[9],args[10],args[11]));System.out.println(json("READY_FOR_SYNTHETIC_TEST","BOUND_LOCAL_DEPLOYMENT"));}
-  catch(Exception e){String reason=e instanceof Refusal?e.getMessage():"INSPECTION_UNAVAILABLE";System.out.println(json("REVIEW_REQUIRED",reason));System.exit(5);}
- }
+ // Read-only CLI: DeploymentBindingCli (kept out of this class so the entry closure carries no secondary main).
 }

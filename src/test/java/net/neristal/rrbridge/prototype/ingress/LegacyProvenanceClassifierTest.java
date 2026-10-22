@@ -40,7 +40,9 @@ public final class LegacyProvenanceClassifierTest {
   spool.appendRecord(UUID.randomUUID().toString(),IncrementalTsvBridge.runId(D,J),null,null,"event",null,AT,"synthetic","{\"kind\":\"event\",\"text\":\"journal\"}");
   spool.appendRecord(UUID.randomUUID().toString(),UUID.randomUUID().toString(),null,null,"event",null,AT,"synthetic","{\"kind\":\"event\",\"text\":\"orphan\"}");
   // Fixture-only rows the real lanes would have written: the journal cursor and one ACKed record with its receipt.
-  sql(v1,"INSERT INTO v1_journal_import_cursors VALUES('"+seg1+"','"+RotationManifestPrototype.segment(dirA,1).toFile().getCanonicalPath().replace("'","''")+"','"+D+"','"+V+"','"+A+"',2,'00','00','fixture')",
+  List<String> prefix=new ArrayList<String>();for(Rlc2ProductAdapter.Receipt receipt:p.receipts)if(receipt.sourceUuid.equals(seg1))prefix.add(receipt.body);
+  String[] cursor=IncrementalTsvBridge.journalCursorEvidence(D,V,A,prefix);
+  sql(v1,"INSERT INTO v1_journal_import_cursors VALUES('"+seg1+"','"+RotationManifestPrototype.segment(dirA,1).toFile().getCanonicalPath().replace("'","''")+"','"+D+"','"+V+"','"+A+"',"+prefix.size()+",'"+cursor[0]+"','"+cursor[1]+"','"+cursor[2]+"')",
    "UPDATE v1_records SET acked=1,body_json=NULL,acked_batch_id='batch-1',acked_at='"+AT+"' WHERE local_id=1",
    "INSERT INTO v1_ack_receipts VALUES('batch-1',1,1,0,'"+AT+"')");
   spool=null;
@@ -94,7 +96,7 @@ public final class LegacyProvenanceClassifierTest {
   final File vault=home.resolve("staged.rllv1.db").toFile(),rli2=home.resolve("staged.rlc2-integration.db").toFile();
   check(LegacyProvenanceClassifier.stagingState(vault,rli2).equals("NO_STAGING"),"no staging yet");
   LegacyProvenanceClassifier.Report staged=LegacyProvenanceClassifier.stageIsolated(true,true,v1,originals,env.reader(),vault,rli2,LegacyProvenanceClassifier.NO_FAULT);
-  check(LegacyProvenanceClassifier.stagingState(vault,rli2).equals("STAGED_VERIFIED_INACTIVE"),"staging verified and inactive");
+  check(LegacyProvenanceClassifier.stagingState(vault,rli2).equals("STAGED_LOCAL_HASHES_MATCH_INACTIVE"),"staging verified and inactive");
   check(Rlc2PreviewStoreTest.count(rli2,"SELECT count(*) FROM preview_records")==p.records.size()+1&&Rlc2PreviewStoreTest.count(rli2,"SELECT count(*) FROM preview_receipts")>0,"RLI2 candidate holds the original's records and ledger receipts (incl. the post-rotation row)");
   check(Rlc2PreviewStoreTest.count(vault,"SELECT count(*) FROM vault_records")==staged.rows.size()&&Rlc2PreviewStoreTest.count(vault,"SELECT count(*) FROM vault_records WHERE v1_acked=1 AND v1_acked_batch_id='batch-1'")==1,"vault keeps every v1 row with its v1 ACK state");
   check(Rlc2PreviewStoreTest.count(vault,"SELECT count(*) FROM vault_meta WHERE formal_ack=0")==1,"vault never marks a formal ACK");

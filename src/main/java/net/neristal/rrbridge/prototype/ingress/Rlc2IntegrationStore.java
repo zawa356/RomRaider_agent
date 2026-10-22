@@ -12,6 +12,23 @@ import java.util.Set;
 
 /** Offline product candidate. Explicit admission; no Worker, sender or persistent ACK. */
 public final class Rlc2IntegrationStore {
+    /** INSERT OR IGNORE is only idempotent if the retained row is exactly the requested binding/admission. */
+    static void saveBindingAndAdmissions(Connection db,String session,String directory,String run,Set<String> sources)throws Exception {
+        try(PreparedStatement q=db.prepareStatement("INSERT OR IGNORE INTO integration_bindings VALUES(?,?,?,2)")){
+            q.setString(1,session);q.setString(2,directory);q.setString(3,run);q.executeUpdate();
+        }
+        try(PreparedStatement q=db.prepareStatement("SELECT session_path,run_id,contract_version FROM integration_bindings WHERE session_uuid=?")){
+            q.setString(1,session);try(ResultSet r=q.executeQuery()){
+                if(!r.next()||!directory.equals(r.getString(1))||!run.equals(r.getString(2))||r.getInt(3)!=2)throw new IOException("INTEGRATION_BINDING_CONFLICT");
+            }
+        }
+        for(String uuid:sources){
+            try(PreparedStatement q=db.prepareStatement("INSERT OR IGNORE INTO integration_admissions VALUES(?,?)")){q.setString(1,uuid);q.setString(2,session);q.executeUpdate();}
+            try(PreparedStatement q=db.prepareStatement("SELECT session_uuid FROM integration_admissions WHERE source_uuid=?")){
+                q.setString(1,uuid);try(ResultSet r=q.executeQuery()){if(!r.next()||!session.equals(r.getString(1)))throw new IOException("INTEGRATION_ADMISSION_CONFLICT");}
+            }
+        }
+    }
     public static final class Admission {
         public final String directory,manifestSession;
         public final Set<String> sourceUuids;
@@ -123,12 +140,7 @@ public final class Rlc2IntegrationStore {
                 if(!existingSources.equals(existingAdmissions))throw new IOException("saved source admission missing; no reconstruction");
             }
             public void claimsWritten(Connection db)throws Exception{
-                try(PreparedStatement q=db.prepareStatement("INSERT OR IGNORE INTO integration_bindings VALUES(?,?,?,2)")){
-                    q.setString(1,p.manifestSession);q.setString(2,admission.directory);q.setString(3,run);q.executeUpdate();
-                }
-                for(String uuid:actual)try(PreparedStatement q=db.prepareStatement("INSERT OR IGNORE INTO integration_admissions VALUES(?,?)")){
-                    q.setString(1,uuid);q.setString(2,p.manifestSession);q.executeUpdate();
-                }
+                saveBindingAndAdmissions(db,p.manifestSession,admission.directory,run,actual);
             }
             public void beforeCommit(Connection db)throws Exception{
                 Rlc2IntegrationSchema.requireUnclaimed(legacy,p.device,p.vehicle,p.payloadSession,run);

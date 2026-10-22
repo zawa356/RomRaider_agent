@@ -257,12 +257,18 @@ public final class DeploymentTransition {
      */
     public static Plan plan(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout old,DeploymentBinding.Layout next,
             Set<String> admitted,String purpose,WatermarkV2Prototype.ReadOpener reader)throws Exception {
+        return planWithDriveProbe(enable,externallySingleActive,old,next,admitted,purpose,reader,net.neristal.rrbridge.product.v1.WindowsDriveGate.SYSTEM);
+    }
+    /** Scoped test seam; normal entry always uses the fixed system probe, with later layout verification too. */
+    static Plan planWithDriveProbe(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout old,DeploymentBinding.Layout next,
+            Set<String> admitted,String purpose,WatermarkV2Prototype.ReadOpener reader,net.neristal.rrbridge.product.v1.WindowsDriveGate.Probe probe)throws Exception {
         require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");
         require(purpose!=null&&!purpose.trim().isEmpty()&&purpose.length()<=1024,"PURPOSE_REQUIRED");
         Set<String> admit=new TreeSet<String>();for(String id:admitted)admit.add(UUID.fromString(id).toString());
         // Fixed deployment anchors: changing root/legacy/output/ledger/device/vehicle is a different deployment (BLOCKED).
         require(old.root.equals(next.root)&&old.legacy.equals(next.legacy)&&old.output.equals(next.output)&&old.ledger.equals(next.ledger),"DEPLOYMENT_ANCHOR_CHANGE_UNSUPPORTED");
         require(old.device.equals(next.device)&&old.vehicle.equals(next.vehicle),"DEVICE_OR_VEHICLE_CHANGE_UNSUPPORTED");
+        DeploymentBinding.requireLocalDrives(probe,old,next); // Before chain() opens any root/anchor evidence.
         Integer held=HELD.get();int own=held==null?0:held;
         Chain c=chain(old,own);Map<String,String> active=c.active();
         Map<String,String> oldObserved=DeploymentBinding.describeLayout(old);
@@ -345,6 +351,11 @@ public final class DeploymentTransition {
         f.put("admitted_sources",String.join(",",admit));f.put("purpose_sha256",sha(purpose.getBytes(StandardCharsets.UTF_8)));
         f.put("new_record_sha256",sha(DeploymentBinding.encodeRecord(record)));
         f.put("operator_assertion","EXTERNAL_SINGLE_ACTIVE_DECLARED_NOT_PROVEN");
+        // Hash-derived exact lock names let abandon retain BOTH old/new scopes, without storing payload text.
+        f.put("old_lane_lock",lockName(old.device,old.vehicle,old.payloadSession));
+        f.put("new_lane_lock",lockName(next.device,next.vehicle,next.payloadSession));
+        f.put("old_publication_lock",lockName(DOMAIN,old.manifestSession,PUBLICATION));
+        f.put("new_publication_lock",lockName(DOMAIN,next.manifestSession,PUBLICATION));
         return new Plan(kind,generation,f,record);
     }
 
@@ -356,7 +367,12 @@ public final class DeploymentTransition {
      */
     public static int commitSynthetic(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout old,DeploymentBinding.Layout next,
             Set<String> admitted,String purpose,String approvedPlanSha256,WatermarkV2Prototype.ReadOpener reader,Hook hook)throws Exception {
+        return commitWithDriveProbe(enable,externallySingleActive,old,next,admitted,purpose,approvedPlanSha256,reader,hook,net.neristal.rrbridge.product.v1.WindowsDriveGate.SYSTEM);
+    }
+    static int commitWithDriveProbe(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout old,DeploymentBinding.Layout next,
+            Set<String> admitted,String purpose,String approvedPlanSha256,WatermarkV2Prototype.ReadOpener reader,Hook hook,net.neristal.rrbridge.product.v1.WindowsDriveGate.Probe probe)throws Exception {
         require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");
+        DeploymentBinding.requireLocalDrives(probe,old,next); // Before creating/opening Worker/Lane/Publication files.
         List<AutoCloseable> held=new ArrayList<AutoCloseable>();
         try {
             try{held.add(LegacyWorkerGuard.acquire(old.legacy));}catch(IOException e){throw new Refusal("BLOCKED_UNCOOPERATIVE_PROCESS");}
@@ -411,15 +427,54 @@ public final class DeploymentTransition {
     public static void abandonSynthetic(boolean enable,boolean externallySingleActive,DeploymentBinding.Layout l,int generation,String reason)throws Exception {
         require(enable&&externallySingleActive,"EXTERNAL_GATE_REQUIRED");
         require(reason!=null&&!reason.trim().isEmpty()&&reason.length()<=1024,"PURPOSE_REQUIRED");
+        DeploymentBinding.describeLayout(l); // Local fixed-drive/path checks precede Worker-lock access.
         require(Files.isRegularFile(prepare(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_NOT_PREPARED");
         require(!Files.exists(committed(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_ALREADY_COMMITTED");
         require(!Files.exists(abandoned(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_ALREADY_ABANDONED");
         try(LegacyWorkerGuard old=LegacyWorkerGuard.acquire(l.legacy)) {
+            // The Worker guard serializes transition/abandon callers; publication writers also need their exact locks observed.
+            DeploymentBinding.safe(l.root);DeploymentBinding.privateAccess(l.root.toPath());
+            Map<String,String> prepared=DeploymentBinding.readRecord(prepare(l,generation));
+            require("RLDT1-PREPARE".equals(prepared.get("version"))&&String.valueOf(generation).equals(prepared.get("generation")),"TRANSITION_EVIDENCE_INCONSISTENT");
+            require(!Files.exists(committed(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_ALREADY_COMMITTED");
+            require(!Files.exists(abandoned(l,generation),LinkOption.NOFOLLOW_LINKS),"TRANSITION_ALREADY_ABANDONED");
+            List<AbandonObservation> observations=new ArrayList<AbandonObservation>();
+            try{
+                Set<String> names=new LinkedHashSet<String>();
+                for(String key:new String[]{"old_lane_lock","new_lane_lock","old_publication_lock","new_publication_lock"}){
+                    String name=prepared.get(key);require(name!=null&&name.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.lane\\.lock"),"ABANDON_LOCK_SET_UNKNOWN");names.add(name);
+                }
+                require(lockName(l.device,l.vehicle,l.payloadSession).equals(prepared.get("old_lane_lock"))&&lockName(DOMAIN,l.manifestSession,PUBLICATION).equals(prepared.get("old_publication_lock")),"ABANDON_LAYOUT_MISMATCH");
+                for(String name:names)observations.add(new AbandonObservation(l.root.toPath().resolve(name)));
+                old.verify();for(AbandonObservation observation:observations)observation.verify();
             Map<String,String> a=new TreeMap<String,String>();a.put("version","RLDT1-ABANDONED");a.put("generation",String.valueOf(generation));
             a.put("plan_sha256",sha(Files.readAllBytes(prepare(l,generation))));a.put("reason_sha256",sha(reason.getBytes(StandardCharsets.UTF_8)));
             DeploymentBinding.createRecord(abandoned(l,generation),DeploymentBinding.encodeRecord(a));
+            }finally{for(int i=observations.size()-1;i>=0;i--)observations.get(i).close();}
         }catch(IOException e){if(e instanceof DeploymentBinding.Refusal)throw e;if(e.getMessage()!=null&&e.getMessage().startsWith("LEGACY_WORKER_BUSY"))throw new Refusal("BLOCKED_UNCOOPERATIVE_PROCESS");throw e;}
         chain(l);
+    }
+    private static String lockName(String device,String vehicle,String payload){return UUID.nameUUIDFromBytes((device+"|"+vehicle+"|"+payload).getBytes(StandardCharsets.UTF_8)).toString()+".lane.lock";}
+    /** Never creates or rewrites a lock. Legacy prepares without the exact lock set stay blocked for manual review. */
+    private static final class AbandonObservation implements AutoCloseable {
+        final Path path;final java.nio.channels.FileChannel channel;final java.nio.channels.FileLock lock;
+        final byte[] bytes;
+        AbandonObservation(Path path)throws Exception {
+            this.path=path;require(Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS),"ABANDON_LOCK_SET_UNKNOWN");
+            DeploymentBinding.safe(path.toFile());DeploymentBinding.privateAccess(path);
+            channel=java.nio.channels.FileChannel.open(path,java.nio.file.StandardOpenOption.READ);java.nio.channels.FileLock held=null;
+            try{
+                try{held=channel.tryLock(0,Long.MAX_VALUE,true);}catch(java.nio.channels.OverlappingFileLockException busy){throw new Refusal("BLOCKED_UNCOOPERATIVE_PROCESS");}
+                require(held!=null,"BLOCKED_UNCOOPERATIVE_PROCESS");lock=held;bytes=read();verify();
+            }catch(Exception failure){if(held!=null)held.release();channel.close();throw failure;}
+        }
+        byte[] read()throws Exception {
+            try(java.io.InputStream in=Files.newInputStream(path);java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){
+                byte[] b=new byte[1024];int n;while((n=in.read(b))!=-1){require(out.size()+n<=4096,"ABANDON_LOCK_SET_UNKNOWN");out.write(b,0,n);}return out.toByteArray();
+            }
+        }
+        void verify()throws Exception {DeploymentBinding.safe(path.toFile());require(lock.isValid()&&channel.isOpen()&&Arrays.equals(bytes,read()),"ABANDON_LOCK_CHANGED");}
+        public void close()throws Exception{try{lock.release();}finally{channel.close();}}
     }
 
     // ------------------------------------------------------------------ read-only CLI
@@ -453,14 +508,20 @@ public final class DeploymentTransition {
             System.out.println(json(blocked?"BLOCKED_UNCOOPERATIVE_PROCESS":"REVIEW_REQUIRED",reason,-1));return blocked?3:5;
         }
     }
-    /** POSIX reader only; Windows physical-identity reading stays in the test-only native wrapper (as for Rlc2IntegrationCli). */
-    public static void main(String[] a) {System.exit(run(a,WatermarkV2Prototype.POSIX_READER));}
+    // Process entry: DeploymentTransitionCli (kept out of this class so the entry closure carries no secondary main).
 
     // ------------------------------------------------------------------ helpers
     static String sha(byte[] b)throws Exception {return hex(MessageDigest.getInstance("SHA-256").digest(b));}
+    static final long FILE_BOUND=128L*1024*1024;
     static String fileSha(File f)throws Exception {
-        require(f.length()<=128L*1024*1024,"FILE_BOUND");MessageDigest d=MessageDigest.getInstance("SHA-256");
-        try(java.io.InputStream in=Files.newInputStream(f.toPath())){byte[] b=new byte[32768];int n;while((n=in.read(b))!=-1)d.update(b,0,n);}return hex(d.digest());
+        require(f.length()<=FILE_BOUND,"FILE_BOUND");
+        try(java.io.InputStream in=Files.newInputStream(f.toPath())){return boundedSha(in,FILE_BOUND);}
+    }
+    /** The pre-read length check alone does not bound a file that grows while it is hashed: count what is actually read. */
+    static String boundedSha(java.io.InputStream in,long bound)throws Exception {
+        MessageDigest d=MessageDigest.getInstance("SHA-256");byte[] b=new byte[32768];int n;long total=0;
+        while((n=in.read(b))!=-1){total+=n;require(total<=bound,"FILE_BOUND");d.update(b,0,n);}
+        return hex(d.digest());
     }
     static String hex(byte[] b){StringBuilder s=new StringBuilder();for(byte x:b)s.append(String.format("%02x",x&255));return s.toString();}
     static byte[] hexBytes(String s)throws Refusal {

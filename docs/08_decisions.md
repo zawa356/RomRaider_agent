@@ -522,3 +522,55 @@ RLAP1 describes exact ordered JAR hashes and runtime, and refuses wildcard, dire
 
 ## D-070 - Phase IV: legacy v1 rows are matched against real originals, never converted
 v1 JSON, claims and cursors cannot produce RLC2 physical UUIDs, committed frames, manifests or receipts. RLPC1 marks a v1 row VERIFIED_ORIGINAL only when an operator-supplied RLC2 original re-projects to the same record ID and v1 canonical hash and the journal claim names one of its sources. Everything else is LEGACY_WITHOUT_RLC2_PROVENANCE, CONFLICT or UNKNOWN_OR_INCOMPLETE. Staging writes a new RLLV1 vault (all rows, preserved v1 ACK state, no formal ACK) and a new RLI2 candidate from verified originals only, and a completion marker distinguishes complete staging from incomplete. [Contract](interfaces/legacy_v1_rli2_provenance_v1.md).
+
+
+## D-071 — Phase V provenance is whole-cursor and whole-session evidence
+
+UUID membership is insufficient. Compare cursor device/vehicle/session, exact absolute normalized real single-link path and independently recomputed RLC1 payload prefix/metadata state. Never reinterpret its chain/sequence as RLC2 durable highwater. Conflicts across supplied originals invalidate both earlier and later runs. Existing device/session-derived run IDs stay unchanged; multiple vehicle claims for one run fail closed. See the [RLPC1 contract](interfaces/legacy_v1_rli2_provenance_v1.md).
+
+## D-072 — Freeze originals and independently verify complete staged data
+
+One classification freezes original projections and bounded input snapshots. Exact typed Vault and all-eight-table RLI2 comparisons reject extras, omissions, content and schema changes. Growth is permitted before a fresh classification, not within its staging/verification boundary. RLLV1 retains all v1 record rows and historical ACK fields only; full v1 inventory remains in unchanged originals/RMI1. The local completion hashes cannot prove authenticity or authorize use. RLLV1 formal storage adoption is a proposal only, not approved by this implementation.
+
+## D-073 — Publish completed isolated files without opening final targets writable
+
+Claim a fresh private work directory atomically, CREATE_NEW internal DB files and retain the directory after success/failure. Force completed files and publish with atomic no-replace hardlink insertion; remove only the owned internal name. Existing targets, partial attempts, unknown aliases/ACLs and unavailable publication primitives fail closed. No automatic recovery or deletion. This is local file publication, not a two-DB transaction or global fencing; Windows directory durability remains UNKNOWN.
+
+## D-074 — Phase V stored hashes and equal bytes do not establish full original correspondence
+
+Compare retained v1 JSON and canonical metadata fields with actual original projection, not only the stored hash. Reject missing unACKed bodies as UNKNOWN while retaining legitimate ACKed NULL historical bodies. Re-open every physical RLC2 source through the actual reader/captured marker at snapshot verification: Windows fileKey=null cannot detect byte-identical replacement by hashing alone. Dedicated RED/GREEN fixtures reproduced both classes of false verification. IDs, hash algorithm, old ACK state and source bytes are not rewritten.
+## D-075 — Always freeze the legacy DB and separate writer absence from content evidence
+
+Phase VI child-JVM RED: an uncommitted journal created after classification was ignored in vault-only staging because snapshots depended on usable originals. Retain an unconditional legacy snapshot and reject late sidecars without cleanup/adoption. Immutable reads can bypass even exclusive SQLite locks with no sidecar. Report WRITER_UNPROVEN independently and keep a read-only candidate proof gate BLOCKED; never probe existing DBs writable or treat operator quiescence as proof. Existing synthetic APIs remain scoped experiments.
+
+## D-076 — Prove Windows deployment roots fixed before filesystem access
+
+RLDB1/RLDB2 describeLayout checks each distinct drive before examining layout files. Fixed PowerShell executable/program calls GetDriveTypeW and QueryDosDeviceW read-only; drive root is bounded stdin data, never shell interpolation. Only numeric Fixed and a stable local HarddiskVolume mapping pass; aliases/subst/Remote/Unknown/timeout/output errors fail closed. No external Java dependency is added. Query once per distinct root per description, without cross-call caching. Existing safe(file) is still a low-level path/FS check; safeLocal(file,probe) includes injected drive proof. Live drive mapping changes after observation remain outside global fencing. No real SMB was mounted or accessed.
+
+## D-077 — Keep a read-only offline preflight blocked when writer/process proof is absent
+
+Join approved offline artifact/runtime, active generation, exact manifest/admission and retained read-only cooperative lock observations without starting product entries or creating files. Report independent axes and leave unknown ones UNKNOWN. Even matching prerequisites never grants launch/production/ACK: noncooperative Writer absence is unproven and Windows process provenance is unknown. This is a safe partial implementation of VI-3/VI-5, not a pretend launcher or global exclusion of old binaries.
+
+## D-078 — Abandon must exclude old/new Lane and Publication holders
+
+RED with a separate JVM holding the old Lane showed abandon could create its marker while only the legacy Worker guard was checked. Record hash-derived exact old/new lock basenames in prepare and retain read-only shared observations of those existing files through abandon marker creation, while the Worker guard serializes transition/abandon callers. No partial files are deleted or adopted. Old incomplete prepares without this added evidence remain blocked for manual review; historical committed chains remain readable. No claim that RED demonstrated double activation, global fencing or process authenticity. Older binaries still need operational exclusion.
+
+## D-079 — Retain staging directory identities, not just their spelling
+
+A separate child JVM renamed the owned output parent and placed a new private directory/work tree at the same name. The old stager initialized and published the competitor's empty internal RLI2 before eventually refusing the absent vault (RED08ef56f). Capture parent/work physical identity (native NTFS ID on Windows) and verify before SQLite opens/imports/publication/marker creation. Preserve moved own evidence and competing bytes. Actual owned Windows junction insertion is also tested. This closes demonstrated boundary substitution; arbitrary hostile check-to-use races and directory durability/global fencing remain unproven.
+
+## D-080 — Check transition drive roots before evidence or lock access
+
+Review after the d394103 broad freeze found plan reading the generation chain before describeLayout, and commit acquiring/creating locks before its plan. Synthetic Remote injection on an owned local layout with missing binding reproduced wrong-order refusal and lock creation (REDfd958d0:1 passed/5 failed). Extract the existing root-only proof and call it before those I/O boundaries, without changing later layout/plan checks. Normal entries use SYSTEM; a package-scoped test seam cannot disable the later real checks. No actual SMB/network access. d394103 remains the separate broad baseline; this final runtime delta needs focused exact-head Windows/x86/Linux validation.
+
+## D-081 — One bound offline entry; preflight must approve what actually runs
+
+Phase VII-0 review (fresh agent) reproduced that the preflight-approved `Rlc2IntegrationCli` writes through the unbound ingest without Lane/Publication locks or generation checks: with an actual child holding the Lane or Publication lock, preflight refused but the CLI wrote the candidate (test-only RED at 297126c, exit1 4/4). Add `OfflineCandidateEntry` (RLOE1) as the only approved main. Its launch profile (RLOP1) pins main class, exact ordered JAR hashes, Java executable/specification/data model, user, working directory, owner root and data root; JVM options are refused. Synthetic execution needs an RLSO1 marker bound to the data files' physical identities, verified before any DB open, and runs through one supervisor-started child that writes only via `ingestBoundActive`. Diagnose is read-only and always BLOCKED; production live is always refused. Keep `Rlc2IntegrationCli`, Worker/Once/Spool/Sender unchanged and callable: this narrows what the preflight blesses, it does not fence old binaries or prove noncooperative writer absence. A synthetic STORED result is never launch/production/ACK authorization.
+
+## D-082 — Integrated readiness reports per-axis evidence from one call, never authorization
+
+Phase VI preflight left cursor/Vault/RLI2 as UNKNOWN placeholders and collapsed non-refusal failures into one reason (review F2). RLIR1 runs preflight, RLPC1 classification, Vault/ACK-set and eight-table RLI2 checks in one read-only call, records each axis with a stable code and next human step, and keeps running independent axes after one refuses. Values come only from checks executed in that call. Inputs (bytes, native identity, staging parent identity, original snapshot) are re-verified at every stage boundary so mid-diagnosis substitution stops the report. Writer quiescence, process provenance and directory durability can never be PASS; formal ACK and production send are DISABLED. A complete PASS set of content axes is evidence for human review only.
+
+## D-083 — Adversarial separate-process results keep the writer gate closed
+
+Phase VII-4 drove the single entry with real processes. A WAL-mode v1 writer always leaves `-wal/-shm` and is refused before any child. On a DELETE-journal v1, an actual child holding `BEGIN IMMEDIATE` or `BEGIN EXCLUSIVE` without sidecars is invisible to every read-only check: the entry stores the candidate while reporting `writer_quiescence=WRITER_UNPROVEN` and no authorization. This reproduces the known limit; it is not treated as acceptable writer absence, and nothing promotes it. A writer that has created a hot journal is refused. Two supervisors racing on one root converge on exactly one committed row set; the loser's `owned-runs` creation race (found here, previously an uncoded REVIEW_REQUIRED) now re-checks the winner's directory, and its child meets the winner's locks. Junction/symlink data roots, a second hard link to v1, a same-name session directory with identical copies and unknown/smuggled profile fields are refused before DB access. Subst/drive-letter aliases and real SMB were not created (no system mapping changes) and remain covered only by the injected Phase VI drive probe.
