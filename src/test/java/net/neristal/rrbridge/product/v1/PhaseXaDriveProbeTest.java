@@ -80,6 +80,15 @@ public final class PhaseXaDriveProbeTest {
         String summary=System.getenv("GITHUB_STEP_SUMMARY");
         if(summary!=null){StringBuilder b=new StringBuilder("\n```\n");for(String l:lines)b.append(l).append('\n');b.append(stats).append("\n```\n");
             Files.write(Paths.get(summary),b.toString().getBytes(StandardCharsets.UTF_8),StandardOpenOption.APPEND,StandardOpenOption.CREATE);}
+        // ---- PowerShell selection: Sysnative (64-bit) only from a 32-bit JVM; both give the same reply for the same root.
+        String sr=System.getenv("SystemRoot");File chosen=WindowsDriveGate.powershell(sr);
+        boolean jvm32="32".equals(System.getProperty("sun.arch.data.model"));
+        check(jvm32==chosen.getPath().toLowerCase(Locale.ROOT).contains("sysnative"),"probe uses Sysnative PowerShell exactly when the JVM is 32-bit ("+(jvm32?"x86":"x64")+")");
+        File sys32=new File(sr,"System32\\WindowsPowerShell\\v1.0\\powershell.exe");String sysDrive=System.getenv("SystemDrive")+"\\";
+        if(jvm32){long t=System.nanoTime();String viaWow=WindowsDriveGate.query(sys32,sysDrive);long wowMs=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-t);
+            t=System.nanoTime();String viaNative=WindowsDriveGate.query(chosen,sysDrive);long nativeMs=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-t);
+            System.out.println("DRIVE_PROBE_DIAG x86 wow64_ms="+wowMs+" sysnative_ms="+nativeMs);
+            check(viaWow.equals(viaNative),"32-bit and 64-bit PowerShell give the same reply for the system drive");}
         String unused=null;for(char c='Z';c>='M';c--)if(!new File(c+":\\").exists()){unused=c+":\\";break;}
         if(unused!=null){String code;try{WindowsDriveGate.requireFixed(unused,WindowsDriveGate.SYSTEM);code="ACCEPTED";}catch(DeploymentBinding.Refusal refusal){code=refusal.getMessage();}
             String d=WindowsDriveGate.diagnose(unused);System.out.println("DRIVE_PROBE_DIAG unused-letter kind="+d.split("\\|")[0]);

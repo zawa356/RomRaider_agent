@@ -83,9 +83,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Drive probe diagnostics (Phase X-A; codes and ms only)
-        shell: bash
-        run: bash scripts/test-phase-xa-drive.sh
       - name: Compile Java 8-compatible isolated ingress journal and run crash tests
         shell: bash
         run: bash scripts/test-ingress-journal-prototype.sh
@@ -111,6 +108,11 @@ jobs:
           bash scripts/test-phase4.sh
           bash scripts/test-phase5.sh
           bash scripts/test-phase6.sh
+      - name: Drive probe diagnostics after the suites (Phase X-A; codes and ms only)
+        # After the suites on purpose: they must meet the cold first probe themselves (no warm-up masking).
+        if: always()
+        shell: bash
+        run: bash scripts/test-phase-xa-drive.sh
       - name: Assert no production RomRaider.jar is needed
         shell: bash
         run: test ! -f lib/RomRaider.jar
@@ -147,15 +149,16 @@ jobs:
           distribution: zulu
           java-version: '8'
           architecture: x86
-      - name: Drive probe diagnostics, JDK17 x64 then actual Zulu8 x86 (Phase X-A; codes and ms only)
-        shell: bash
-        run: |
-          PATH="$(cygpath -u "$ROMLOGGER_TEST_JDK17")/bin:$PATH" bash scripts/test-phase-xa-drive.sh
-          PATH="$(cygpath -u "$JAVA_HOME")/bin:$PATH" ROMLOGGER_EXPECT_DATA_MODEL=32 bash scripts/test-phase-xa-drive.sh --run-only
       - name: Run complete Windows batch with actual JDK17 x64 and Zulu8 32bit JVM
         shell: pwsh
         run: |
           ./scripts/run-acceleration-tests.ps1 -Jdk17 $env:ROMLOGGER_TEST_JDK17 -Java8x86 $env:JAVA_HOME
+      - name: Drive probe diagnostics, JDK17 x64 then actual Zulu8 x86 (Phase X-A; codes and ms only), after the batch
+        if: always()
+        shell: bash
+        run: |
+          PATH="$(cygpath -u "$ROMLOGGER_TEST_JDK17")/bin:$PATH" bash scripts/test-phase-xa-drive.sh
+          PATH="$(cygpath -u "$JAVA_HOME")/bin:$PATH" ROMLOGGER_EXPECT_DATA_MODEL=32 bash scripts/test-phase-xa-drive.sh --run-only
 
   isolated-preview-postgres:
     name: RLC2 quarantine PostgreSQL16 (no Server ACK)

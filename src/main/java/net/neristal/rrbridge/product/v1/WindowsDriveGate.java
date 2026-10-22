@@ -8,8 +8,22 @@ import java.util.concurrent.TimeUnit;
 /** Read-only Windows local fixed-drive proof. No network mapping or mount operation. Java8 compatible. */
 public final class WindowsDriveGate {
     public interface Probe {String query(String driveRoot)throws IOException;}
-    /** Upper bound for one probe subprocess (PowerShell start + Add-Type compile + four Win32 calls). */
-    static final long PROBE_TIMEOUT_MILLIS=10000;
+    /**
+     * Upper bound for one probe subprocess (PowerShell start + Add-Type compile + four Win32 calls). Phase X-A evidence:
+     * GitHub windows-latest, first probe of a fresh job 3.3 / 8.2 / 9.7 s (cold PowerShell/.NET/csc), later probes
+     * 0.32-0.50 s; the 10 s bound failed three jobs at 32b139f (gaps 10.0-11.4 s). Dev VM: 2.5-3.1 s from x64, 5.2-7.2 s
+     * from a 32-bit JVM through WOW64 PowerShell. 30 s ≈ 3x the worst observed cold start; it only limits waiting — every
+     * reply is still checked exactly as before, a timeout is still DRIVE_TYPE_UNPROVEN, and nothing is cached.
+     */
+    static final long PROBE_TIMEOUT_MILLIS=30000;
+    /**
+     * 64-bit PowerShell when this JVM is a 32-bit (WOW64) process: %SystemRoot%\Sysnative exists only for WOW64 processes and
+     * avoids the slower 32-bit PowerShell/csc. Same fixed program and the same Win32 calls; System32 otherwise.
+     */
+    static File powershell(String systemRoot){
+        File sysnative=new File(systemRoot,"Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe");
+        return sysnative.isFile()?sysnative:new File(systemRoot,"System32\\WindowsPowerShell\\v1.0\\powershell.exe");
+    }
     /**
      * Internal failure class of the SYSTEM probe (Phase X-A diagnostics). Never leaves this gate as a result:
      * {@link #requireFixed} maps every probe failure to DRIVE_TYPE_UNPROVEN exactly as before.
@@ -31,9 +45,12 @@ public final class WindowsDriveGate {
         "$kind='ALIAS';if($a.ToString() -match '^\\\\Device\\\\HarddiskVolume[0-9]+$'){$kind='LOCAL'};"+
         "[Console]::WriteLine(('{0}|{1}' -f $t1,$kind));";
     public static final Probe SYSTEM=new Probe(){public String query(String root)throws IOException {
-        long start=System.nanoTime();
         String system=System.getenv("SystemRoot");if(system==null)throw new ProbeFailure("START",0);
-        File exe=new File(system,"System32\\WindowsPowerShell\\v1.0\\powershell.exe");
+        return WindowsDriveGate.query(powershell(system),root);
+    }};
+    /** The fixed probe program run by the given powershell.exe (SYSTEM uses {@link #powershell}; tests compare both). */
+    static String query(File exe,String root)throws IOException {
+        long start=System.nanoTime();
         if(!exe.isAbsolute()||!exe.isFile())throw new ProbeFailure("START",0);
         String encoded=Base64.getEncoder().encodeToString(PROGRAM.getBytes(StandardCharsets.UTF_16LE));
         Process process;
@@ -44,7 +61,7 @@ public final class WindowsDriveGate {
             catch(IOException closed){throw new ProbeFailure("STDIN",elapsed(start));}
             return reply(process,PROBE_TIMEOUT_MILLIS,8192);
         }finally{if(process.isAlive())process.destroyForcibly();}
-    }};
+    }
     /** No filesystem access; rejects unknown/remote/removable/subst and inconsistent replies before path inspection. */
     public static void requireFixed(String root,Probe probe)throws IOException {
         if(root==null||!root.matches("[A-Za-z]:\\\\")||probe==null)throw new DeploymentBinding.Refusal("DRIVE_TYPE_UNPROVEN");
