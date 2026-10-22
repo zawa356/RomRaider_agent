@@ -147,3 +147,23 @@ valid UTF-8; overlapping entry spans. New finding **`JAR_MANIFEST_AMBIGUOUS`**: 
 `META-INF/MANIFEST.MF`; every variant's `Main-Class`/agent attributes are inspected. Real sqlite-jdbc, slf4j, JNA and
 JDK-made JARs read identically to `java.util.jar`. Test: `bash scripts/test-phase-xa-zip.sh` (`--expect-red` reproduced 15
 accepted cases on the previous parser). F-IX-1 (third-party dependency mains) unchanged — not relaxed.
+
+## Update: every JAR entry is verified (Phase X-B, 2026-10-22)
+
+Phase X-A's parser inflated and CRC-checked only manifests and non-`META-INF` `.class` entries; every other entry
+(resources, `META-INF/services`, signature files, native libraries such as sqlite-jdbc's `.so`/`.dll` or JNA's
+`jnidispatch`, multi-release classes, directories) was checked only for header consistency. RLDI1 now verifies **every
+entry** before any finding is computed:
+
+- declared uncompressed size ≤ 16 MiB per entry (`JAR_ENTRY_EXPANSION_BOUND`) and ≤ 128 MiB summed per JAR
+  (`JAR_TOTAL_EXPANSION_BOUND`), checked before inflating (refusal → inventory `UNAVAILABLE`, fail closed);
+- STORED: compressed size = declared size; DEFLATED: the stream yields exactly the declared size (inflation stops at
+  declared + 1 byte, so a lying stream is never expanded further), the stream ends there and no input remains;
+- CRC-32 equals the central value; a directory entry (`…/`) must be empty;
+- streaming with a fixed 64 KiB buffer; entry content is never held in memory for this check.
+
+Any violation is `JAR_UNREADABLE` → `MISMATCH`. Real dependencies (sqlite-jdbc 3.46.1.3: largest entry 1.3 MB, 25.7 MB
+total; JNA 5.14.0: 5.5 MB total; slf4j) verify without findings of this kind. Reproduced before the fix: 12/12 malformed
+or oversized non-class cases were MATCHED (`bash scripts/test-phase-xb-zip.sh --expect-red` on `2c8a5a3`). Unchanged:
+SHA-256 pin per listed file, F-IX-1 (third-party mains still MISMATCH), no RLDI2 allow-list, launch/production/ACK
+disabled, Windows ACL UNKNOWN, global old-binary exclusion NOT_PROVEN.
