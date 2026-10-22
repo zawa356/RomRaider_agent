@@ -85,10 +85,19 @@ public final class PhaseXaDriveProbeTest {
         boolean jvm32="32".equals(System.getProperty("sun.arch.data.model"));
         check(jvm32==chosen.getPath().toLowerCase(Locale.ROOT).contains("sysnative"),"probe uses Sysnative PowerShell exactly when the JVM is 32-bit ("+(jvm32?"x86":"x64")+")");
         File sys32=new File(sr,"System32\\WindowsPowerShell\\v1.0\\powershell.exe");String sysDrive=System.getenv("SystemDrive")+"\\";
-        if(jvm32){long t=System.nanoTime();String viaWow=WindowsDriveGate.query(sys32,sysDrive);long wowMs=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-t);
-            t=System.nanoTime();String viaNative=WindowsDriveGate.query(chosen,sysDrive);long nativeMs=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-t);
-            System.out.println("DRIVE_PROBE_DIAG x86 wow64_ms="+wowMs+" sysnative_ms="+nativeMs);
-            check(viaWow.equals(viaNative),"32-bit and 64-bit PowerShell give the same reply for the system drive");}
+        if(jvm32){
+            // Product path first (Sysnative 64-bit PowerShell): any failure here stays fatal.
+            long t=System.nanoTime();String viaNative=WindowsDriveGate.query(chosen,sysDrive);long nativeMs=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-t);
+            // Test-only reference: 32-bit WOW64 PowerShell, which the product no longer uses from an x86 JVM. Its cold start was
+            // measured up to 28.7 s and hit the 30 s bound once in CI (Phase X-B, PR #105 run 39756631029). Only a TIMEOUT of
+            // this reference call is reported NOT_RUN (never PASS); any other failure kind or a different reply still fails.
+            t=System.nanoTime();String viaWow=null;
+            try{viaWow=WindowsDriveGate.query(sys32,sysDrive);}
+            catch(WindowsDriveGate.ProbeFailure f){if(!"TIMEOUT".equals(f.kind))throw f;
+                System.out.println("NOT_RUN 32-bit vs 64-bit PowerShell reply comparison: WOW64 reference TIMEOUT after "+f.elapsedMillis+" ms (test-only path; product uses Sysnative)");}
+            long wowMs=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-t);
+            System.out.println("DRIVE_PROBE_DIAG x86 wow64_ms="+wowMs+(viaWow==null?"(TIMEOUT)":"")+" sysnative_ms="+nativeMs);
+            if(viaWow!=null)check(viaWow.equals(viaNative),"32-bit and 64-bit PowerShell give the same reply for the system drive");}
         String unused=null;for(char c='Z';c>='M';c--)if(!new File(c+":\\").exists()){unused=c+":\\";break;}
         if(unused!=null){String code;try{WindowsDriveGate.requireFixed(unused,WindowsDriveGate.SYSTEM);code="ACCEPTED";}catch(DeploymentBinding.Refusal refusal){code=refusal.getMessage();}
             String d=WindowsDriveGate.diagnose(unused);System.out.println("DRIVE_PROBE_DIAG unused-letter kind="+d.split("\\|")[0]);
