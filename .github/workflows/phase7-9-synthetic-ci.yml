@@ -83,6 +83,13 @@ jobs:
         run: |
           java -XshowSettings:properties -version 2>&1 | grep -E 'java.version =|sun.arch.data.model' || true
           if [[ -n "${ROMLOGGER_CI_JAVA8_X86_HOME:-}" ]]; then "$ROMLOGGER_CI_JAVA8_X86_HOME/bin/java" -XshowSettings:properties -version 2>&1 | grep -E 'java.version =|sun.arch.data.model'; fi
+      - name: Drive probe diagnostics (Phase X-A; codes and ms only)
+        shell: bash
+        run: |
+          bash scripts/test-phase-xa-drive.sh
+          if [[ -n "${ROMLOGGER_CI_JAVA8_X86_HOME:-}" ]]; then
+            PATH="$ROMLOGGER_CI_JAVA8_X86_HOME/bin:$PATH" ROMLOGGER_EXPECT_DATA_MODEL=32 bash scripts/test-phase-xa-drive.sh --run-only
+          fi
       - name: Run ${{ matrix.group }} suites
         shell: bash
         run: bash scripts/ci-phase7-9.sh ${{ matrix.group }}

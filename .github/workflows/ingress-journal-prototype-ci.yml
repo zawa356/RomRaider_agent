@@ -13,6 +13,7 @@ on:
       - 'scripts/test-ingress-sqlite-receipts.sh'
       - 'scripts/test-watermark-ledger.sh'
       - 'scripts/test-ingress-diagnostics.sh'
+      - 'scripts/test-phase-xa-drive.sh'
       - 'scripts/test-rlc2-preview.sh'
       - 'scripts/test-phase2-lanes.sh'
       - 'scripts/test-phase3-deployment.sh'
@@ -37,6 +38,7 @@ on:
       - 'scripts/test-ingress-sqlite-receipts.sh'
       - 'scripts/test-watermark-ledger.sh'
       - 'scripts/test-ingress-diagnostics.sh'
+      - 'scripts/test-phase-xa-drive.sh'
       - 'scripts/test-rlc2-preview.sh'
       - 'scripts/test-phase2-lanes.sh'
       - 'scripts/test-phase3-deployment.sh'
@@ -81,6 +83,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Drive probe diagnostics (Phase X-A; codes and ms only)
+        shell: bash
+        run: bash scripts/test-phase-xa-drive.sh
       - name: Compile Java 8-compatible isolated ingress journal and run crash tests
         shell: bash
         run: bash scripts/test-ingress-journal-prototype.sh
@@ -142,6 +147,11 @@ jobs:
           distribution: zulu
           java-version: '8'
           architecture: x86
+      - name: Drive probe diagnostics, JDK17 x64 then actual Zulu8 x86 (Phase X-A; codes and ms only)
+        shell: bash
+        run: |
+          PATH="$(cygpath -u "$ROMLOGGER_TEST_JDK17")/bin:$PATH" bash scripts/test-phase-xa-drive.sh
+          PATH="$(cygpath -u "$JAVA_HOME")/bin:$PATH" ROMLOGGER_EXPECT_DATA_MODEL=32 bash scripts/test-phase-xa-drive.sh --run-only
       - name: Run complete Windows batch with actual JDK17 x64 and Zulu8 32bit JVM
         shell: pwsh
         run: |
