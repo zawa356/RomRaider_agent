@@ -9,13 +9,13 @@
 
 | 項目 | 結果 |
 |---|---|
-| Agent統合Draft PR | [#105](https://github.com/zawa356/RomRaider_agent/pull/105)：base=`main`（`4f80c5e`）、head=`integration/phase-v-xa-to-main`。コード最終 head は `fb9fd56`。以降のコミットは本文書のみ（証跡ファイル参照） |
+| Agent統合Draft PR | [#105](https://github.com/zawa356/RomRaider_agent/pull/105)：base=`main`（`4f80c5e`）、head=`integration/phase-v-xa-to-main`。コード・試験の最終 head は `7055e2e`。以降のコミットは文書のみ（証跡ファイル参照） |
 | 既存PRの網羅 | #80〜#104 の25本すべての head が統合ブランチの祖先（25/25、`git merge-base --is-ancestor` で確認） |
-| 履歴 | squash・rebase・cherry-pick なし。`main..fb9fd56` は81コミット＝#104 の72＋回収4＋マージ2＋X-B 3。元のSHAはすべて保持 |
+| 履歴 | squash・rebase・cherry-pick なし。`main..7055e2e` は83コミット＝#104 の72＋回収4＋マージ2＋X-B 3＋文書1＋診断試験修正1。元のSHAはすべて保持 |
 | スタックの非線形 | #92 は `d93a975` 起点、#93 は `2ccae84` 起点だったため、docs-only の4コミットが #104 に含まれていなかった：#91 の `e4dc146`・`01cd886`・`71f72c5`、#92 の `ae5ff53`。owner判断Aにより非fast-forwardマージ2回（`4cb627d`、`7010e37`）で回収。競合は AGENTS.md の1行だけ。新しい側のエントリはすべて残し、Phase VII 行は #91 の正確な版を採用。何も削除していない |
-| 製品コード | `e8e2c54` との差分のうち製品コードは `DistributionInventory.java`（ZIP修正）のみ。その他は docs・テスト1・スクリプト1・CIドライバ1行 |
+| 製品コード | `e8e2c54` との差分のうち製品コードは `DistributionInventory.java`（ZIP修正）のみ。その他は docs、テスト2（X-B 新規、X-A ドライブ診断の WOW64 TIMEOUT 処理）、スクリプト1、CIドライバ1行 |
 | ZIP全エントリ検証 | RED（`2c8a5a3`）：非クラスエントリの不正12件がすべて MATCHED → 修正（`dae1848`）で全件停止。実依存 sqlite-jdbc・slf4j・JNA と JDK 製 JAR は互換 |
-| CI（`fb9fd56`） | 4ワークフロー・13ジョブすべて attempt 1 で success。全ジョブで step が実行されている（skip は Linux ジョブ上の Windows 専用 step のみ）。PR の merge ref の tree は head の tree と一致（`80033952…`） |
+| CI | `fb9fd56`：13/13 success。`15e4ebb`：phase8 windows の診断 step で **1件失敗**。試験専用の WOW64 PowerShell 参照呼び出しが 30 s 上限を超えたもので、製品・X-B とは無関係。記録を残したうえで `7055e2e` で試験側のみ修正した。**最終 `7055e2e`：4ワークフロー・13ジョブすべて attempt 1 で success**、失敗 step なし。merge ref の tree は head の tree と一致（`118cca1d…`） |
 | Server | Draft [RomRaiderServer#66](https://github.com/zawa356/RomRaiderServer/pull/66)：#62〜#65 の7コミットを SHA のまま内包し、状況説明の docs 1コミットを追加。変更は `docs/implementation_progress.md` のみ。PoC・Product v1 contract・固定旧Agent E2E がすべて success |
 
 ## 2. Phase X-B の ZIP/JAR 強化（owner 判断：全エントリ方式）

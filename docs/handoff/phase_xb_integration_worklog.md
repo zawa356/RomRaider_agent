@@ -9,3 +9,4 @@
   fix dae1848, CI wiring fb9fd56; local x64 + actual x86 GREEN; pushed; Draft #105 created; 4 workflows 13/13 success.
 - Server: branch at 7455f83 + docs commit 9f1ff1a; Draft #66; PoC (PR) + contract/E2E (dispatched) success.
 - No merge, Ready, base change, close, rebase, force push, tag, release or deploy. Existing PRs untouched.
+- 15e4ebb pull_request Phase VII–IX failed (WOW64 test-only reference probe timeout 30.09 s); fixed test-only in 7055e2e; final 13/13 success on 7055e2e; merge-ref tree = head tree 118cca1d.

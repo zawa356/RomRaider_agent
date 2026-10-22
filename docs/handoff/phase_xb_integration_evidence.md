@@ -38,7 +38,34 @@ The first RED attempt did not compile (the test referenced the new constants/met
 Linux), windows "passed 26 checks" twice (JDK17 x64 and actual Zulu8 x86 `--run-only`). Job log SHA-256 prefixes:
 ubuntu phase8 `30f64fff370d03fe`, windows phase8 `cd1951b4ccc53f8b`.
 
-Final-head re-runs (after the docs-only commits) are listed below once complete.
+### Head `15e4ebb` (report commit; docs only) — one FAILED job, kept on record
+
+- `pull_request` runs: Phase VII–IX [39756631029](https://github.com/zawa356/RomRaider_agent/actions/runs/39756631029) **failure**. The failure is in phase8 (windows-latest), step "Drive probe diagnostics after the suites", which runs after the suites had passed (X-B 26 checks on x64 and x86).
+  - Cause: `PhaseXaDriveProbeTest` called the 32-bit WOW64 PowerShell, a test-only reference path the product no longer uses from an x86 JVM. The call hit the 30 s probe bound: 30.09 s between the last PASS and `ProbeFailure: DRIVE_TYPE_UNPROVEN`.
+  - Classification: timing-dependent test diagnostic, not a product or X-B regression.
+  - Job log SHA-256 d2b21f975dcc4d78c5f09589cfd66d8c86993e0b96023d3095f46dafaf8a0f65.
+- Same SHA, other runs:
+  - Ingress PR [39756631064](https://github.com/zawa356/RomRaider_agent/actions/runs/39756631064): success.
+  - REAL Server E2E PR [39756631032](https://github.com/zawa356/RomRaider_agent/actions/runs/39756631032): success.
+  - `workflow_dispatch` runs: Phase VII–IX [39756641142](https://github.com/zawa356/RomRaider_agent/actions/runs/39756641142), REAL Server E2E [39756635899](https://github.com/zawa356/RomRaider_agent/actions/runs/39756635899), Spool [39756631185](https://github.com/zawa356/RomRaider_agent/actions/runs/39756631185): all success.
+  - Ingress dispatch 39756625481 and Spool PR 39756631033 were cancelled by the workflows' own concurrency groups (0 steps; duplicate runs, not test results).
+- Fix `7055e2e` (test only): query the Sysnative product path first (failure there stays fatal). A TIMEOUT of the WOW64 reference is reported `NOT_RUN` and never counted as PASS; any other failure kind or a different reply still fails. Local x64 / x86 pass (x86: WOW64 10.4 s, Sysnative 2.7 s, same reply).
+
+### Final code/test head `7055e2e38ba38f7cf544812fca53c84df2f7d624` — pull_request, attempt 1, 13/13 success
+
+| Run | Workflow | Jobs (steps; skipped = Windows-only steps on Linux) |
+|---|---|---|
+| [39759033374](https://github.com/zawa356/RomRaider_agent/actions/runs/39759033374) | Isolated ingress journal prototype CI | PG16 15/1 · Zulu8 x86 native identity 12/0 · Fsync windows 16/0 · Fsync ubuntu 16/2 |
+| [39759033278](https://github.com/zawa356/RomRaider_agent/actions/runs/39759033278) | Product v1 Windows Agent spool CI | durability ubuntu 10/0 · windows 10/0 |
+| [39759033260](https://github.com/zawa356/RomRaider_agent/actions/runs/39759033260) | Product v1 REAL Server E2E (Server d8c7a2f pinned) | real-server-e2e 17/0 |
+| [39759033222](https://github.com/zawa356/RomRaider_agent/actions/runs/39759033222) | Phase VII–IX synthetic | phase7/8/9 × ubuntu 15/3 · windows 16/0 |
+
+- No failed step. phase8 windows: X-B "passed 26 checks" twice (JDK17 x64 and actual Zulu8 x86). x86 WOW64 reference 18 377 ms vs Sysnative 461 ms, same reply, PASS.
+- Merge ref `d2bd2053be55ae14ca0605875b5b9283533e8716` (parents `4f80c5e`, `7055e2e`): tree `118cca1d9bf2fce66941de224cef4ad837c49246` = head tree.
+- 25/25 PR heads are ancestors; main..7055e2e = 83 commits, 144 files; main still `4f80c5e`.
+- Code/script changes vs `e8e2c54`: `DistributionInventory.java` (ZIP fix), `PhaseXbZipAllEntriesTest.java`, `PhaseXaDriveProbeTest.java` (diagnostic), `test-phase-xb-zip.sh`, `ci-phase7-9.sh` (1 line).
+
+Later commits after `7055e2e` are documentation only. Their CI results are posted as a PR comment on #105.
 
 ## Server
 
