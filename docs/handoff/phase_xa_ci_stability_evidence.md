@@ -37,3 +37,30 @@ step is listed only when it is a required one. Windows x86 = actual Zulu 8 (`sun
 | `86c680b` | real-Server E2E | 39722969631 | 1 | **failure** — step "Install Python Server deps…": `pip` `IncompleteRead` (network) | infrastructure; not a test result; not counted |
 
 Final-head results (all four workflows, repeated full runs) are appended below.
+
+## Final head `94d2f15d0c7b54484b15e9748f9e50e46f319184` — three complete runs of all four workflows
+
+Event `pull_request` (tests merge commit `77b6a5b` = `94d2f15` onto base `32b139f`; base is an ancestor, so the tree equals
+`94d2f15`). Each attempt re-ran **all** jobs (`gh run rerun`, not `--failed`).
+
+| Workflow | Run | Attempt 1 | Attempt 2 | Attempt 3 | Jobs (steps) |
+|---|---|---|---|---|---|
+| Isolated ingress journal prototype CI | 39724223654 | success | success | success | Fsync ubuntu (16; Windows-only TMP + native-identity steps skipped by design), Fsync windows (16), **Zulu8 x86** (12), PG16 (15; Windows TMP step skipped on ubuntu) |
+| Product v1 Windows Agent spool CI | 39724223802 | success | success | success | durability ubuntu (10), windows (10) |
+| Product v1 REAL Server E2E | 39724223775 | success | success | success | real-server-e2e (17): Server `zawa356/RomRaiderServer` pinned `d8c7a2f3b96ba278d269074dc40cca7741b4155b`; Real RLC2 Server HTTP E2E **35 checks** |
+| Phase VII–IX synthetic CI | 39724223749 | success | success | success | phase7/8/9 × ubuntu (15; Windows-only setup skipped) and windows (16); Windows: 12 suites `--run-only` under **actual Java 8 x86, model 32** |
+
+13 jobs per attempt, 0 non-success in any attempt (job lists: `logs/phase-xa/final-a{1,2,3}-jobs.txt` on the dev VM).
+Drive probe after the suites, all `not_ok=0`, bound 30 000 ms:
+
+| Attempt | x64 probe min–max (ms) over 5 Windows jobs | x86 probe (Sysnative) min–max | WOW64 32-bit PowerShell side-by-side (first call) |
+|---|---|---|---|
+| 1 | 340–489 | 336–433 | 1 392 – 8 948 |
+| 2 | 272–517 | 272–755 | 3 478 – 14 266 |
+| 3 | 255–738 | 254–589 | 5 924 – **21 270** |
+
+Server (read-only, not re-run): PR #65 head `7455f83` — PoC 39535242731 attempt 2 success, contract 39564314019 success,
+Java-Agent E2E 39564309265 success. That Server E2E uses its own pinned old Agent snapshot; it is **not** the Phase IX/X-A
+Agent E2E (that is the Agent `product-v1-real-server-e2e` above).
+
+The next commit (this evidence, docs only) gets its own CI run; its result is recorded in the PR #104 body.

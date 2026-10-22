@@ -57,3 +57,13 @@ sqlite-jdbc/slf4j/JNA and a JDK-made JAR read identically to `java.util.jar`; `t
 `PROBE_TIMEOUT_MILLIS` 10 000 → 30 000 (≈3× worst measured cold start) and Sysnative PowerShell from 32-bit JVMs. Local:
 x64 2.5–2.6 s (23 checks), x86 2.5–3.0 s (25 checks; WOW64 6 718 ms vs Sysnative 2 585 ms, same reply). Diagnostics
 steps moved after the suites (`if: always()`) so the real suites meet the cold first probe.
+
+## ≈15:00–17:30 — X-A-3 CI gate
+
+- `86c680b`: Ingress, Spool, Phase VII–IX success; real-Server E2E failed in "Install Python Server deps…" (`pip`
+  IncompleteRead, network) — infrastructure, recorded, not counted.
+- Docs commit `94d2f15` (report/evidence/worklog, public-CI addenda, AGENTS/bootstrap, RLDI1 interface) = acceptance head:
+  four workflows × three complete attempts all success (13 jobs each). WOW64 side-by-side first calls still reach 21.3 s,
+  Sysnative ≤ 0.76 s — the 64-bit PowerShell change, not only the 30 s bound, removes the x86 risk.
+- Workflow audit: no `continue-on-error`; `if:` only for Windows-specific setup/native steps and post-suite `always()`;
+  one informational `|| true` (runtime print). No P1 structural false-success found.
