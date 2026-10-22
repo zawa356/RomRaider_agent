@@ -30,6 +30,9 @@ public final class DistributionInventory {
         "net.neristal.rrbridge.Receiver"};
     static final int MAX_ENTRIES=4096,MAX_DEPTH=16,MAX_JAR_ENTRIES=50000;
     static final long MAX_FILE=64L*1024*1024,MAX_CLASS=4L*1024*1024;
+    /** Phase X-B: expansion bounds for verifying EVERY JAR entry (zip-bomb guard). Real dependencies: largest entry 1.3 MB,
+     *  largest JAR 25.7 MB expanded (sqlite-jdbc 3.46.1.3), so both bounds leave ≈5× headroom; exceeding them is a refusal. */
+    static final long MAX_ENTRY_EXPANDED=16L*1024*1024,MAX_JAR_EXPANDED=128L*1024*1024;
     static final Set<String> LAUNCHER_EXT=new HashSet<String>(Arrays.asList("bat","cmd","ps1","sh","exe","com","vbs","js","jar","war","zip"));
 
     public static final class Refusal extends IOException {public Refusal(String code){super(code);}}
@@ -187,6 +190,15 @@ public final class DistributionInventory {
         List<ZipEntryView> entries;
         try{entries=ZipEntryView.read(jarBytes);}catch(java.util.zip.ZipException bad){add(findings,"JAR_UNREADABLE");return false;}
         if(entries.size()>MAX_JAR_ENTRIES)throw new Refusal("JAR_ENTRY_BOUND");
+        // Phase X-B: every entry (resources, native libraries, META-INF, directories — not only manifests and classes) must
+        // be well-formed as the JVM would read it: declared sizes within bounds, STORED size equality or a DEFLATE stream that
+        // ends exactly at the declared size, CRC-32 equal. Verified streaming; nothing is kept in memory.
+        long declared=0;
+        for(ZipEntryView e:entries){
+            if(e.size>MAX_ENTRY_EXPANDED)throw new Refusal("JAR_ENTRY_EXPANSION_BOUND");
+            declared+=e.size;if(declared>MAX_JAR_EXPANDED)throw new Refusal("JAR_TOTAL_EXPANSION_BOUND");
+        }
+        try{for(ZipEntryView e:entries)e.verify();}catch(java.util.zip.ZipException bad){add(findings,"JAR_UNREADABLE");return false;}
         try{
             // Phase X-A-2: the JVM's JarFile takes the exact "META-INF/MANIFEST.MF" first and falls back to a case-insensitive
             // match. More than one case variant is ambiguous (a decoy could hide Main-Class) and is a finding; every variant is
@@ -286,6 +298,32 @@ public final class DistributionInventory {
             Collections.sort(spans,new Comparator<long[]>(){public int compare(long[] x,long[] y){return x[0]<y[0]?-1:x[0]>y[0]?1:0;}});
             for(int i=1;i<spans.size();i++)if(spans.get(i)[0]<spans.get(i-1)[1])throw new java.util.zip.ZipException("overlapping entries");
             return out;
+        }
+        /**
+         * Phase X-B: streaming integrity check of this entry with a fixed buffer — exactly {@link #size} bytes produced
+         * (never more: inflation stops one byte past the declared size), DEFLATE stream ends exactly with no unread input,
+         * CRC-32 equal. The caller bounds {@link #size} first. A directory entry must be empty.
+         */
+        void verify()throws java.util.zip.ZipException {
+            if(name.endsWith("/")&&size!=0)throw new java.util.zip.ZipException("directory with data");
+            java.util.zip.CRC32 c=new java.util.zip.CRC32();
+            if(method==0){
+                if(csize!=size)throw new java.util.zip.ZipException("stored size");
+                c.update(zip,offset,csize);
+            }else{
+                java.util.zip.Inflater inf=new java.util.zip.Inflater(true);
+                try{
+                    inf.setInput(zip,offset,csize);byte[] buf=new byte[65536];long n=0;
+                    while(true){
+                        int k=inf.inflate(buf,0,(int)Math.min(buf.length,size-n+1));
+                        if(k>0){n+=k;if(n>size)throw new java.util.zip.ZipException("deflated size");c.update(buf,0,k);continue;}
+                        if(inf.finished()||inf.needsInput()||inf.needsDictionary())break;
+                    }
+                    if(n!=size||!inf.finished()||inf.getRemaining()!=0)throw new java.util.zip.ZipException("deflate stream end");
+                }catch(java.util.zip.DataFormatException bad){throw new java.util.zip.ZipException("deflate");}
+                finally{inf.end();}
+            }
+            if(c.getValue()!=crc)throw new java.util.zip.ZipException("crc");
         }
         /** Entry bytes (bounded), CRC-32 verified. */
         byte[] data(long bound)throws IOException {
