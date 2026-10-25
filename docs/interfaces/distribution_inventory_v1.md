@@ -167,3 +167,14 @@ total; JNA 5.14.0: 5.5 MB total; slf4j) verify without findings of this kind. Re
 or oversized non-class cases were MATCHED (`bash scripts/test-phase-xb-zip.sh --expect-red` on `2c8a5a3`). Unchanged:
 SHA-256 pin per listed file, F-IX-1 (third-party mains still MISMATCH), no RLDI2 allow-list, launch/production/ACK
 disabled, Windows ACL UNKNOWN, global old-binary exclusion NOT_PROVEN.
+
+## Note: Phase X-C (2026-10-25) — RLDI1 unchanged; RLDI2 candidate is separate
+
+RLDI1 code (`DistributionInventory.java`), fixtures and JSON are unchanged by Phase X-C. F-IX-1 is now reproduced
+exactly with the real pinned JARs (`scripts/test-phase-xc-rldi2.sh`, `PhaseXcF1ReproTest`): sqlite-jdbc →
+`UNAPPROVED_MAIN_METHOD` `org.sqlite.util.OSInfo` + 4 `VERSIONED_OR_META_CLASS`; slf4j-api / slf4j-nop → 1
+`VERSIONED_OR_META_CLASS` each; JNA → `UNAPPROVED_MAIN_METHOD` `com.sun.jna.Native` + `UNAPPROVED_MANIFEST_MAIN`.
+Correction to the F-IX-1 paragraph above (kept as written): the manifest `Main-Class` finding comes from **JNA**, not
+sqlite-jdbc (sqlite-jdbc's manifest has no `Main-Class`). The synthetic-only, default-off RLDI2 candidate that can
+report such an install MATCHED (still BLOCKED) is specified in [distribution_inventory_v2.md](distribution_inventory_v2.md);
+RLDI1 keeps reporting it MISMATCH.
