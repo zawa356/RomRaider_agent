@@ -155,7 +155,7 @@ public final class PhaseXcRldi2Test {
          check("RLDI2_POLICY_SHA".equals(got),"two pins for one SHA-256 rejected");}
 
         // ================= 1-2. RLDI1 unchanged, RLDI2 MATCHED =================
-        {Cand t=new Cand().pin();Map<String,String> before=snapshot(t.home);
+        {Cand t=new Cand().pin();t.pin1();Map<String,String> before=snapshot(t.home);
          DistributionInventory.Report r1=t.v1();
          check("MISMATCH".equals(r1.inventory)&&r1.findings.containsKey("UNAPPROVED_MAIN_METHOD")&&r1.findings.containsKey("VERSIONED_OR_META_CLASS"),"RLDI1 unchanged: canonical candidate still MISMATCH "+r1.findings);
          DistributionInventoryV2.Report r=t.v2();
