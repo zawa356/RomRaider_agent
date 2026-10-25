@@ -252,9 +252,9 @@ public final class PhaseXcRldi2Test {
         for(String attr:new String[]{"Class-Path","Launcher-Agent-Class","Premain-Class","Agent-Class","Boot-Class-Path"}){
          Cand t=light();Map<String,String> mf=new HashMap<String,String>();mf.put(attr,"evil.jar");Files.write(t.lib("slf4j-nop-2.0.16.jar"),repack(dep("slf4j-nop-2.0.16.jar")[0],null,null,mf));t.pin();
          mismatch(t.v2(),"slf4j-nop with manifest "+attr,"JAR_MANIFEST_CLASSPATH_OR_AGENT","RLDI2_DEPENDENCY_NOT_PINNED");}
-        {Cand t=light();t.put("lib/dup-1.0.jar",jar(null,one("org/sqlite/util/OSInfo.class",entryOf(sqlite,"org/sqlite/util/OSInfo.class"))),"dependency_jar");t.pin();
+        {Cand t=new Cand();t.put("lib/dup-1.0.jar",jar(null,one("org/sqlite/util/OSInfo.class",entryOf(sqlite,"org/sqlite/util/OSInfo.class"))),"dependency_jar");t.pin();
          mismatch(t.v2(),"duplicate of a pinned JAR's class in another JAR","DUPLICATE_CLASS","RLDI2_DEPENDENCY_NOT_PINNED");}
-        {Cand t=light();t.put("lib/shadow-1.0.jar",jar(null,one("META-INF/versions/9/org/sqlite/JDBC.class",entryOf(sqlite,"org/sqlite/JDBC.class"))),"dependency_jar");t.pin();
+        {Cand t=new Cand();t.put("lib/shadow-1.0.jar",jar(null,one("META-INF/versions/9/org/sqlite/JDBC.class",entryOf(sqlite,"org/sqlite/JDBC.class"))),"dependency_jar");t.pin();
          DistributionInventoryV2.Report r=t.v2();mismatch(r,"multi-release class in another JAR shadowing org.sqlite.JDBC","DUPLICATE_CLASS","VERSIONED_OR_META_CLASS");
          Cand u=new Cand();u.put("lib/shadow-1.0.jar",jar(null,one("META-INF/versions/9/org/sqlite/JDBC.class",entryOf(sqlite,"org/sqlite/JDBC.class"))),"dependency_jar");u.pin();
          check(!u.v1().findings.containsKey("DUPLICATE_CLASS"),"(RLDI1 does not see versioned shadowing as a duplicate; RLDI2 is stricter)");}
