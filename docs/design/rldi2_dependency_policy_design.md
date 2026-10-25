@@ -62,9 +62,11 @@ owner decision on key custody). C is rejected for now (modifies third-party bina
 
 1. **Separate contract.** New class `DistributionInventoryV2` (`RLDI2`), new record version `RLDI2`, JSON
    `contract_version:2`, `inventory_version:"RLDI2"`. RLDI1 behaviour, fixtures and JSON are unchanged; an RLDI2 record is
-   refused by RLDI1 (`INVENTORY_VERSION`) and an RLDI1 record by RLDI2. The only edit to `DistributionInventory.java` is
-   the visibility of `ZipEntryView.verify()` (private → package-private) so RLDI2 reuses the exact X-B verification code
-   instead of a copy. No CLI, launcher, reader or default changes: RLDI2 is reachable only through its Java API (tests).
+   refused by RLDI1 (`INVENTORY_VERSION`) and an RLDI1 record by RLDI2. `DistributionInventory.java` is **not modified**
+   (byte-identical to `main`); RLDI2 calls its package-private `ZipEntryView.read/verify/data` and `declaresMain`, so the
+   X-A/X-B parsing and verification code is shared, not copied. The directory walk, identity/hash re-checks and POSIX access
+   check are private in RLDI1 and are duplicated line-for-line in RLDI2 (kept identical; a regression test compares both on
+   the same fixtures). No CLI, launcher, reader or default changes: RLDI2 is reachable only through its Java API (tests).
 2. **Pins (fixed).** Each pin = id, exact file name, SHA-256, byte size, entry count, one manifest attribute/value
    (`Bundle-Version` or `Implementation-Version`), and the exact set of exceptions `KIND|subject`. Only three kinds can
    ever be exceptions: `UNAPPROVED_MAIN_METHOD|<class>`, `UNAPPROVED_MANIFEST_MAIN|<class>`,
