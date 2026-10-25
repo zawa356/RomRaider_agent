@@ -340,7 +340,7 @@ public final class PhaseXcRldi2Test {
                 if(v.startsWith("secondary"))c.put("net/neristal/rrbridge/prototype/ingress/DeploymentTransitionCli.class",cls(DeploymentTransitionCli.class));
                 else c.put("net/neristal/rrbridge/Receiver.class",cls(DeploymentTransitionCli.class));
                 Files.write(t.lib("romlogger-offline.jar"),jar(null,c));}
-            t.pin();
+            t.pin();t.pin1();// both records before the post-pin edits below
             if(v.equals("unlisted file"))Files.write(t.root.resolve("notes.txt"),new byte[]{1});
             if(v.startsWith("profile"))Files.write(t.root.resolve("profile.rlop1"),"changed!!\n".getBytes(StandardCharsets.US_ASCII));
             DistributionInventory.Report r1=t.v1();DistributionInventoryV2.Report r2=t.v2();
