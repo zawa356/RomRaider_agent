@@ -64,3 +64,16 @@ Branch `phase-xc/rldi2-candidate` created from `7fdb4db`.
 - Pushed `phase-xc/rldi2-candidate`; Draft PR #106 (base `main`). CI started on `2febacd`.
 - Fixture hygiene: the GREEN test removes only the fixture directories it created itself (69 per run) after a passing run;
   `%TEMP%\romlogger-*` from other runs/owners untouched.
+
+## 2026-10-25 23:05–23:40 JST (14:05–14:40Z) — CI, x86, evidence
+
+- Docs push `7509227` re-triggered the PR workflows; the in-flight `2febacd` Phase VII–IX and ingress runs were cancelled
+  by their concurrency groups (Windows jobs mid-run; not test results). Lesson: batch docs pushes until CI on the code
+  head has finished, or expect a full re-run.
+- `7509227` pull_request attempt 1: 4 workflows, 13/13 jobs success (runs 40200553998, 40200553967, 40200553960,
+  40200553973). Job logs downloaded and grepped: X-C suite ran on ubuntu (16+168, JNA NOT_RUN), Windows Server 2025 JDK17
+  (19+186) and actual Zulu 1.8.0_512 x86 model 32 (20+187).
+- Local frozen `2febacd`: x64 19+186 (6m16s), actual Zulu 8 x86 20+187 (6m55s); RLDI1 regressions x64/x86 equal to
+  Phase X-B counts; x64 X-B ZIP log byte-identical to the X-B GREEN log. Frozen-run logs say `clean=1` = untracked
+  dossier directory only.
+- `main` re-fetched: still `7fdb4db`. Report/evidence written. Next: docs push, CI on the final docs head, PR description.
