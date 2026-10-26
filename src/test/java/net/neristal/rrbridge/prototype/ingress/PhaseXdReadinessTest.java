@@ -116,7 +116,7 @@ public final class PhaseXdReadinessTest {
 
         // ---------------------------------------------------------------- positive shapes
         {Cand c=new Cand(POSIX,L(SQLITE,API,NOP),L(SQLITE,API,NOP));DependencyReadiness.Report r=c.run();matched(r,"POSIX + sqlite + slf4j pair");
-         check(r.requiredPins.equals(L(SQLITE))&&r.observedPins.equals(L(SQLITE,API,NOP)),"POSIX: required = sqlite only; observed pins listed "+r.observedPins);
+         check(r.requiredPins.equals(L(SQLITE))&&r.observedPins.equals(L(API,NOP,SQLITE)),"POSIX: required = sqlite only; observed pins listed "+r.observedPins);
          check(POSIX.equals(r.reader),"POSIX: reader reported");
          check(DistributionInventoryV2.inspect(true,c.root.toFile(),c.record).matched(),"RLDI2 alone still MATCHED on the same install (unchanged)");}
         {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));matched(c.run(),"POSIX + sqlite, optional SLF4J group absent");}
@@ -148,11 +148,13 @@ public final class PhaseXdReadinessTest {
         {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Files.delete(c.profile.toPath());expect(c.run(),"profile_policy","UNKNOWN","PROFILE_UNREADABLE","profile missing");}
 
         // ---------------------------------------------------------------- inventory (RLDI2, fresh)
-        {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Files.write(c.lib.resolve("extra.jar"),Files.readAllBytes(c.jar(SQLITE).toPath()));
-         DependencyReadiness.Report r=c.run();expect(r,"inventory","MISMATCH","UNLISTED_EXECUTABLE_OR_ARCHIVE","unlisted JAR in install");
+        {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Files.write(c.lib.resolve("extra.cmd"),"rem synthetic".getBytes(StandardCharsets.US_ASCII));
+         DependencyReadiness.Report r=c.run();expect(r,"inventory","MISMATCH","UNLISTED_EXECUTABLE_OR_ARCHIVE","unlisted executable in install");
          check("UNKNOWN".equals(r.axis("required_set").status)&&"INVENTORY_NOT_MATCHED".equals(r.axis("classpath").code),"inventory MISMATCH: required_set/classpath UNKNOWN (record not trusted)");}
         {Cand c=new Cand(POSIX,L(SQLITE,API,NOP),L(SQLITE,API,NOP));flipLastByte(c.jar(API));c.describe();
-         expect(c.run(),"inventory","MISMATCH","RLDI2_DEPENDENCY_NOT_PINNED","modified dependency, same name/size, re-described record");}
+         DependencyReadiness.Report r=c.run();safe(r,"modified dependency");
+         check("MISMATCH".equals(r.axis("inventory").status)&&!r.matched()&&"INVENTORY_NOT_MATCHED".equals(r.axis("required_set").code),"modified dependency, same name/size, re-described record: inventory MISMATCH ("+code(r,"inventory")+")");
+         check(DistributionInventoryV2.inspect(true,c.root.toFile(),c.record).findings.containsKey("RLDI2_DEPENDENCY_NOT_PINNED"),"modified dependency: RLDI2 finds RLDI2_DEPENDENCY_NOT_PINNED");}
         {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));File r1=c.home.resolve("install.rldi1").toFile();
          DeploymentBinding.createRecord(r1.toPath(),DeploymentBinding.encodeRecord(DistributionInventory.describe(c.root.toFile(),OfflineCandidateEntry.MAIN,c.roles)));
          expect(DependencyReadiness.inspect(true,c.profile,c.root.toFile(),r1),"inventory","UNKNOWN","INVENTORY_VERSION","RLDI1 record given to RLDR1");}
