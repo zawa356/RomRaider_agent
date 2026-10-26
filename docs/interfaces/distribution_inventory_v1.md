@@ -167,3 +167,29 @@ total; JNA 5.14.0: 5.5 MB total; slf4j) verify without findings of this kind. Re
 or oversized non-class cases were MATCHED (`bash scripts/test-phase-xb-zip.sh --expect-red` on `2c8a5a3`). Unchanged:
 SHA-256 pin per listed file, F-IX-1 (third-party mains still MISMATCH), no RLDI2 allow-list, launch/production/ACK
 disabled, Windows ACL UNKNOWN, global old-binary exclusion NOT_PROVEN.
+
+## Note: Phase X-C (2026-10-25) — RLDI1 unchanged; RLDI2 candidate is separate
+
+RLDI1 code (`DistributionInventory.java`), fixtures and JSON are unchanged by Phase X-C. F-IX-1 is now reproduced
+exactly with the real pinned JARs (`scripts/test-phase-xc-rldi2.sh`, `PhaseXcF1ReproTest`): sqlite-jdbc →
+`UNAPPROVED_MAIN_METHOD` `org.sqlite.util.OSInfo` + 4 `VERSIONED_OR_META_CLASS`; slf4j-api / slf4j-nop → 1
+`VERSIONED_OR_META_CLASS` each; JNA → `UNAPPROVED_MAIN_METHOD` `com.sun.jna.Native` + `UNAPPROVED_MANIFEST_MAIN`.
+Correction to the F-IX-1 paragraph above (kept as written): the manifest `Main-Class` finding comes from **JNA**, not
+sqlite-jdbc (sqlite-jdbc's manifest has no `Main-Class`). The synthetic-only, default-off RLDI2 candidate that can
+report such an install MATCHED (still BLOCKED) is specified in [distribution_inventory_v2.md](distribution_inventory_v2.md);
+RLDI1 keeps reporting it MISMATCH.
+
+## Note: Phase X-C review P2 (2026-10-26) — JSON string escaping fixed (inspection unchanged)
+
+Independent review of PR #106 found that `Report.json()` wrote `unapproved_mains` (and the other string values)
+without escaping. A class name comes from a ZIP entry name, where `"` and `\` are legal, so a JAR with an entry such as
+`x/In","launch_authorized":true,"j":".class` produced invalid JSON with a second `launch_authorized` key — in this
+report and, nested, in `OfflineCandidateEntry --inventory`. The verdict was never affected (still `MISMATCH`
+`UNAPPROVED_MAIN_METHOD`), but a consumer that keeps the first duplicate key would read `true`. Reproduced: RED_COUNT 25
+(`PhaseXcJsonEscapeTest -Dphasexc.jsonExpectRed=true` at `8bb1d4c`).
+
+Fix (`f7b59ba`), **scope limited to JSON emission**: new package-private `DistributionInventory.jsonString` (RFC 8259,
+printable ASCII; `"`/`\` escaped, everything outside 0x20..0x7E as `\uXXXX`), used for `inventory`, `reason`, finding
+keys, `unapproved_mains` and `access_control`. Not changed: walk, roles, hashes, ZIP verification, findings, refusals,
+record format, `describe`, the entry-name rule (control characters still → `JAR_UNREADABLE`). Ordinary output is
+byte-identical. Regression: all RLDI1 suites re-run with the Phase X-B counts (see Phase X-C evidence).

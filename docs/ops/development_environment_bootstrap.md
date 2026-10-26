@@ -1,5 +1,22 @@
 # Development environment bootstrap — start here
 
+## Current state — 2026-10-25 (supersedes every dated entry below; those are history)
+
+- Phase X-B is **complete and merged**. Agent `main` = `7fdb4db893828718621ce8965664a89e36b9281a` (merge commit of
+  [#105](https://github.com/zawa356/RomRaider_agent/pull/105), head `05a2f40`). Server `main` =
+  `3f16a701fb6fe1b0f94780f8dfef1ec38515dd84` ([RomRaiderServer#66](https://github.com/zawa356/RomRaiderServer/pull/66), head `2baa899`).
+- PR #80–#104 (Agent) and #62–#65 (Server) are contained in `main` with their original SHAs. The old PRs are closed with a
+  comment; their branches are kept. **Do not reopen, re-merge or re-create them, and never branch from an old stack branch.**
+  Start every new phase from the latest fetched `main`.
+- Post-merge CI on Agent `main` `7fdb4db`: 4 workflows / 13 jobs success on attempt 1 (Phase VII–IX `39790019299`, spool
+  `39790019276`, ingress `39790019494`, REAL Server E2E `39790019559`). The REAL Server E2E still pins Server `d8c7a2f`.
+- Phase X-C (RLDI2 dependency-JAR candidate, Windows reader / JNA licence / ACL / minimum OS decision dossier) runs on one
+  Draft PR with base=`main`; see [X-C worklog](../handoff/phase_xc_worklog.md).
+- Unchanged gates: synthetic_only, launch/production/ACK disabled, formal_ack=DISABLED, reader_adoption=BLOCKED,
+  global_old_binary_exclusion=NOT_PROVEN, WRITER_UNPROVEN, Windows ACL `UNKNOWN_WINDOWS_ACL_NOT_INSPECTED`.
+- Long paths: the repository contains paths longer than 260 characters below deep working directories; on Windows clone
+  with `git -c core.longpaths=true clone …` (per-repository setting, no system policy change).
+
 ## Phase X-A current entry — 2026-10-22 (not merged)
 
 Top of the Agent stack: Draft PR [#104](https://github.com/zawa356/RomRaider_agent/pull/104) `ci/phase-xa-windows-probe`

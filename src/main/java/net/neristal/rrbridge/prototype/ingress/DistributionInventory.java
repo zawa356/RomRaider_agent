@@ -48,13 +48,26 @@ public final class DistributionInventory {
         public boolean matched(){return "MATCHED".equals(inventory);}
         /** Codes, counts and class names only: no paths, hashes of payload or file names. */
         public String json(){
-            StringBuilder b=new StringBuilder("{\"contract_version\":1,\"inventory_version\":\"").append(VERSION).append("\",\"state\":\"BLOCKED\",\"inventory\":\"")
-                .append(inventory).append("\",\"reason\":\"").append(reason).append("\",\"files\":").append(files).append(",\"findings\":{");
-            boolean first=true;for(Map.Entry<String,Integer> e:findings.entrySet()){if(!first)b.append(',');first=false;b.append('"').append(e.getKey()).append("\":").append(e.getValue());}
-            b.append("},\"unapproved_mains\":[");first=true;for(String m:unapprovedMains){if(!first)b.append(',');first=false;b.append('"').append(m).append('"');}
-            return b.append("],\"access_control\":\"").append(acl).append("\",\"global_old_binary_exclusion\":\"NOT_PROVEN\",\"synthetic_only\":true,")
+            StringBuilder b=new StringBuilder("{\"contract_version\":1,\"inventory_version\":\"").append(VERSION).append("\",\"state\":\"BLOCKED\",\"inventory\":")
+                .append(jsonString(inventory)).append(",\"reason\":").append(jsonString(reason)).append(",\"files\":").append(files).append(",\"findings\":{");
+            boolean first=true;for(Map.Entry<String,Integer> e:findings.entrySet()){if(!first)b.append(',');first=false;b.append(jsonString(e.getKey())).append(':').append(e.getValue());}
+            b.append("},\"unapproved_mains\":[");first=true;for(String m:unapprovedMains){if(!first)b.append(',');first=false;b.append(jsonString(m));}
+            return b.append("],\"access_control\":").append(jsonString(acl)).append(",\"global_old_binary_exclusion\":\"NOT_PROVEN\",\"synthetic_only\":true,")
                 .append("\"launch_authorized\":false,\"production_authorized\":false,\"ack_eligible\":false}").toString();
         }
+    }
+
+    /** RFC 8259 string literal in printable ASCII: {@code "} and {@code \} escaped, everything outside 0x20..0x7E as
+     *  {@code \}{@code uXXXX}. Class names come from ZIP entry names, which may legally contain {@code "} or {@code \}. */
+    static String jsonString(String s){
+        StringBuilder b=new StringBuilder(s.length()+2).append('"');
+        for(int i=0;i<s.length();i++){
+            char c=s.charAt(i);
+            if(c=='"'||c=='\\')b.append('\\').append(c);
+            else if(c<0x20||c>0x7e){String h=Integer.toHexString(c);b.append("\\u");for(int p=h.length();p<4;p++)b.append('0');b.append(h);}
+            else b.append(c);
+        }
+        return b.append('"').toString();
     }
 
     /** Builds the RLDI1 record describing a directory exactly as it is (synthetic packaging step; not an approval). */
