@@ -86,8 +86,12 @@ public final class PhaseXdWindowsAclProbe {
             check(pr.system!=null&&pr.admins!=null&&pr.everyone!=null&&pr.users!=null&&pr.authenticated!=null,"well-known principals resolved by name (read-only lookup)");
 
             // ---- real, unmodified ACLs: owned fixture objects, then every real parent up to the volume root (read only).
+            // What a fresh fixture inherits is a fact of the host, not a property of the probe (GitHub's Windows runner temp
+            // grants a broad group a write-class right; the dev VM's %TEMP% does not): observed, never asserted. Asserted:
+            // the verdict is one of the three provisional classes, never an approval.
+            Set<String> classes=new HashSet<String>(Arrays.asList("CANDIDATE_IF_SYSTEM_AND_ADMINS_TRUSTED","MISMATCH","UNKNOWN"));
             for(Path p:new Path[]{jar,lib,dir,home}){Verdict v=read(p,pr);System.out.println("OBSERVED fixture/"+home.relativize(p)+" "+v);
-                check(!"MISMATCH".equals(v.status),"owned fixture "+(p==home?"home":home.relativize(p))+": no broad/other write principal on a default inherited ACL");}
+                check(classes.contains(v.status),"owned fixture "+(p==home?"home":home.relativize(p))+": classified "+v.status+" (provisional class, never OWNER_CONTROLLED/PASS)");}
             int depth=0;String parentStatus="CANDIDATE_IF_SYSTEM_AND_ADMINS_TRUSTED";
             for(Path q=home.getParent();q!=null;q=q.getParent()){depth++;Verdict v=read(q,pr);System.out.println("OBSERVED parent-"+depth+" "+v);
                 if("MISMATCH".equals(v.status))parentStatus="MISMATCH";else if("UNKNOWN".equals(v.status)&&!"MISMATCH".equals(parentStatus))parentStatus="UNKNOWN";}
