@@ -119,15 +119,16 @@ public final class DistributionInventoryV2 {
         /** Codes, counts and class names only: no paths, file names or hashes. */
         public String json(){
             StringBuilder b=new StringBuilder("{\"contract_version\":2,\"inventory_version\":\"").append(VERSION).append("\",\"dependency_policy\":\"").append(POLICY_ID)
-                .append("\",\"state\":\"BLOCKED\",\"inventory\":\"").append(inventory).append("\",\"reason\":\"").append(reason).append("\",\"files\":").append(files)
-                .append(",\"pinned_dependencies\":").append(pinnedDependencies).append(",\"findings\":");
+                .append("\",\"state\":\"BLOCKED\",\"inventory\":").append(DistributionInventory.jsonString(inventory)).append(",\"reason\":").append(DistributionInventory.jsonString(reason))
+                .append(",\"files\":").append(files).append(",\"pinned_dependencies\":").append(pinnedDependencies).append(",\"findings\":");
             counts(b,findings);b.append(",\"policy_exceptions_applied\":");counts(b,exceptionsApplied);
-            b.append(",\"unapproved_mains\":[");boolean first=true;for(String m:unapprovedMains){if(!first)b.append(',');first=false;b.append('"').append(m).append('"');}
-            return b.append("],\"access_control\":\"").append(acl).append("\",\"global_old_binary_exclusion\":\"NOT_PROVEN\",\"synthetic_only\":true,")
+            // Class names come from ZIP entry names and may contain " or \ (review P2): always escaped.
+            b.append(",\"unapproved_mains\":[");boolean first=true;for(String m:unapprovedMains){if(!first)b.append(',');first=false;b.append(DistributionInventory.jsonString(m));}
+            return b.append("],\"access_control\":").append(DistributionInventory.jsonString(acl)).append(",\"global_old_binary_exclusion\":\"NOT_PROVEN\",\"synthetic_only\":true,")
                 .append("\"launch_authorized\":false,\"production_authorized\":false,\"ack_eligible\":false}").toString();
         }
         private static void counts(StringBuilder b,Map<String,Integer> m){
-            b.append('{');boolean first=true;for(Map.Entry<String,Integer> e:m.entrySet()){if(!first)b.append(',');first=false;b.append('"').append(e.getKey()).append("\":").append(e.getValue());}b.append('}');
+            b.append('{');boolean first=true;for(Map.Entry<String,Integer> e:m.entrySet()){if(!first)b.append(',');first=false;b.append(DistributionInventory.jsonString(e.getKey())).append(':').append(e.getValue());}b.append('}');
         }
     }
 
