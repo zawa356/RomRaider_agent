@@ -102,6 +102,8 @@ public final class PhaseXdReadinessTest {
     static void flipLastByte(File f)throws Exception {byte[] b=Files.readAllBytes(f.toPath());b[b.length-1]^=0x55;Files.write(f.toPath(),b);}
 
     public static void main(String[] a)throws Exception {
+        // Evidence: which runtime produced this log (x64 and actual x86 logs must not be confusable).
+        System.out.println("RUNTIME java.version="+System.getProperty("java.version")+" vendor="+System.getProperty("java.vendor")+" data_model="+System.getProperty("sun.arch.data.model")+" os="+System.getProperty("os.name"));
         closure=new File(a[0]);check(closure.isFile(),"entry closure JAR present");
         for(Map.Entry<String,String[]> e:DEP.entrySet()){
             if(!new File(e.getValue()[0]).isFile()){System.out.println("NOT_RUN "+e.getKey()+" absent on this runner (JNA is fetched on Windows jobs only)");continue;}
@@ -158,6 +160,18 @@ public final class PhaseXdReadinessTest {
         {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));File r1=c.home.resolve("install.rldi1").toFile();
          DeploymentBinding.createRecord(r1.toPath(),DeploymentBinding.encodeRecord(DistributionInventory.describe(c.root.toFile(),OfflineCandidateEntry.MAIN,c.roles)));
          expect(DependencyReadiness.inspect(true,c.profile,c.root.toFile(),r1),"inventory","UNKNOWN","INVENTORY_VERSION","RLDI1 record given to RLDR1");}
+
+        // Permission-denied dependency (X-C NOT_RUN item): POSIX owner removes its own read access on an owned fixture JAR.
+        // Not portable to Windows ACLs without changing an ACL (out of scope), and meaningless as root (root still reads).
+        {Cand c=new Cand(POSIX,L(SQLITE,API,NOP),L(SQLITE,API,NOP));Path jar=c.jar(API).toPath();
+         if(Files.getFileAttributeView(jar,java.nio.file.attribute.PosixFileAttributeView.class)==null)System.out.println("NOT_RUN permission-denied dependency JAR (no POSIX permissions here; Windows ACLs are not changed)");
+         else{Files.setPosixFilePermissions(jar,EnumSet.noneOf(java.nio.file.attribute.PosixFilePermission.class));
+             if(Files.isReadable(jar))System.out.println("NOT_RUN permission-denied dependency JAR (process can still read a mode-000 file: running as root)");
+             else{DependencyReadiness.Report r=c.run();safe(r,"unreadable dependency JAR");
+                 check("UNKNOWN".equals(r.axis("inventory").status)&&!r.matched()&&"INVENTORY_NOT_MATCHED".equals(r.axis("required_set").code),
+                     "unreadable (mode 000) dependency JAR: inventory UNKNOWN, readiness not MATCHED ("+code(r,"inventory")+")");
+                 check(!DistributionInventoryV2.inspect(true,c.root.toFile(),c.record).matched(),"unreadable dependency JAR: RLDI2 alone not MATCHED");}
+             Files.setPosixFilePermissions(jar,EnumSet.of(java.nio.file.attribute.PosixFilePermission.OWNER_READ,java.nio.file.attribute.PosixFilePermission.OWNER_WRITE));}}
 
         // ---------------------------------------------------------------- class path
         {Cand c=new Cand(POSIX,L(SQLITE,API,NOP),L(SQLITE));expect(c.run(),"classpath","MISMATCH","INVENTORY_DEPENDENCY_UNUSED","slf4j in install but not on the class path");}
