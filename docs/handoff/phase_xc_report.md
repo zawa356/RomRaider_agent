@@ -16,7 +16,8 @@ Read with: [evidence](phase_xc_evidence.md) · [append-only worklog](phase_xc_wo
 | X-C0 | current-state blocks prepended to `AGENTS.md`, bootstrap, `docs/00_index.md`; history untouched |
 | F-IX-1 | reproduced exactly with the real pinned JARs under RLDI1 (intended fail-closed, not relaxed) |
 | RLDI2 | `DistributionInventoryV2`: separate contract, fixed code-reviewed pins (option A), 3 exceptable kinds, exact-set rule, every dependency pinned; canonical candidate MATCHED (BLOCKED); 186/187 adversarial/regression checks GREEN |
-| RLDI1 | `DistributionInventory.java` byte-identical to `main`; all RLDI1 suites re-run with Phase X-B counts |
+| RLDI1 | inspection unchanged; after review P2 `DistributionInventory.java` differs from `main` only in JSON string escaping (+18/−5, §8); all RLDI1 suites re-run with Phase X-B counts |
+| Review (2026-10-26) | P2 JSON escaping fixed in RLDI1 and RLDI2 (RED 25 → GREEN 41/42); completeness boundary specified; PR commit count corrected (§8) |
 | X-C2 | dossier: RLDI2 adoption, JNA licence/distribution form, FILE_SHARE_DELETE, Windows ACL criteria, minimum Windows — facts / provisional recommendation / owner decision / unverified |
 | CI | see evidence §4 (4 workflows; the new suite runs in `phase8` on ubuntu, windows x64 and actual Java 8 x86) |
 
@@ -78,3 +79,18 @@ NOT_RUN: JNA cases on Linux (no JNA JAR on ubuntu jobs), permission-denied JAR f
 
 Unmerged (Draft), no release, synthetic-only; launch/production/ACK disabled; no Sender, ECU, X270, RomRaider, VPS,
 Caddy or MCP contact; Server unchanged; `main` unchanged.
+
+## 8. Independent review follow-up (2026-10-26 JST)
+
+Review of #106 (ChatGPT, relayed by the owner) accepted the structure, the SHA-256 pin policy, the dependency
+exceptions, RLDI1 non-interference and CI, with these items to resolve before integration:
+
+| Item | Result |
+|---|---|
+| P2 `DistributionInventoryV2.Report.json()` escaping | **Confirmed and fixed.** Class names come from ZIP entry names; `"`/`\` are ZIP- and JVM-legal, so `unapproved_mains` could break the JSON and inject keys (e.g. a second `launch_authorized`). RED `8bb1d4c` (RED_COUNT 25) → fix `f7b59ba`: every string via `DistributionInventory.jsonString` (RFC 8259, printable ASCII). Negative test `PhaseXcJsonEscapeTest` (strict parser, exact keys, gates, exact round-trip) |
+| Reject bad names instead? | Not added: such a main is already refused (`UNAPPROVED_MAIN_METHOD`) — escaping only fixes the report. Existing refusals kept: control characters / invalid UTF-8 in an entry name → `JAR_UNREADABLE` (tested) |
+| RLDI1 impact | **Same defect, also in `OfflineCandidateEntry --inventory`** (nested raw). Fixed in this PR with an explicit scope: helper + `json()` only; inspection, findings, refusals, record format, `describe` unchanged; ordinary output byte-identical. Regression: phase8-inventory 70/71, xa-zip 45/45, xb-zip 26/26, phase9-race 23/23 (= Phase X-B) on x64 and actual x86. Other JSON embedded by the entry (IntegratedReadiness, Preflight) prints codes only (code reading) |
+| Completeness | Contract v2 §"Responsibility boundary": RLDI2 checks what is present; a subset of pins is MATCHED. Dependency completeness, the per-profile required set, the launch class path and freshness belong to a future readiness axis (owner decision); until then completeness `UNKNOWN`, `reader_adoption=BLOCKED` |
+| PR commit count | The body said 10; GitHub had 9. Corrected in the PR body to the GitHub count at the final head |
+
+Gates unchanged; still Draft, not merged, no release; synthetic-only; launch/production/ACK disabled.

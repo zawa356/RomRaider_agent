@@ -77,3 +77,34 @@ Branch `phase-xc/rldi2-candidate` created from `7fdb4db`.
   Phase X-B counts; x64 X-B ZIP log byte-identical to the X-B GREEN log. Frozen-run logs say `clean=1` = untracked
   dossier directory only.
 - `main` re-fetched: still `7fdb4db`. Report/evidence written. Next: docs push, CI on the final docs head, PR description.
+
+## 2026-10-26 JST — independent review of #106 (ChatGPT): P2 JSON escaping, completeness boundary, commit count
+
+Owner relayed the review: overall structure, SHA-256 pin policy, dependency exceptions, RLDI1 non-interference and CI
+broadly accepted; to fix before integration: (P2) `DistributionInventoryV2.Report.json()` does not escape strings
+(`unapproved_mains` from entry names with `"`/`\`); negative test required; RLDI1 impact to be checked; RLDI2's
+non-guarantee of completeness to be specified; PR body commit count (said 10; GitHub had 9).
+
+- Analysis: class names are `entry name − ".class"`, `/`→`.`. The ZIP name reader already rejects control characters
+  (`JAR_UNREADABLE`) and invalid UTF-8; `"`, `\`, DEL and non-ASCII (U+2028/9, CJK, emoji) pass. JVM binary names allow
+  `"` and `\`. RLDI1 has the identical defect, and `OfflineCandidateEntry --inventory` embeds the RLDI1 JSON raw (a
+  `{`-prefixed value), so the default CLI output was affected too. Manifest `Main-Class` values are counted, not printed.
+  IntegratedReadiness / OfflineCandidatePreflight JSON (also embedded by the entry) print codes only (code reading).
+- `8bb1d4c` RED: `PhaseXcJsonEscapeTest` (strict RFC 8259 parser; exact key set; gates; exact round-trip; ASCII) +
+  unused helper `DistributionInventory.jsonString`. `-Dphasexc.jsonExpectRed=true`, JDK17 x64: exit 0, 16 PASS,
+  RED_COUNT 25 (log sha256 279bf68e…): invalid JSON in RLDI1, RLDI2 and `--inventory`; a name
+  `x/In","launch_authorized":true,"j":".class` injects a second `launch_authorized` key. Verdicts were MISMATCH.
+- Decision: escape, do not add a new refusal. Rejecting `"`/`\` names would be a new finding kind in RLDI1/RLDI2 and is
+  not needed for safety (such a main is already refused as `UNAPPROVED_MAIN_METHOD`); the existing control-character
+  refusal is kept and tested.
+- `f7b59ba` fix: both `Report.json()` emit every string through `jsonString` (printable ASCII; `\uXXXX` outside
+  0x20..0x7E). **RLDI1 file changed** (+18/−5: helper + json() only). JDK17 x64 41 PASS.
+- `0a2a652` docs: contract v2 "Responsibility boundary" (completeness / per-profile required set / launch class path /
+  freshness → future readiness; completeness UNKNOWN); JSON encoding rule; dated RLDI1 note; design §7 lines.
+- Tooling slips (no repository effect): a stray `cat` in one shell command waited on stdin and was stopped before
+  anything ran past it (nothing committed by it); Windows Python again could not open the >260-char test path → editor
+  tool used.
+- Frozen local run at `f7b59ba` (`clean=1`), logs in the session's `logs/review-f7b59ba/` (not committed): all 10 exit 0
+  — xc-rldi2 x64 19+186+41 (408 s), x86 20+187+42 (427 s); phase8-inventory 70/71; xa-zip 45/45; xb-zip 26/26;
+  phase9-race 23/23 (= Phase X-B counts). x64 xb-zip output equals the earlier X-C/X-B log line for line (that log
+  was CRLF; this one LF).

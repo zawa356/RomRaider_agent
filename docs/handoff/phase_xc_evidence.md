@@ -18,8 +18,10 @@
 | `7509227` | docs | owner decision dossier; worklog |
 | later | docs | report, evidence, worklog (documentation only) |
 
-`git diff 7fdb4db -- src/main/java/net/neristal/rrbridge/prototype/ingress/DistributionInventory.java` is empty. Product
-code added: `DistributionInventoryV2.java` only. No other product file changed. Server: no change.
+`git diff 7fdb4db -- src/main/java/net/neristal/rrbridge/prototype/ingress/DistributionInventory.java` was empty up to
+`719ee41`. Product code added: `DistributionInventoryV2.java` only. No other product file changed. Server: no change.
+**Superseded by §5 (review fix):** from `f7b59ba` RLDI1's `DistributionInventory.java` differs from `main` by +18/−5
+(JSON string escaping only).
 
 ## 2. RED (reproduction) — head `06c34f8`, Windows 11 dev VM
 
@@ -104,3 +106,50 @@ Windows-only steps on Linux jobs.
 
 Commits after `7509227` change documentation only. Their CI runs are listed in the PR description / a PR comment
 (this file cannot contain its own head's results).
+
+## 5. Independent review fix (2026-10-26 JST)
+
+Review (ChatGPT, relayed by the owner): P2 JSON escaping; completeness boundary; PR body commit count.
+
+| Commit | Kind | Content |
+|---|---|---|
+| `8bb1d4c` | test (RED) | `PhaseXcJsonEscapeTest`; unused helper `DistributionInventory.jsonString`; suite line in `test-phase-xc-rldi2.sh` |
+| `f7b59ba` | fix | RLDI1 and RLDI2 `Report.json()` escape every string — **code/test head** |
+| `0a2a652` | docs | contract v2 responsibility boundary + JSON encoding; RLDI1 dated note; design §7 |
+| later | docs | this section, report §8, worklog |
+
+Product diff vs `main` now: `DistributionInventoryV2.java` (new) and `DistributionInventory.java` +18/−5
+(`jsonString` helper; `json()` uses it for `inventory`, `reason`, finding keys, `unapproved_mains`, `access_control`).
+Unchanged in RLDI1: walk, roles, hashes, ZIP verification, findings, refusals, record format, `describe`, entry-name rule.
+
+### RED — `8bb1d4c`, JDK17 x64, Windows 11 dev VM
+
+`PhaseXcJsonEscapeTest -Dphasexc.jsonExpectRed=true` exit 0, 16 PASS, **RED_COUNT 25** (log SHA-256
+`279bf68e64b36df6a5f1bcf694d4af2b53d995a07fcd65569cb65651c920643b`): RLDI1 and RLDI2 reports (direct and real JAR)
+and `OfflineCandidateEntry --inventory` are not valid JSON (`expected ]`, `bad escape \s`); a name
+`x/In","launch_authorized":true,"j":".class` adds a second `launch_authorized` key. Inventory verdicts were
+`MISMATCH` throughout; the control-character entry was `JAR_UNREADABLE` in both.
+
+### GREEN — `f7b59ba` frozen (`clean=1`), Windows 11 dev VM (logs not committed)
+
+| Suite | JDK17 x64 | actual Zulu 8 x86 (model 32) | Phase X-B / X-C reference |
+|---|---|---|---|
+| `test-phase-xc-rldi2.sh` | exit 0 — repro 19, RLDI2 186, **escape 41** (408 s) `0f4d6be2…` | exit 0 — 20, 187, **42** (427 s) `8e44e130…` | 19+186 / 20+187 (+ new suite) |
+| `test-phase8-inventory.sh` | 70 `a4497cd3…` | 71 `9c2e2406…` | 70 / 71 |
+| `test-phase-xa-zip.sh` | 45 `4d27a38e…` | 45 `3a4022ac…` | 45 / 45 |
+| `test-phase-xb-zip.sh` | 26 `8ed4472d…` | 26 `b14cad70…` | 26 / 26 — x64 output line-for-line equal to the earlier X-C/X-B log (`6d3b6f20…`, CRLF) |
+| `test-phase9-inventory-race.sh` | 23 `f1ebfe6c…` | 23 `a68ff705…` | 23 / 23 |
+
+(x86 escape = x64 + the data-model check.) Escape test coverage: all 65 536 UTF-16 code units round-trip as printable
+ASCII; ordinary names byte-identical; direct reports with `"`, `\`, NUL/0x1F, DEL, U+2028/9, lone surrogate and a
+key-injection name; a real unpinned dependency JAR with 9 hostile main names + 1 versioned hostile main → RLDI1/RLDI2
+still MISMATCH (`UNAPPROVED_MAIN_METHOD`, RLDI2 also `RLDI2_DEPENDENCY_NOT_PINNED`), JSON strict-valid with the exact key
+set and gates, names exact; `--inventory` exit 5 with the nested report intact; control-character entry still
+`JAR_UNREADABLE` in both.
+
+NOT_RUN (unchanged): JNA cases on Linux; permission-denied JAR fixture; Windows 10; non-NTFS volumes; real writer; X270.
+The escape test itself uses only slf4j and runs on ubuntu too.
+
+### CI on the final head
+
+Recorded in the PR description and a PR comment (this file cannot contain its own head's results).
