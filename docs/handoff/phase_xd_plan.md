@@ -42,3 +42,14 @@ Plan non-car Windows 10 VM synthetic tests with actual Zulu8 x86 and NTFS; no su
 - Create Draft PR only. Distinct owner approval for every merge. Design completion is not product adoption.
 
 References: docs/interfaces/distribution_inventory_v2.md, docs/interfaces/offline_candidate_entry_v1.md, docs/interfaces/integrated_readiness_v1.md, docs/interfaces/offline_candidate_preflight_v1.md, docs/decisions/phase_xc_owner_decisions.md, PR #106 independent review comment 6408600612.
+
+## Status update by Claude Code (2026-10-26 JST, appended)
+
+- D0: done on this track (current-state blocks in `AGENTS.md`, bootstrap, `docs/00_index.md`; reader-value drift fixed
+  in `offline_candidate_entry_v1.md`; X-C dossier "byte-identical" note). Correction to this plan's D1 paragraph: RLOP1
+  `reader` has **three** values (`POSIX`, `WINDOWS_NATIVE_TEST_ONLY`, `WINDOWS_NATIVE_V1_SYNTHETIC`), not two.
+  Stale Server `implementation_progress.md` → separate Server docs-only Draft PR.
+- D1: implemented as RLDR1 in a separate Draft PR #108 from `main` (code, tests, CI script, design, contract). This
+  track keeps the worklog/evidence/decision record; the two PRs share no file.
+- D2: read-only ACL PoC (test code) run; D3: Windows 10 NOT_RUN (no VM), JNA/FILE_SHARE_DELETE unchanged — see
+  [owner decision record](../decisions/phase_xd_owner_decisions.md).

@@ -57,3 +57,25 @@ Before implementing a required set, read the actual SQLite ingest path, logging 
 - No ready/merge without owner approval.
 
 Sources: src/main/java/net/neristal/rrbridge/prototype/ingress/OfflineCandidateEntry.java (knownReader/createProfile/readProfile/productReader); DistributionInventoryV2.java; docs/interfaces/offline_candidate_entry_v1.md; docs/interfaces/distribution_inventory_v2.md; docs/interfaces/integrated_readiness_v1.md.
+
+## Independent review by Claude Code against the code (2026-10-26 JST, appended; text above unchanged)
+
+Reviewed at Agent `main` `bcc8156`. The draft's direction holds; its facts were checked against the code and its open
+`TO_DERIVE` items were resolved in the implementation design
+[`phase_xd1_required_dependency_readiness.md`](https://github.com/zawa356/RomRaider_agent/blob/phase-xd/dependency-readiness/docs/design/phase_xd1_required_dependency_readiness.md)
+(Draft PR #108). Findings:
+
+| Draft statement | Result |
+|---|---|
+| §1 `knownReader()` has three values; `offline_candidate_entry_v1.md` lists two | **Confirmed**; the contract text is corrected on this track (dated note) |
+| §1 `productReader()` requires Windows, refuses the test reader, pins JNA SHA-256, `READ_WRITE` | **Confirmed** (`OfflineCandidateEntry.productReader`) |
+| §1 RLOP1 strict field set | **Confirmed** (`verifyProfile`); RLDR1 re-implements the static part read-only |
+| §2 input "already validated RLDI2 record/snapshot metadata" | **Changed**: a passed-in snapshot can be stale or forged; RLDR1 runs RLDI2 itself and binds profile/record/JAR bytes and identities from start to end. Freshness then needs no time window |
+| §3 POSIX: "TO_DERIVE; JNA not automatically required" | **Derived**: sqlite-jdbc required; SLF4J api+nop optional all-or-none (measured: JUL fallback; api alone → 189 B stderr warning); JNA **forbidden** (unreachable native code) |
+| §3 `WINDOWS_NATIVE_TEST_ONLY`: TO_DERIVE | **Derived**: profile policy `BLOCKED` (a test JAR is not an inventory role); never MATCHED |
+| §3 V1 synthetic: JNA necessary; sqlite/slf4j TO_DERIVE | **Derived**: sqlite-jdbc + JNA required; SLF4J optional pair |
+| §4 negative matrix | Implemented (RED 223 → GREEN), plus: approved JAR must be first; unused dependency in the install is a mismatch; real path must equal the written path (junction/symlink/8.3/`..`); permission-denied JAR on POSIX |
+| §5 "no wiring, no walker refactor" | **Kept** |
+
+Not adopted from the draft: the axis name `classpath_closure` (implemented as `classpath`) and separate
+`process_provenance`/`access_control` evaluation (reported as fixed `UNKNOWN` / RLDI2 value, never MATCHED by RLDR1).

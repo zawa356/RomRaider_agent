@@ -1,5 +1,7 @@
 # docs/ 索引
 
+**2026-10-26 現在地（最優先）:** Phase X-C 統合済み（Agent `main` `bcc8156`、Server `3f16a70`）。Phase X-D：文書トラック Draft PR #107 → [worklog](handoff/phase_xd_worklog.md)／[evidence](handoff/phase_xd_evidence.md)／[owner 判断記録](decisions/phase_xd_owner_decisions.md)／[ChatGPT 設計案と査読](design/phase_xd_dependency_readiness.md)；実装 Draft PR #108 → RLDR1 設計 `design/phase_xd1_required_dependency_readiness.md`・契約 `interfaces/dependency_readiness_v1.md`（#108 のブランチ上）。下の 2026-10-25 行は履歴。
+
 **2026-10-25 現在地（最優先）:** Phase X-B 完了・`main` 統合済み（Agent `7fdb4db`、Server `3f16a70`）。旧 stack PR #80〜#104 は Close 済みで再利用しない。新作業は最新 `main` から。入口：[Bootstrap](ops/development_environment_bootstrap.md) → [Phase X-B 報告](handoff/phase_xb_integration_report.md) → Phase X-C：[報告](handoff/phase_xc_report.md)／[証跡](handoff/phase_xc_evidence.md)／[worklog](handoff/phase_xc_worklog.md)／[RLDI2 設計](design/rldi2_dependency_policy_design.md)／[RLDI2 契約](interfaces/distribution_inventory_v2.md)／[owner 判断資料](decisions/phase_xc_owner_decisions.md)。以下の dated entry は履歴。
 
 
