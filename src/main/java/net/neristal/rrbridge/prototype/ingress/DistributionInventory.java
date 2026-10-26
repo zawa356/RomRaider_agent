@@ -57,6 +57,19 @@ public final class DistributionInventory {
         }
     }
 
+    /** RFC 8259 string literal in printable ASCII: {@code "} and {@code \} escaped, everything outside 0x20..0x7E as
+     *  {@code \}{@code uXXXX}. Class names come from ZIP entry names, which may legally contain {@code "} or {@code \}. */
+    static String jsonString(String s){
+        StringBuilder b=new StringBuilder(s.length()+2).append('"');
+        for(int i=0;i<s.length();i++){
+            char c=s.charAt(i);
+            if(c=='"'||c=='\\')b.append('\\').append(c);
+            else if(c<0x20||c>0x7e){String h=Integer.toHexString(c);b.append("\\u");for(int p=h.length();p<4;p++)b.append('0');b.append(h);}
+            else b.append(c);
+        }
+        return b.append('"').toString();
+    }
+
     /** Builds the RLDI1 record describing a directory exactly as it is (synthetic packaging step; not an approval). */
     public static Map<String,String> describe(File root,String approvedMain,Map<String,String> roles)throws Exception {
         Map<String,String> m=new TreeMap<String,String>();m.put("version",VERSION);m.put("mode","SYNTHETIC_ONLY");m.put("approved_main",approvedMain);

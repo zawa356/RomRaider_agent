@@ -12,7 +12,7 @@ if [[ -f build/identity-deps/jna-5.14.0.jar ]]; then cp="${cp}${sep}build/identi
 out=build/phase-xc-rldi2; red=false; runonly=false
 for arg in "$@"; do case $arg in --expect-red) red=true;; --run-only) runonly=true;; esac; done
 T=src/test/java/net/neristal/rrbridge/prototype/ingress
-tests=("$T/PhaseXcF1ReproTest.java"); [[ $red == true ]] || tests+=("$T/PhaseXcRldi2Test.java")
+tests=("$T/PhaseXcF1ReproTest.java"); [[ $red == true ]] || tests+=("$T/PhaseXcRldi2Test.java" "$T/PhaseXcJsonEscapeTest.java")
 if [[ $runonly == false ]]; then
  rm -rf "$out"; mkdir -p "$out/closure" "$out/test" "$out/jars"
  # Same approved-entry closure as scripts/test-phase8-inventory.sh (RLWR1 JNA binding on Windows).
@@ -29,5 +29,7 @@ java -Dphasexc.expectRed=$red -cp "$out/test${sep}${cp}" net.neristal.rrbridge.p
 if [[ $red == false ]]; then
  # 32-bit JVMs default to a small heap; bomb/large fixtures need test-side buffers (the product streams).
  java -Xmx512m -cp "$out/test${sep}${cp}" net.neristal.rrbridge.prototype.ingress.PhaseXcRldi2Test "$out/jars/romlogger-offline.jar"
+ # Review P2: report JSON stays well-formed for hostile (ZIP-legal) class names (RLDI1, RLDI2, --inventory entry output).
+ java -cp "$out/test${sep}${cp}" net.neristal.rrbridge.prototype.ingress.PhaseXcJsonEscapeTest "$out/jars/romlogger-offline.jar"
 fi
 echo "Phase X-C RLDI2 suite completed; launch/production/ACK remain disabled"
