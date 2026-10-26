@@ -178,3 +178,18 @@ Correction to the F-IX-1 paragraph above (kept as written): the manifest `Main-C
 sqlite-jdbc (sqlite-jdbc's manifest has no `Main-Class`). The synthetic-only, default-off RLDI2 candidate that can
 report such an install MATCHED (still BLOCKED) is specified in [distribution_inventory_v2.md](distribution_inventory_v2.md);
 RLDI1 keeps reporting it MISMATCH.
+
+## Note: Phase X-C review P2 (2026-10-26) — JSON string escaping fixed (inspection unchanged)
+
+Independent review of PR #106 found that `Report.json()` wrote `unapproved_mains` (and the other string values)
+without escaping. A class name comes from a ZIP entry name, where `"` and `\` are legal, so a JAR with an entry such as
+`x/In","launch_authorized":true,"j":".class` produced invalid JSON with a second `launch_authorized` key — in this
+report and, nested, in `OfflineCandidateEntry --inventory`. The verdict was never affected (still `MISMATCH`
+`UNAPPROVED_MAIN_METHOD`), but a consumer that keeps the first duplicate key would read `true`. Reproduced: RED_COUNT 25
+(`PhaseXcJsonEscapeTest -Dphasexc.jsonExpectRed=true` at `8bb1d4c`).
+
+Fix (`f7b59ba`), **scope limited to JSON emission**: new package-private `DistributionInventory.jsonString` (RFC 8259,
+printable ASCII; `"`/`\` escaped, everything outside 0x20..0x7E as `\uXXXX`), used for `inventory`, `reason`, finding
+keys, `unapproved_mains` and `access_control`. Not changed: walk, roles, hashes, ZIP verification, findings, refusals,
+record format, `describe`, the entry-name rule (control characters still → `JAR_UNREADABLE`). Ordinary output is
+byte-identical. Regression: all RLDI1 suites re-run with the Phase X-B counts (see Phase X-C evidence).

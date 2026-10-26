@@ -4,7 +4,7 @@
 (`describe`, `inspect`) from tests. Not wired into `OfflineCandidateEntry`, any CLI, launcher, reader or runbook; no
 default changed. Read-only; never launches, writes, repairs, deletes, renames or quarantines anything. Design and threat
 model: [rldi2_dependency_policy_design.md](../design/rldi2_dependency_policy_design.md). RLDI1 ([v1](distribution_inventory_v1.md))
-is unchanged and remains the strict contract.
+remains the strict contract; its inspection is unchanged (only its JSON string escaping was fixed after review P2).
 
 ## Relation to RLDI1
 
@@ -74,6 +74,35 @@ that JAR's findings and counted in `policy_exceptions_applied`; the subtracted s
 "policy_exceptions_applied":{kind:count},"unapproved_mains":[class names],"access_control":…,
 "global_old_binary_exclusion":"NOT_PROVEN","synthetic_only":true,"launch_authorized":false,"production_authorized":false,"ack_eligible":false}`.
 No paths, file names or hashes (the policy digest is not printed). Excepted mains are counted, not listed.
+
+**String encoding (review P2, 2026-10-26):** every string value and key is emitted through
+`DistributionInventory.jsonString`: RFC 8259, printable ASCII only — `"` and `\` are backslash-escaped, every character
+outside 0x20..0x7E (controls, DEL, non-ASCII, U+2028/2029, surrogates) as `\uXXXX`. This matters for
+`unapproved_mains`: a class name is derived from a ZIP entry name, and `"` or `\` are legal in ZIP entry names and JVM
+binary names (`x/In","launch_authorized":true,"j":".class`). Such a name is **reported, escaped, and still refused**
+(`UNAPPROVED_MAIN_METHOD`); it is never accepted because it was escaped. Control characters in an entry name are still
+refused by the ZIP reader (`JAR_UNREADABLE`), as before. Ordinary codes and class names are byte-identical to the
+earlier output. Test: `PhaseXcJsonEscapeTest` (strict parser, exact key set, gates, exact round-trip).
+
+## Responsibility boundary: RLDI2 does not prove the install is complete
+
+RLDI2 answers one question: *is every executable/archive file that **is present** under the install root listed, of the
+recorded role and bytes, and (for `dependency_jar`) one of the compiled-in pins with exactly its audited findings?* It
+also requires exactly one `approved_jar` that declares the approved main (`APPROVED_JAR_COUNT`, `APPROVED_MAIN_MISSING`).
+
+It does **not** establish, and a `MATCHED` result must never be read as:
+
+- **Dependency completeness** — that every JAR the runtime needs is present. A subset of the pins is `MATCHED`
+  (e.g. without JNA, or with only one pin); a missing dependency surfaces only as a runtime failure or a later gate.
+- **The required set per profile** — which dependencies a given launch profile needs (sqlite-jdbc + slf4j for the
+  spool; JNA only if the Windows reader is adopted, which today is `READER_NATIVE_UNAVAILABLE` / BLOCKED).
+- **The launch class path** — that the JVM is started with exactly these files, in this order, and loads nothing from
+  outside the root (other copies on disk are not fenced: `global_old_binary_exclusion=NOT_PROVEN`).
+- **Freshness** — the result is a snapshot of one inspection.
+
+These belong to a future readiness axis (owner decision; not implemented here): a profile-pinned *required dependency
+set* (pin ids per profile) checked against the RLDI2 `pinned` set, plus the existing launch-provenance checks on the
+actual class path. Until that exists, completeness stays `UNKNOWN` and `reader_adoption=BLOCKED`.
 
 ## Not changed by RLDI2
 

@@ -123,3 +123,9 @@ owner decision on key custody). C is rejected for now (modifies third-party bina
 - `MATCHED` is a snapshot of one directory. Not adopted, not wired into the entry CLI, not proof of old-binary exclusion.
 - JNA licence/distribution form, FILE_SHARE_DELETE, Windows ACL and minimum OS are separate owner decisions; RLDI2 being
   able to read JNA's JAR says nothing about whether JNA may be distributed.
+- (Added 2026-10-26 after independent review.) **RLDI2 does not prove completeness.** It checks what is present; a
+  subset of the pins (no JNA, a single pin) is `MATCHED`. Which dependencies a profile requires, and that the JVM's
+  class path is exactly the inventoried files, are a future readiness responsibility — see
+  [contract: responsibility boundary](../interfaces/distribution_inventory_v2.md#responsibility-boundary-rldi2-does-not-prove-the-install-is-complete).
+- (Added 2026-10-26.) Class names in the report come from ZIP entry names and may contain `"` or `\`; the JSON escapes
+  every string (review P2). Escaping never turns a finding into an acceptance.
