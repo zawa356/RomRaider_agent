@@ -100,6 +100,16 @@ public final class PhaseXdReadinessTest {
         return new DistributionInventory.Hook(){boolean done;public void at(String s)throws Exception {if(!done&&stage.equals(s)){done=true;step.at();}}};
     }
     static void flipLastByte(File f)throws Exception {byte[] b=Files.readAllBytes(f.toPath());b[b.length-1]^=0x55;Files.write(f.toPath(),b);}
+    /** Replaces f by a different file with the same bytes (the copy exists before the swap, so its identity differs). */
+    static void sameBytesNewFile(File f)throws Exception {
+        Path copy=f.toPath().resolveSibling(f.getName()+".swap");Files.copy(f.toPath(),copy,StandardCopyOption.COPY_ATTRIBUTES);
+        Files.move(copy,f.toPath(),StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);
+    }
+    /** RLOP1's own static refusal for the profile (its Profile parsing, generation range and production-path rule). */
+    static boolean rlop1Refuses(Cand c)throws Exception {
+        try{OfflineCandidateEntry.Profile p=new OfflineCandidateEntry.Profile(c.prof(),"-");if(p.expectedGeneration<0)return true;OfflineCandidateEntry.requireNotProduction(p);return false;}
+        catch(OfflineCandidateEntry.Refusal r){return true;}
+    }
 
     public static void main(String[] a)throws Exception {
         // Evidence: which runtime produced this log (x64 and actual x86 logs must not be confusable).
@@ -148,6 +158,17 @@ public final class PhaseXdReadinessTest {
          expect(c.run(),"profile_policy","MISMATCH","UNKNOWN_OR_LEGACY_ENTRY_MAIN_CLASS","legacy main class");}
         {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Map<String,String> m=c.prof();m.remove("classpath");c.rewriteProfile(m);expect(c.run(),"profile_policy","MISMATCH","PROFILE_FORMAT","classpath field missing");}
         {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Files.delete(c.profile.toPath());expect(c.run(),"profile_policy","UNKNOWN","PROFILE_UNREADABLE","profile missing");}
+        // Review P2-1: the static RLOP1 rules RLDR1 must not be weaker than (expected_generation format/range, production paths).
+        // Each bad profile is also shown to be refused by RLOP1's own code (Profile parsing / requireNotProduction).
+        for(String gen:L("invalid","-1","","1.0","2147483648","0x10")){
+            Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Map<String,String> m=c.prof();m.put("expected_generation",gen);c.rewriteProfile(m);
+            expect(c.run(),"profile_policy","MISMATCH","PROFILE_FORMAT","expected_generation='"+gen+"'");
+            check(rlop1Refuses(c),"expected_generation='"+gen+"': RLOP1 refuses it too");}
+        for(String[] prod:new String[][]{{"data_root","OpenPortWork"},{"working_directory","Program Files"+File.separator+"RomRaider"},{"layout.ledger","rrbridge"+File.separator+"dist"+File.separator+"ledger.db"},{"layout.legacy","openportwork"+File.separator+"v1.db"}}){
+            Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Map<String,String> m=c.prof();m.put(prod[0],c.home.resolve(prod[1]).toString());c.rewriteProfile(m);
+            expect(c.run(),"profile_policy","MISMATCH","PRODUCTION_PATH_REFUSED","production-looking "+prod[0]);
+            check(rlop1Refuses(c),"production-looking "+prod[0]+": RLOP1 refuses it too");}
+        {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));check(!rlop1Refuses(c),"control: RLOP1 static rules accept the generated profile");}
 
         // ---------------------------------------------------------------- inventory (RLDI2, fresh)
         {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Files.write(c.lib.resolve("extra.cmd"),"rem synthetic".getBytes(StandardCharsets.US_ASCII));
@@ -214,6 +235,30 @@ public final class PhaseXdReadinessTest {
         {final Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));
          expect(c.run(at("PROFILE_READ",new Step(){public void at()throws Exception{Map<String,String> m=c.prof();m.put("profile_uuid",UUID.randomUUID().toString());c.rewriteProfile(m);}})),
              "freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS","profile replaced during inspection");}
+        // Review P2-2: profile and RLDI2 record are bound by bytes AND physical identity, like the class-path JARs.
+        {final Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));
+         expect(c.run(at("CLASSPATH_HASHED",new Step(){public void at()throws Exception{sameBytesNewFile(c.profile);}})),
+             "freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS","profile replaced by a byte-identical different file");}
+        {final Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));
+         expect(c.run(at("CLASSPATH_HASHED",new Step(){public void at()throws Exception{sameBytesNewFile(c.record);}})),
+             "freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS","RLDI2 record replaced by a byte-identical different file");}
+        {final Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));
+         expect(c.run(at("INVENTORY_DONE",new Step(){public void at()throws Exception{sameBytesNewFile(c.record);}})),
+             "freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS","RLDI2 record replaced by a byte-identical file right after RLDI2");}
+        {final Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));
+         expect(c.run(at("CLASSPATH_HASHED",new Step(){public void at()throws Exception{Map<String,String> m=c.prof();m.put("profile_uuid",UUID.randomUUID().toString());c.rewriteProfile(m);}})),
+             "freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS","profile content changed at the end of the inspection");}
+        {final Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));
+         expect(c.run(at("CLASSPATH_HASHED",new Step(){public void at()throws Exception{c.roles.put("lib/late.txt","document");Files.write(c.lib.resolve("late.txt"),new byte[]{1});c.describe();}})),
+             "freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS","RLDI2 record content changed at the end of the inspection");}
+        {final Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));
+         expect(c.run(at("CLASSPATH_HASHED",new Step(){public void at()throws Exception{Files.delete(c.record.toPath());}})),
+             "freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS","RLDI2 record gone at the end (identity unobtainable)");}
+        {Cand c=new Cand(POSIX,L(SQLITE),L(SQLITE));Path link=c.home.resolve("install-link.rldi2");boolean linked=false;
+         try{Files.createLink(link,c.record.toPath());linked=true;}catch(Exception noHardlink){}
+         if(!linked)System.out.println("NOT_RUN hard-linked RLDI2 record (cannot create a hard link here)");
+         else{DependencyReadiness.Report r=DependencyReadiness.inspect(true,c.profile,c.root.toFile(),link.toFile());safe(r,"hard-linked record");
+             check(!r.matched()&&!"MATCHED".equals(r.axis("freshness").status),"hard-linked RLDI2 record (identity refused): not MATCHED, freshness "+code(r,"freshness")+", reason "+r.reason);}}
 
         // ---------------------------------------------------------------- nothing written by the inspection
         {Cand c=new Cand(POSIX,L(SQLITE,API,NOP),L(SQLITE,API,NOP));Map<String,String> before=tree(c.home);c.run();check(before.equals(tree(c.home)),"inspection writes nothing (home tree byte-identical)");}
