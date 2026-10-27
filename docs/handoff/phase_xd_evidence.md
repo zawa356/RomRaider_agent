@@ -88,7 +88,7 @@ UNKNOWN (PoC only); process provenance UNKNOWN; directory durability UNKNOWN; MI
 |---|---|---|---|---|---|
 | Win11 dev VM | JDK17.0.20.1 x64 | `8dde278` (RED tests on `9aa2253` code) | X-D `--expect-red` | RED_COUNT 26 (new cases only), exit 0 | `cc8a8b19…459c` |
 | Win11 dev VM | JDK17.0.20.1 x64 | `9757533` | X-D (+closure 6, ACL 18) | 2170 / 2170 PASS | `ee2e5542…310b` |
-| Win11 dev VM | Zulu 1.8.0_504 x86, model 32 | `9757533` | X-D `--run-only` (+closure 6, ACL 18) | 2170 / 2170 PASS | `3e62e003…6977` |
+| Win11 dev VM | Zulu 1.8.0_504 x86, model 32 | `9757533` | X-D `--run-only` (+closure 6, ACL 18) | 2170 / 2170 PASS | `3e62e003…7101` |
 | Win11 dev VM | Zulu 1.8.0_504 x86 | `9757533` | `V1LaneMigrationTest` ×10 (CI failure triage) | 10 / 10 pass | — |
 | VPS Linux | OpenJDK 17.0.20.1 | `9757533` | X-D / X-C / phase8-inventory / X-A zip / X-B zip | 2218 / 244 / 76 / 45 / 26 PASS, all exit 0 | `47c1bed5…cd74`, others identical to the `4d9ad6e` row |
 | Docker host | — | — | — | **NOT_RUN** (not needed: change confined to `DependencyReadiness`; see worklog) | — |
