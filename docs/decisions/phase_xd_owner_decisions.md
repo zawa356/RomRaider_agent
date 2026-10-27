@@ -41,6 +41,14 @@ profiles; (d) whether an additive entry flag (e.g. `--readiness-rldr1`) is ever 
 volume root. Either the scope stops at an owner-controlled install anchor, or the root's broad "create folders/append"
 right must be judged acceptable for directories the user cannot rename. That is a scope decision, not a code fix.
 
+> **Correction 2026-10-27 (independent review):** the sentence above generalizes too far. What was measured is limited
+> to the environments actually inspected: the volume root of **one** Windows 11 dev VM was `MISMATCH`, and on the GitHub
+> `windows-latest` (Windows Server 2025) runner a fresh fixture under `RUNNER_TEMP` was `MISMATCH`. No claim is made
+> about Windows installations in general, other Windows 11/10 builds, or the X270 (not inspected). These observations
+> only show that a "volume-root" scope *can* fail on a real host; they do not decide the scope. Trusted principals and
+> parent scope remain `OWNER_DECISION_REQUIRED`. The bullet "not owner-controlled by default on every Windows host" above
+> likewise means only "not on that runner" — one counterexample, not a property of every host.
+
 **Owner decides:** trusted principals (SYSTEM? Administrators?); parent scope (install anchor vs. volume root); whether an
 ACL result may ever contribute to a gate; whether native effective-rights evaluation (JNA) is wanted. **UNKNOWN:** every
 real X270 ACL (not inspected, prohibited).
@@ -84,7 +92,7 @@ No real-writer measurement in X-D (requires separate owner approval, non-car hos
 |---|---|---|
 | RLDR1 | candidate, synthetic GREEN (Win11 x64/x86, Linux VPS, Docker Linux, CI) | yes (not adopted) |
 | SLF4J shipping | measured optional | owner |
-| Windows ACL | PoC: fixture candidate, parent chain MISMATCH/UNKNOWN | yes |
+| Windows ACL | PoC (inspected hosts only): fixture candidate, parent chain MISMATCH/UNKNOWN | yes |
 | Windows 10 | NOT_RUN (no VM); plan above | yes |
 | JNA | internal tests only; Linux cases now run | yes |
 | FILE_SHARE_DELETE / real writer | unchanged; WRITER_UNPROVEN | yes |

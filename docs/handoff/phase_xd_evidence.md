@@ -64,12 +64,12 @@ Local PG16 was stopped before and is stopped after. Remote sandboxes removed aft
 | Head | Workflow | Run | Attempt | Jobs | Result |
 |---|---|---|---|---|---|
 | `4d9ad6e` | Phase VII–IX | 40293098113 | 1 | 6 | success (X-D: ubuntu 1028, windows 1131 on JDK17 x64 and actual Zulu 1.8.0_512 x86, Windows Server 2025) |
-| `4d9ad6e` | ingress / spool / real Server E2E | 40293098114 / 40293098116 / 40293098126 | 1 | 5 / 2 / 1 | success |
+| `4d9ad6e` | ingress / spool / real Server E2E | 40293098114 / 40293098116 / 40293098126 | 1 | 4 / 2 / 1 (ingress corrected 2026-10-27 from "5"; API job count 4) | success |
 | `6272129` | Phase VII–IX | 40297595012 | 1 | 6 | **failure** — phase8 windows job 121487334190: ACL PoC test assumption (worklog) |
-| `6272129` | ingress / spool / real Server E2E | 40297595098 / 40297594981 / 40297594994 | 1 | 5 / 2 / 1 | success |
+| `6272129` | ingress / spool / real Server E2E | 40297595098 / 40297594981 / 40297594994 | 1 | 4 / 2 / 1 (ingress corrected 2026-10-27 from "5"; API job count 4) | success |
 | `9aa2253` | Phase VII–IX | 40300936878 | 1 | 6 | **failure** — phase8 windows job 121498362441: `DRIVE_TYPE_UNPROVEN` in `test-phase8-readiness.sh` (C4 probe timeout; X-D suite passed in that job) |
 | `9aa2253` | Phase VII–IX | 40300936878 | **2** (rerun of failed) | 6 | success — X-D windows 1144 + closure 6 + ACL 18 (x64 and x86), ubuntu (attempt 1 job) 1076 + 5 |
-| `9aa2253` | ingress / spool / real Server E2E | 40300936916 / 40300937000 / 40300936882 | 1 | 5 / 2 / 1 | success |
+| `9aa2253` | ingress / spool / real Server E2E | 40300936916 / 40300937000 / 40300936882 | 1 | 4 / 2 / 1 (ingress corrected 2026-10-27 from "5"; API job count 4) | success |
 
 Steps: Windows jobs 16 steps, 0 skipped; ubuntu jobs 15 steps, 3 skipped (the Windows-only x86 setup steps); spool
 durability 10/10; real Server E2E 17, 0 skipped. CI success is not "all tests PASS": ubuntu skips JNA cases; no CI job is
@@ -81,3 +81,24 @@ Windows 10, the X270 or a real writer. Docs-only heads on #107/#67 trigger no Ag
 synthetic_only=true; state=BLOCKED; launch_authorized=false; production_authorized=false; ack_eligible=false;
 formal_ack=DISABLED; reader_adoption=BLOCKED; global_old_binary_exclusion=NOT_PROVEN; WRITER_UNPROVEN; Windows ACL
 UNKNOWN (PoC only); process provenance UNKNOWN; directory durability UNKNOWN; MIN_WINDOWS=UNVERIFIED.
+
+## 2026-10-27 JST — review-fix round (appended)
+
+| Environment | Runtime | Head | Suite | Result | Log sha256 |
+|---|---|---|---|---|---|
+| Win11 dev VM | JDK17.0.20.1 x64 | `8dde278` (RED tests on `9aa2253` code) | X-D `--expect-red` | RED_COUNT 26 (new cases only), exit 0 | `cc8a8b19…459c` |
+| Win11 dev VM | JDK17.0.20.1 x64 | `9757533` | X-D (+closure 6, ACL 18) | 2170 / 2170 PASS | `ee2e5542…310b` |
+| Win11 dev VM | Zulu 1.8.0_504 x86, model 32 | `9757533` | X-D `--run-only` (+closure 6, ACL 18) | 2170 / 2170 PASS | `3e62e003…6977` |
+| Win11 dev VM | Zulu 1.8.0_504 x86 | `9757533` | `V1LaneMigrationTest` ×10 (CI failure triage) | 10 / 10 pass | — |
+| VPS Linux | OpenJDK 17.0.20.1 | `9757533` | X-D / X-C / phase8-inventory / X-A zip / X-B zip | 2218 / 244 / 76 / 45 / 26 PASS, all exit 0 | `47c1bed5…cd74`, others identical to the `4d9ad6e` row |
+| Docker host | — | — | — | **NOT_RUN** (not needed: change confined to `DependencyReadiness`; see worklog) | — |
+
+| Head | Workflow | Run | Attempt | Jobs | Result |
+|---|---|---|---|---|---|
+| `9757533` | Phase VII–IX | 40429872972 | 1 | 6 | **failure** — phase8 windows job 121944670108: `DRIVE_TYPE_UNPROVEN` (C4, 30.4 s gap) after X-D passed |
+| `9757533` | Phase VII–IX | 40429872972 | **2** (rerun of failed) | 6 | success — X-D windows 2170 + closure 6 + ACL 18 (x64 and x86), ubuntu 2079 + closure 5 |
+| `9757533` | ingress | 40429873076 | 1 | 4 | **failure** — Zulu8 x86 job 121944670338: `V1LaneMigrationTest` injection check, cause UNKNOWN (worklog) |
+| `9757533` | ingress | 40429873076 | **2** (rerun of failed) | 4 | success |
+| `9757533` | spool / real Server E2E | 40429873029 / 40429873024 | 1 | 2 / 1 | success |
+
+Total 13 jobs, all success at the latest attempt; two attempt-1 failures recorded above. Gates unchanged (as listed above).
