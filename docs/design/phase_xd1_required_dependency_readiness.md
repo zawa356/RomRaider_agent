@@ -55,10 +55,13 @@ it also says "not allowed".
 
 `DependencyReadiness.inspect(enable, profile, installRoot, rldi2Record[, hook])`. Disabled → `NOT_RUN`, nothing read.
 
-1. **freshness/start:** SHA-256 of the RLOP1 profile and RLDI2 record taken first.
+1. **freshness/start:** SHA-256 and physical identity (`DeploymentBinding.fileIdentity`) of the RLOP1 profile and RLDI2
+   record taken first (identity added 2026-10-27, review P2-2).
 2. **profile_policy:** RLOP1 read with `DeploymentBinding.readRecord(safe(...))`; version, mode, main class, known reader,
    the **same strict field set** as `OfflineCandidateEntry.verifyProfile` (duplicated read-only; the entry is not touched),
-   required fields present. Runtime facts are *not* checked (this is not the launched JVM) → see `process_provenance`.
+   required fields present; `expected_generation` parsed and range-checked and production-looking paths refused by
+   RLOP1's own package-private code (`OfflineCandidateEntry.Profile`, `requireNotProduction`; called, not copied — added
+   2026-10-27, review P2-1). Runtime facts are *not* checked (this is not the launched JVM) → see `process_provenance`.
 3. **inventory:** a fresh `DistributionInventoryV2.inspect` of the install (never a saved report). Not `MATCHED` →
    `required_set`/`classpath` are `UNKNOWN` `INVENTORY_NOT_MATCHED` (no trust in an unverified record).
 4. **classpath:** `ArtifactProvenance.parse(profile.classpath)`; every element absolute, normalized and **equal to its
@@ -69,8 +72,9 @@ it also says "not allowed".
    hash, size, class set; RLAP1's own codes, e.g. `CLASSPATH_ORDER_CHANGED`).
 5. **required_set:** pins on the class path (from the record pin id, already re-derived from bytes by RLDI2) vs. the
    policy row: `REQUIRED_PIN_MISSING`, `FORBIDDEN_PIN_PRESENT`, `OPTIONAL_GROUP_INCOMPLETE`, `DEPENDENCY_NOT_PINNED`.
-6. **freshness/end:** profile and record SHA-256 unchanged; every class-path JAR re-hashed and its file identity
-   (`DeploymentBinding.fileIdentity`) unchanged since step 4 → otherwise `INPUT_CHANGED_DURING_READINESS`. The result is
+6. **freshness/end:** profile and record SHA-256 and identity unchanged since step 1; every class-path JAR re-hashed and
+   its file identity unchanged since step 4 → otherwise (including unreadable / identity unavailable)
+   `INPUT_CHANGED_DURING_READINESS`. This is a snapshot of one inspection, not lasting safety. The result is
    `CURRENT_INSPECTION_ONLY`: no stored result is ever accepted, and none is valid later.
 7. **fixed axes:** `process_provenance` `UNKNOWN`/`NOT_INSPECTED`; `access_control` from RLDI2 (`UNKNOWN` on Windows);
    `writer` `UNKNOWN`/`WRITER_UNPROVEN`.

@@ -31,10 +31,15 @@ required/optional pins); an invalid policy prevents the class from loading.
 1. **profile_policy** — RLOP1 read through `DeploymentBinding.readRecord(safe(...))`; same static checks and strict field
    set as `OfflineCandidateEntry.verifyProfile` (`PROFILE_VERSION`, `PROFILE_MODE_UNSUPPORTED`,
    `UNKNOWN_OR_LEGACY_ENTRY_MAIN_CLASS`, `READER_UNSUPPORTED`, `PROFILE_FORMAT`, `PROFILE_UNKNOWN_FIELD`,
-   `OWNER_ROOT_MISMATCH`, `PROVENANCE_VERSION`; unreadable → `UNKNOWN` `PROFILE_UNREADABLE`, record format refusal →
-   `PROFILE_<code>`). Runtime facts are not compared (this is not the launched JVM).
+   `OWNER_ROOT_MISMATCH`, `PRODUCTION_PATH_REFUSED`, `PROVENANCE_VERSION`; unreadable → `UNKNOWN` `PROFILE_UNREADABLE`,
+   record format refusal → `PROFILE_<code>`, identity unavailable → `UNKNOWN` `PROFILE_IDENTITY_UNAVAILABLE`).
+   `expected_generation` is parsed by RLOP1's own `Profile` code (32-bit decimal, ≥ 0, else `PROFILE_FORMAT`) and the
+   production-path rule is RLOP1's own `requireNotProduction` (2026-10-27, review P2-1). Runtime facts are not compared
+   (this is not the launched JVM).
 2. **inventory** — a fresh `DistributionInventoryV2.inspect`; status `MATCHED` / `MISMATCH` / `UNKNOWN` (UNAVAILABLE), code =
-   RLDI2 reason. Not MATCHED → `classpath` and `required_set` `UNKNOWN` `INVENTORY_NOT_MATCHED`.
+   RLDI2 reason. Not MATCHED → `classpath` and `required_set` `UNKNOWN` `INVENTORY_NOT_MATCHED`. Record unreadable →
+   `UNKNOWN` `RECORD_UNREADABLE`; record identity unavailable (e.g. a hard-linked record) → `UNKNOWN`
+   `RECORD_IDENTITY_UNAVAILABLE`.
 3. **classpath** — `ArtifactProvenance.parse` of the profile class path, then per element: absolute; real path
    (`toRealPath`: links, junctions, 8.3 names, case) equal to the written, normalized path
    (`CLASSPATH_PATH_NOT_CANONICAL`); strictly inside the install root, whose own real path must equal it
@@ -48,8 +53,10 @@ required/optional pins); an invalid policy prevents the class from loading.
    reader rule: `REQUIRED_PIN_MISSING`, `FORBIDDEN_PIN_PRESENT`, `OPTIONAL_GROUP_INCOMPLETE`,
    `PIN_NOT_ALLOWED_FOR_PROFILE`, `DEPENDENCY_NOT_PINNED` (first in this order is the code; all are counted in
    `findings`). Blocked profile → `NOT_RUN` `PROFILE_POLICY_BLOCKED`.
-5. **freshness** — SHA-256 of profile and record at start and end, record also right after the inventory, and SHA-256
-   + physical identity (`DeploymentBinding.fileIdentity`) of every class-path JAR at hashing time and at the end:
+5. **freshness** — SHA-256 + physical identity (`DeploymentBinding.fileIdentity`) of profile and record at start and
+   end, record also right after the inventory, and of every class-path JAR at hashing time and at the end (profile and
+   record identity added 2026-10-27, review P2-2: a byte-identical replacement is a different file). Unreadable or
+   identity unavailable at the end counts as changed:
    `MATCHED` `CURRENT_INSPECTION_ONLY`, else `MISMATCH` `INPUT_CHANGED_DURING_READINESS`. Nothing bound (early stop) →
    `UNKNOWN` `NOTHING_BOUND`. No stored result is accepted, and none stays valid.
 6. **fixed** — `process_provenance` `UNKNOWN` `NOT_INSPECTED`; `writer` `UNKNOWN` `WRITER_UNPROVEN`; `access_control` from
