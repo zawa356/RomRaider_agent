@@ -129,16 +129,18 @@ public final class DependencyReadiness {
         if(profile==null||installRoot==null||record==null||!profile.isAbsolute()||!installRoot.isAbsolute()||!record.isAbsolute()){
             s.set("profile_policy","UNKNOWN","INPUT_PATH_NOT_ABSOLUTE");s.rest("UNKNOWN","INPUT_PATH_NOT_ABSOLUTE","inventory","classpath","required_set","freshness");return s.report();
         }
-        // ---- freshness start: both records are bound by their bytes for the whole inspection.
+        // ---- freshness start: both records are bound by their bytes and physical identity for the whole inspection.
         if(!Files.isRegularFile(profile.toPath(),LinkOption.NOFOLLOW_LINKS)){s.set("profile_policy","UNKNOWN","PROFILE_UNREADABLE");s.rest("UNKNOWN","PROFILE_NOT_MATCHED","inventory","classpath","required_set","freshness");return s.report();}
         final String profileSha=DeploymentTransition.fileSha(profile);
         Map<String,String> prof;
         try{prof=DeploymentBinding.readRecord(DeploymentBinding.safe(profile));}
         catch(DeploymentBinding.Refusal r){s.set("profile_policy","MISMATCH","PROFILE_"+r.getMessage());s.rest("UNKNOWN","PROFILE_NOT_MATCHED","inventory","classpath","required_set","freshness");return s.report();}
+        final String profileId;
+        try{profileId=DeploymentBinding.fileIdentity(profile);}catch(IOException unavailable){s.set("profile_policy","UNKNOWN","PROFILE_IDENTITY_UNAVAILABLE");s.rest("UNKNOWN","PROFILE_NOT_MATCHED","inventory","classpath","required_set","freshness");return s.report();}
         hook.at("PROFILE_READ");
 
         // ---- profile_policy: the static RLOP1 checks of OfflineCandidateEntry.verifyProfile (runtime facts are not ours).
-        String policy=profileCode(prof);Rule rule=null;
+        String policy=profileCode(prof,profileSha);Rule rule=null;
         if(OfflineCandidateEntry.knownReader(prof.get("reader")))s.reader=prof.get("reader");
         if(policy!=null)s.set("profile_policy","MISMATCH",policy);
         else{
@@ -148,18 +150,19 @@ public final class DependencyReadiness {
             else{s.set("profile_policy","MATCHED","PROFILE_POLICY_MATCHED");s.required.addAll(rule.required);}
         }
         if(!"MATCHED".equals(s.axes.get("profile_policy").status)&&!"BLOCKED".equals(s.axes.get("profile_policy").status)){
-            s.rest("UNKNOWN","PROFILE_NOT_MATCHED","inventory","classpath","required_set");finalFreshness(s,profile,profileSha,record,null,Collections.<File,String[]>emptyMap());return s.report();
+            s.rest("UNKNOWN","PROFILE_NOT_MATCHED","inventory","classpath","required_set");finalFreshness(s,profile,profileSha,profileId,record,null,null,Collections.<File,String[]>emptyMap());return s.report();
         }
 
         // ---- inventory: a fresh RLDI2 inspection; nothing stored is trusted.
-        String recordSha;
+        String recordSha,recordId;
         try{recordSha=DeploymentTransition.fileSha(record);}catch(Exception unreadable){s.set("inventory","UNKNOWN","RECORD_UNREADABLE");s.rest("UNKNOWN","INVENTORY_NOT_MATCHED","classpath","required_set","freshness");return s.report();}
+        try{recordId=DeploymentBinding.fileIdentity(record);}catch(IOException unavailable){s.set("inventory","UNKNOWN","RECORD_IDENTITY_UNAVAILABLE");s.rest("UNKNOWN","INVENTORY_NOT_MATCHED","classpath","required_set","freshness");return s.report();}
         DistributionInventoryV2.Report inv=DistributionInventoryV2.inspect(true,installRoot,record);
         s.set("inventory",inv.matched()?"MATCHED":"MISMATCH".equals(inv.inventory)?"MISMATCH":"UNKNOWN",inv.reason);
         if("POSIX_OWNER_ONLY_WRITE".equals(inv.acl))s.set("access_control","MATCHED",inv.acl);else s.set("access_control","POSIX_MISMATCH".equals(inv.acl)?"MISMATCH":"UNKNOWN",inv.acl);
         hook.at("INVENTORY_DONE");
-        if(!inv.matched()){s.rest("UNKNOWN","INVENTORY_NOT_MATCHED","classpath","required_set");finalFreshness(s,profile,profileSha,record,recordSha,Collections.<File,String[]>emptyMap());return s.report();}
-        if(!recordSha.equals(DeploymentTransition.fileSha(record))){s.set("freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS");s.rest("UNKNOWN","INVENTORY_NOT_MATCHED","classpath","required_set");return s.report();}
+        if(!inv.matched()){s.rest("UNKNOWN","INVENTORY_NOT_MATCHED","classpath","required_set");finalFreshness(s,profile,profileSha,profileId,record,recordSha,recordId,Collections.<File,String[]>emptyMap());return s.report();}
+        if(!same(record,recordSha,recordId)){s.set("freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS");s.rest("UNKNOWN","INVENTORY_NOT_MATCHED","classpath","required_set");return s.report();}
         Map<String,String[]> listed=listed(DeploymentBinding.readRecord(record.toPath()));
 
         // ---- classpath: exact ordered elements, all inside this install, inventoried, approved JAR first, exact dependency set.
@@ -168,7 +171,7 @@ public final class DependencyReadiness {
         if(cpCode!=null){
             s.set("classpath","MISMATCH",cpCode);s.rest("UNKNOWN","CLASSPATH_NOT_MATCHED","required_set");
             if("INPUT_CHANGED_DURING_READINESS".equals(cpCode)){s.set("classpath","UNKNOWN","INPUT_CHANGED_DURING_READINESS");s.set("freshness","MISMATCH",cpCode);}
-            finalFreshness(s,profile,profileSha,record,recordSha,bound);return s.report();
+            finalFreshness(s,profile,profileSha,profileId,record,recordSha,recordId,bound);return s.report();
         }
         s.set("classpath","MATCHED","CLASSPATH_MATCHED_INSTALL_ONLY");
 
@@ -187,25 +190,34 @@ public final class DependencyReadiness {
         }else s.set("required_set","NOT_RUN","PROFILE_POLICY_BLOCKED");
 
         hook.at("CLASSPATH_HASHED");
-        finalFreshness(s,profile,profileSha,record,recordSha,bound);
+        finalFreshness(s,profile,profileSha,profileId,record,recordSha,recordId,bound);
         return s.report();
     }
 
-    /** freshness end: profile, record and every hashed class-path JAR (bytes and physical identity) are unchanged. */
-    private static void finalFreshness(State s,File profile,String profileSha,File record,String recordSha,Map<File,String[]> bound){
+    /**
+     * freshness end: profile, record and every hashed class-path JAR are unchanged in bytes AND physical identity (a
+     * byte-identical replacement is a different file). A snapshot of this inspection only; nothing is held afterwards.
+     */
+    private static void finalFreshness(State s,File profile,String profileSha,String profileId,File record,String recordSha,String recordId,Map<File,String[]> bound){
         if("MISMATCH".equals(s.axes.get("freshness").status))return;
         boolean same;
         try{
-            same=profileSha.equals(DeploymentTransition.fileSha(profile))&&(recordSha==null||recordSha.equals(DeploymentTransition.fileSha(record)));
-            for(Map.Entry<File,String[]> e:bound.entrySet())same&=e.getValue()[0].equals(DeploymentTransition.fileSha(e.getKey()))&&e.getValue()[1].equals(DeploymentBinding.fileIdentity(e.getKey()));
+            same=same(profile,profileSha,profileId)&&(recordSha==null||same(record,recordSha,recordId));
+            for(Map.Entry<File,String[]> e:bound.entrySet())same&=same(e.getKey(),e.getValue()[0],e.getValue()[1]);
         }catch(Exception gone){same=false;}
         if(!same)s.set("freshness","MISMATCH","INPUT_CHANGED_DURING_READINESS");
         else if(recordSha==null||bound.isEmpty())s.set("freshness","UNKNOWN","NOTHING_BOUND");
         else s.set("freshness","MATCHED","CURRENT_INSPECTION_ONLY");
     }
 
-    /** Static RLOP1 checks in OfflineCandidateEntry.verifyProfile order; null when they pass. */
-    static String profileCode(Map<String,String> record){
+    /** Bytes and physical identity both as bound; an unreadable file or unavailable identity throws (callers fail closed). */
+    private static boolean same(File f,String sha,String id)throws Exception {return sha.equals(DeploymentTransition.fileSha(f))&&id.equals(DeploymentBinding.fileIdentity(f));}
+
+    /**
+     * Static RLOP1 checks in OfflineCandidateEntry.verifyProfile order; null when they pass. The generation format/range and
+     * the production-path rule are RLOP1's own code (Profile parsing, requireNotProduction), not a copy that could drift.
+     */
+    static String profileCode(Map<String,String> record,String sha)throws Exception {
         if(!OfflineCandidateEntry.PROFILE_VERSION.equals(record.get("version")))return "PROFILE_VERSION";
         if(!"SYNTHETIC_OWNED_ONLY".equals(record.get("mode")))return "PROFILE_MODE_UNSUPPORTED";
         if(!OfflineCandidateEntry.MAIN.equals(record.get("main_class")))return "UNKNOWN_OR_LEGACY_ENTRY_MAIN_CLASS";
@@ -217,7 +229,11 @@ public final class DependencyReadiness {
         for(String k:LAYOUT_KEYS)allowed.add("layout."+k);
         for(String k:record.keySet())if(!allowed.contains(k)&&!k.startsWith("artifact."))return "PROFILE_UNKNOWN_FIELD";
         for(String k:new String[]{"user","working_directory","data_root","java_executable","classpath","owner_root","expected_generation","profile_uuid"})if(record.get(k)==null)return "PROFILE_FORMAT";
+        OfflineCandidateEntry.Profile p;
+        try{p=new OfflineCandidateEntry.Profile(record,sha);}catch(OfflineCandidateEntry.Refusal r){return r.getMessage();}
+        if(p.expectedGeneration<0)return "PROFILE_FORMAT";
         if(!record.get("owner_root").equals(record.get("layout.root")))return "OWNER_ROOT_MISMATCH";
+        try{OfflineCandidateEntry.requireNotProduction(p);}catch(OfflineCandidateEntry.Refusal r){return r.getMessage();}
         if(!ArtifactProvenance.VERSION.equals(record.get("artifact.version")))return "PROVENANCE_VERSION";
         return null;
     }
