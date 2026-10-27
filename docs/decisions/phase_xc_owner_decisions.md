@@ -186,3 +186,9 @@ network/removable/subst drives (refused by design).
 
 Unchanged everywhere: synthetic_only, launch/production/ACK disabled, formal_ack=DISABLED, reader_adoption=BLOCKED,
 global_old_binary_exclusion=NOT_PROVEN, WRITER_UNPROVEN.
+
+## Note (2026-10-26, Phase X-D0)
+
+§1 "RLDI1 code is byte-identical to `main`" describes the X-C head before the independent review. The merged #106 also
+contains the review-P2 fix in `DistributionInventory.java` (JSON string escaping only, +18/−5; see the X-C report §8).
+RLDI1's inspection, findings, refusal policy, record format and `describe` were not changed.

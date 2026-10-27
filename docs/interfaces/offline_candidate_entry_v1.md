@@ -18,7 +18,7 @@ There is no override flag and no environment-variable bypass. `SOURCES_CSV` is t
 
 ## RLOP1 launch profile
 
-A private `key=base64` record (DeploymentBinding record format), CREATE_NEW, never overwritten (`createProfile`). Fields: `version=RLOP1`, `mode=SYNTHETIC_OWNED_ONLY`, `main_class` (must be this class), `reader` (`POSIX` or `WINDOWS_NATIVE_TEST_ONLY`), `user`, canonical `working_directory`, `data_root`, `java_executable`, exact ordered absolute `classpath` string, `artifact.*` (RLAP1 description: per-JAR SHA-256/size/class-set hash, Java specification, data model), `layout.*` (RLDB layout fields), `owner_root` (must equal `layout.root`), `expected_generation`, `profile_uuid`.
+A private `key=base64` record (DeploymentBinding record format), CREATE_NEW, never overwritten (`createProfile`). Fields: `version=RLOP1`, `mode=SYNTHETIC_OWNED_ONLY`, `main_class` (must be this class), `reader` (`POSIX`, `WINDOWS_NATIVE_TEST_ONLY` or — since Phase IX-3 — `WINDOWS_NATIVE_V1_SYNTHETIC`; see the 2026-10-26 note at the end), `user`, canonical `working_directory`, `data_root`, `java_executable`, exact ordered absolute `classpath` string, `artifact.*` (RLAP1 description: per-JAR SHA-256/size/class-set hash, Java specification, data model), `layout.*` (RLDB layout fields), `owner_root` (must equal `layout.root`), `expected_generation`, `profile_uuid`.
 
 The field set is strict: any field outside the list above (except `artifact.*`, which must then match RLAP1 exactly) is refused with `PROFILE_UNKNOWN_FIELD`, so a smuggled flag such as `launch_authorized=true` can never be ignored into a run.
 
@@ -56,3 +56,10 @@ directory (no link following). If it was removed after the profile check, the ru
 `WORKING_DIRECTORY_MISSING` (exit 5), no child is started and no data or output byte changes. Previously the same case
 surfaced as an uncoded `REVIEW_REQUIRED` (Win32 `CreateProcess error=267` inside `ProcessBuilder.start`). The supervisor
 never recreates the directory and never retries. Test: `bash scripts/phase7-packaged.sh Phase9WorkdirTest`.
+
+## Correction: reader values (Phase X-D0, 2026-10-26)
+
+The RLOP1 field list above named only `POSIX` and `WINDOWS_NATIVE_TEST_ONLY` until 2026-10-26. The code
+(`OfflineCandidateEntry.knownReader`) has accepted a third value since Phase IX-3: `WINDOWS_NATIVE_V1_SYNTHETIC` (RLWR1
+product reader candidate; Windows only; requires the JNA 5.14.0 JAR by SHA-256 and refuses the test reader class;
+`reader_adoption=BLOCKED`). Documentation drift only; no code or contract behaviour changed.

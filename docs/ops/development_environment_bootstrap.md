@@ -1,5 +1,17 @@
 # Development environment bootstrap — start here
 
+## Current state — 2026-10-26 (supersedes every dated entry below; those are history)
+
+- Phase X-C is **merged**: Agent `main` = `bcc81566b2c90b61de88ec0fb7fb3bf43631e0f9` (merge commit of #106, head `ff133ae`);
+  Server `main` = `3f16a701fb6fe1b0f94780f8dfef1ec38515dd84` (unchanged). The 2026-10-25 block below calls X-C "Draft": history.
+- Phase X-D: docs/design track Draft PR #107 (`phase-xd/readiness-design`), implementation Draft PR #108
+  (`phase-xd/dependency-readiness`, RLDR1 candidate, default-off). Both unmerged. See [X-D worklog](../handoff/phase_xd_worklog.md).
+- Environments re-verified 2026-10-26 (read-only preflight, pinned host keys matched): VPS Linux (JDK17, 4 vCPU/8 GB) and the
+  separate Docker host (Docker 27.3.1, 14 pre-existing containers Up, images `postgres:16-alpine`, `python:3.12-slim`,
+  `eclipse-temurin:17-jdk` present). Local PG16 test cluster on 127.0.0.1:55432 was found stopped; started for one run and
+  stopped again. In Git Bash with `MSYS_NO_PATHCONV=1`, pass the helper's own path in Windows form (`C:\Dev\tools\...`).
+- Unchanged gates as below.
+
 ## Current state — 2026-10-25 (supersedes every dated entry below; those are history)
 
 - Phase X-B is **complete and merged**. Agent `main` = `7fdb4db893828718621ce8965664a89e36b9281a` (merge commit of
