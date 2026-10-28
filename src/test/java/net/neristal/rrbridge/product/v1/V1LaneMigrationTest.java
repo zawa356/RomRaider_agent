@@ -7,6 +7,8 @@ public final class V1LaneMigrationTest {
  static int checks;interface Action{void run()throws Exception;}
  static void check(boolean b,String s){if(!b)throw new AssertionError(s);checks++;System.out.println("PASS "+s);}
  static void reject(Action a,String s)throws Exception {try{a.run();}catch(Exception e){check(true,s);return;}throw new AssertionError(s);}
+ /** Phase X-E1 RED stub: same catch-all as reject(); GREEN accepts only the injected instance after the hook ran. */
+ static void rejectAtInjection(Action a,Exception injection,boolean[] reached,String s)throws Exception {reject(a,s);}
  static void execute(File db,String text)throws Exception {try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+db);Statement s=c.createStatement()){s.execute(text);}}
  public static void main(String[] args)throws Exception {
   if(args.length>0){V1LaneMigration.migrateCopy(true,true,new File(args[0]),new File(args[1]),new V1LaneMigration.Hook(){public void beforeCommit(){Runtime.getRuntime().halt(84);}});throw new AssertionError("migration halt not reached");}
