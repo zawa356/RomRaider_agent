@@ -428,3 +428,7 @@ Remote+NTFS simulation passed the old path-only gate (RED). Added read-only Win3
 
 Actual child parent replacement caused the prior stager to write a competing empty internal RLI2 before later refusal. Native parent/work identity revalidation now refuses before that write; development10 checks PASS for directory replacement and actual Windows junction insertion, preserving competitor bytes, moved own evidence and original/ACK bytes. Exact tested source heads and final matrix follow in Phase VI evidence; no global race or power-loss claim.
 
+
+## 2026-10-28 — Phase X-E CI 失敗診断（Claude Code、Draft PR、未マージ）
+
+X-D 統合後の `main` `cfa7543` から開始。CI ログ調査（再実行なし）：Zulu8 x86 の `V1LaneMigrationTest` 失敗は hook 前に 5.13 s 停滞（通常 0.13–0.24 s）し、`reject()` が任意の例外を「注入成功」として受理していたため原因がログに残らなかった。テスト側で注入インスタンスのみ受理し、先行例外はパス無し診断で FAIL するよう修正（RED→GREEN、製品変更なし）。原因は fsutil 5 s bound 由来の仮説（HYPOTHESIS）、ローカル 20 回で再現せず。C4（`DRIVE_TYPE_UNPROVEN`）は 2 件とも phase8 Windows job 最初の PowerShell probe（成功 6–15 s、失敗 30.4/35.3 s）。`requireFixed` が失敗種別を捨てていたため分類不能 → `ProbeFailure` を cause に残す観測性のみ追加。原因 UNKNOWN、timeout/条件は不変。詳細は `handoff/phase_xe_evidence.md`。

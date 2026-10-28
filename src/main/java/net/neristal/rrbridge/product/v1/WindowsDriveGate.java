@@ -31,6 +31,8 @@ public final class WindowsDriveGate {
     public static final class ProbeFailure extends IOException {
         public final String kind;public final long elapsedMillis;
         ProbeFailure(String kind,long elapsedMillis){super("DRIVE_TYPE_UNPROVEN");this.kind=kind;this.elapsedMillis=elapsedMillis;}
+        /** Phase X-E2: stack-trace text names kind and ms (never a path or reply); getMessage() stays the stable code. */
+        @Override public String toString(){return "WindowsDriveGate.ProbeFailure: DRIVE_TYPE_UNPROVEN probe="+kind+" ms="+elapsedMillis;}
     }
     // Fixed program only. The root arrives on stdin as data, never in PowerShell source/arguments.
     private static final String PROGRAM=
@@ -65,7 +67,12 @@ public final class WindowsDriveGate {
     /** No filesystem access; rejects unknown/remote/removable/subst and inconsistent replies before path inspection. */
     public static void requireFixed(String root,Probe probe)throws IOException {
         if(root==null||!root.matches("[A-Za-z]:\\\\")||probe==null)throw new DeploymentBinding.Refusal("DRIVE_TYPE_UNPROVEN");
-        String result;try{result=probe.query(root.toUpperCase(Locale.ROOT));}catch(IOException unavailable){throw new DeploymentBinding.Refusal("DRIVE_TYPE_UNPROVEN");}
+        String result;try{result=probe.query(root.toUpperCase(Locale.ROOT));}catch(IOException unavailable){
+            // Same refusal; only the gate's own diagnostic (kind/ms) is chained, never another probe's arbitrary text.
+            DeploymentBinding.Refusal refused=new DeploymentBinding.Refusal("DRIVE_TYPE_UNPROVEN");
+            if(unavailable instanceof ProbeFailure)refused.initCause(unavailable);
+            throw refused;
+        }
         if(!"3|LOCAL\n".equals(result)&&!"3|LOCAL\r\n".equals(result))throw new DeploymentBinding.Refusal("LOCAL_FIXED_DRIVE_REQUIRED");
     }
     static long elapsed(long start){return TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start);}

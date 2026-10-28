@@ -1,5 +1,14 @@
 # Development environment bootstrap — start here
 
+## Current state — 2026-10-28 (supersedes every dated entry below; those are history)
+
+- Phase X-D is **merged**: Agent `main` = `cfa7543fbf7de9d2aad1a38f064337b26a6784aa` (merge of #108, head `9757533`; #107 merged as
+  `1fd3816`); Server `main` = `139da11927624887006cd98f1b8d6d7dba4e3d97` (#67). The 2026-10-26 block calls them Draft: history.
+- Phase X-E: Draft PR `phase-xe/ci-diagnostics` — see [X-E plan](../handoff/phase_xe_plan.md) / [evidence](../handoff/phase_xe_evidence.md).
+- Dev VM `%TEMP%` held 10 825 old `romlogger-*` fixtures on 2026-10-28 (owner cleanup; X-E used its own TMP). The VPS SSH helper
+  works with Git Bash; do not set `JAVA_TOOL_OPTIONS` for `test-phase-xa-drive.sh` (its stderr notice breaks the silent-child case).
+- Unchanged gates as below.
+
 ## Current state — 2026-10-26 (supersedes every dated entry below; those are history)
 
 - Phase X-C is **merged**: Agent `main` = `bcc81566b2c90b61de88ec0fb7fb3bf43631e0f9` (merge commit of #106, head `ff133ae`);
