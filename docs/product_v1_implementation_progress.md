@@ -465,3 +465,13 @@ Reproduced/fixed vault-only late-journal completion, abandon while a child holds
 ## 2026-10-20 — Phase VII single offline candidate entry (Claude Code, unmerged)
 
 Stack PR86→[87](https://github.com/zawa356/RomRaider_agent/pull/87)→[88](https://github.com/zawa356/RomRaider_agent/pull/88)→[89](https://github.com/zawa356/RomRaider_agent/pull/89)→[90](https://github.com/zawa356/RomRaider_agent/pull/90)→[91](https://github.com/zawa356/RomRaider_agent/pull/91), all draft. Final product runtime `67657d9`, tests `d93a975`; open readiness defect VII-C2 reproduced by a separate review session. Independent review reproduced F1: the preflight-approved `Rlc2IntegrationCli` wrote while an actual child held the Lane/Publication lock. New `OfflineCandidateEntry` (RLOE1) is the only approved main: pinned RLOP1 launch profile, RLSO1 ownership marker checked before DB access, supervisor-owned child that writes only via `ingestBoundActive`; diagnose always BLOCKED; production live always refused. `IntegratedReadiness` (RLIR1) reports 15 per-axis results from one read-only call. One synthetic-owned E2E command covers multi-source store, restart, rotation + RLDT1 admission, forced child kill/retry, readiness and actual FastAPI/owned PG16 HTTP (test ACK only). Adversarial processes reproduced the sidecar-free writer limit (WRITER_UNPROVEN kept) and found/fixed a supervisor race. Old Worker/Once/Spool/Sender/CLI unchanged and not fenced. Exact results: [Phase VII report](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_report.md) / [evidence](https://github.com/zawa356/RomRaider_agent/blob/phase7/adversarial/docs/handoff/phase7_validation_evidence.md). CI NOT RUN; no launch/production/ACK authorization.
+
+## 2026-10-28 — Phase X-E CI stability / failure diagnostics (Claude Code, Draft PR, unmerged)
+
+Base Agent `main` `cfa7543` (Phase X-D merged 2026-10-27: #107 `1fd3816`, #108 `cfa7543`; Server #67 `139da11`).
+X-E1: `V1LaneMigrationTest` accepted any exception as the injected prepared-commit interruption; now only the injected
+instance after the hook, anything else fails with a path-free `[PRIOR_EXCEPTION …]` diagnostic (test-only, RED `d70b9b8`
+→ GREEN `e591d42`). The x86 CI failure of run 40429873076 is a HYPOTHESIS (5.13 s pre-hook stall, consistent with the 5 s
+fsutil bound), NOT_REPRODUCED 0/20. X-E2: C4 stays UNKNOWN; `WindowsDriveGate.requireFixed` now chains the probe's
+`ProbeFailure` (`probe=<kind> ms=<n>`) under the unchanged `DRIVE_TYPE_UNPROVEN` (RED `dccc63f` → GREEN `c309185`); no
+timeout/retry/relaxation. Details: [X-E evidence](handoff/phase_xe_evidence.md).
