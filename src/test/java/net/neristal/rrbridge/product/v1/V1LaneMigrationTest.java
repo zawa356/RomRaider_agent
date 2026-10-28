@@ -7,8 +7,26 @@ public final class V1LaneMigrationTest {
  static int checks;interface Action{void run()throws Exception;}
  static void check(boolean b,String s){if(!b)throw new AssertionError(s);checks++;System.out.println("PASS "+s);}
  static void reject(Action a,String s)throws Exception {try{a.run();}catch(Exception e){check(true,s);return;}throw new AssertionError(s);}
- /** Phase X-E1 RED stub: same catch-all as reject(); GREEN accepts only the injected instance after the hook ran. */
- static void rejectAtInjection(Action a,Exception injection,boolean[] reached,String s)throws Exception {reject(a,s);}
+ /**
+  * Phase X-E1: accepts only the exact injected instance after the hook ran. Anything else fails with a diagnostic of
+  * type, stable code, first product frame and elapsed ms; never the message of an arbitrary exception (may hold a path).
+  */
+ static void rejectAtInjection(Action a,Exception injection,boolean[] reached,String s)throws Exception {
+  long start=System.nanoTime();
+  try{a.run();}catch(Exception e){if(e==injection&&reached[0]){check(true,s);return;}throw new AssertionError(s+" "+diagnostic("PRIOR_EXCEPTION",e,reached[0],start));}
+  throw new AssertionError(s+" "+diagnostic("NO_EXCEPTION",null,reached[0],start));
+ }
+ static String diagnostic(String kind,Exception e,boolean reached,long start) {
+  String type="-",code="-",at="-";
+  if(e!=null) {
+   type=e.getClass().getSimpleName();
+   String m=e.getMessage();
+   if(e instanceof DeploymentBinding.Refusal||(e.getClass()==IOException.class&&m!=null&&m.matches("[A-Za-z_ ;-]{1,96}")))code=m;
+   else if(e instanceof SQLException)code="sqlite_"+((SQLException)e).getErrorCode();
+   for(StackTraceElement f:e.getStackTrace())if(f.getClassName().startsWith("net.neristal.rrbridge.")&&!f.getClassName().contains("Test")&&!f.getMethodName().equals("require")){at=f.getClassName().substring(f.getClassName().lastIndexOf('.')+1)+"."+f.getMethodName()+":"+f.getLineNumber();break;}
+  }
+  return "["+kind+" type="+type+" code="+code+" at="+at+" hook_reached="+reached+" elapsed_ms="+java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start)+"]";
+ }
  static void execute(File db,String text)throws Exception {try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+db);Statement s=c.createStatement()){s.execute(text);}}
  public static void main(String[] args)throws Exception {
   if(args.length>0){V1LaneMigration.migrateCopy(true,true,new File(args[0]),new File(args[1]),new V1LaneMigration.Hook(){public void beforeCommit(){Runtime.getRuntime().halt(84);}});throw new AssertionError("migration halt not reached");}
@@ -23,8 +41,8 @@ public final class V1LaneMigrationTest {
   V1LaneMigration.Report report=V1LaneMigration.preflight(true,true,source);
   check(report.acked==1&&report.pending==1&&report.rows.get("v1_import_cursors")==1,"dry-run inventories ACK/unACK and cursor");
   check(!target.exists()&&java.util.Arrays.equals(original,Files.readAllBytes(source.toPath())),"dry-run creates no target and changes no input bytes");
-  final boolean[] injected={false};
-  reject(new Action(){public void run()throws Exception{V1LaneMigration.migrateCopy(true,true,source,target,new V1LaneMigration.Hook(){public void beforeCommit()throws Exception{injected[0]=true;throw new IOException("injected interruption");}});}},"interrupted migration refuses");
+  final boolean[] injected={false};final IOException injection=new IOException("injected interruption");
+  rejectAtInjection(new Action(){public void run()throws Exception{V1LaneMigration.migrateCopy(true,true,source,target,new V1LaneMigration.Hook(){public void beforeCommit()throws Exception{injected[0]=true;throw injection;}});}},injection,injected,"interrupted migration refuses");
   check(injected[0]&&target.length()>0,"injection actually reached prepared migration commit");
   try(Connection c=DriverManager.getConnection("jdbc:sqlite:"+target);Statement s=c.createStatement();ResultSet r=s.executeQuery("SELECT count(*) FROM sqlite_master WHERE name='lane_migration_v1'")){r.next();check(r.getInt(1)==0,"interruption rolls back metadata/inventory/guards atomically");}
   V1LaneMigration.Report migrated=V1LaneMigration.migrateCopy(true,true,source,target,V1LaneMigration.NO_FAULT);
